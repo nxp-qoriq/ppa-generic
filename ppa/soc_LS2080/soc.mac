@@ -1,0 +1,40 @@
+// soc.mac
+// 
+// include file for SoC-specific asm macros
+//
+// Copyright (c) 2015, 2016 Freescale Semiconductor, Inc. All rights reserved.
+//
+
+//-----------------------------------------------------------------------------
+
+#ifndef _SOC_MAC
+#define	_SOC_MAC
+
+//-----------------------------------------------------------------------------
+
+ // get data from the specified core area field
+ //   arg: field_name = field name define
+ //   in:  x0 = core mask (lsb)
+ //   out: x0 = value read from core field
+ //   uses x0, x30
+.macro getCoreData x0 $field_name
+	bl   _get_core_data
+	ldr  x0, [x0, #\$field_name]
+.endm
+
+ //-------------------------------
+
+ // save data in the specified core area field
+ //   arg: field_name = field name define
+ //   arg: p1 = data to write to field
+ //   in:  x0 = core mask (lsb)
+ //   out: none
+ //   uses x0, x30, $p1
+.macro saveCoreData x0 $p1 $field_name
+	bl   _get_core_data
+	str  \$p1, [x0, #\$field_name]
+.endm
+
+//-----------------------------------------------------------------------------
+
+#endif // _SOC_MAC
