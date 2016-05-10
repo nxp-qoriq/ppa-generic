@@ -79,7 +79,7 @@ $(PRE_TARG):
 	$(LD64) $(MMAP) $(MSCRIPT) $(LDFLAGS64) $(wildcard $(OBJ_DIR)/*.o) -o $(OBJ_DIR)/$@
 
 ppa.itb: ppa.its monitor.bin
-	$(MKIMAGE) -f $(SRC_DIR)/$< $(OBJ_DIR)/$@
+	$(MKIMAGE) -f $(SRC_DIR)/ppa.its $(OBJ_DIR)/$@
 
 bootmain.64.elf: $(HDRS_ASM) $(TST_OBJECTS)
 	$(LD64) $(BMAP) $(MSCRIPT) $(LDFLAGS64) $(wildcard $(OBJ_DIR)/*.o) -o $(OBJ_DIR)/$@

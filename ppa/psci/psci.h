@@ -112,6 +112,7 @@
 .equ POWER_STATE_MASK,		(POWER_LEVEL_MASK | STATE_TYPE_MASK)
 
  // psci function id's
+.align 3
 .equ PSCI_VERSION_ID,       0x84000000
 .equ CPU_SUSPEND_ID,        0xC4000001
 .equ PSCI_CPU_OFF_ID,       0x84000002
@@ -127,16 +128,6 @@
 .equ PSCI_ABORT_CNT,        100
 
  // data area offsets
-.equ STATE_DATA_OFFSET,        0x0
-.equ SPSR_EL3_DATA_OFFSET,     0x8
-.equ CNTXT_DATA_OFFSET,        0x10
-.equ START_DATA_OFFSET,        0x18
-.equ LR_DATA_OFFSET,           0x20
-.equ GICC_CTLR_DATA_OFFSET,    0x28
-.equ ABORT_FLAG_OFFSET,        0x30
-.equ SCTLR_DATA_OFFSET,        0x38
-.equ CPUECTLR_OFFSET,          0x40
-
 .equ CORE_STATE_DATA,   0x0
 .equ SPSR_EL3_DATA,     0x8
 .equ CNTXT_ID_DATA,     0x10

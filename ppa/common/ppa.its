@@ -6,7 +6,7 @@
 	images {
 		firmware@1 {
 			description = "PPA Firmware: Version 0.2";
-			data = /incbin/("./build/obj/monitor.bin");
+			data = /incbin/("../obj/monitor.bin");
 			type = "firmware";
 			arch = "arm64";
 			compression = "none";

@@ -532,7 +532,8 @@ _soc_core_phase1_off:
      // set CPUECTLR[2:0] for timer ticks before core enters retention
     mrs   x4, S3_1_C15_C2_1
     mov   x1, x4
-    bl    _save_CPUECTLR
+    saveCoreData x0 x1 CPUECTLR_DATA
+
     ldr   x0, =CPUECTLR_TIMER_8TICKS
     bfxil x4, x0, #0, #3 
      // set CPUECTLR.SMPEN to 1 (regardless of ARM specs) 
@@ -856,50 +857,50 @@ _soc_core_restart:
 #endif
 
      // x0 = core mask lsb
-
+//---
      // disable forwarding of group 0 interrupts by setting GICD_CTLR[0] = 0
-    ldr  x2, =GICD_BASE_ADDR
-    ldr  w1, [x2, #GICD_CTLR_OFFSET]
+    ldr  x4, =GICD_BASE_ADDR
+    ldr  w1, [x4, #GICD_CTLR_OFFSET]
     bic  w1, w1, #GICD_CTLR_EN_GRP0
-    str  w1, [x2, #GICD_CTLR_OFFSET]
+    str  w1, [x4, #GICD_CTLR_OFFSET]
     dsb sy
     isb
 
      // x0 = core mask lsb
-     // x2 = GICD_BASE_ADDR
+     // x4 = GICD_BASE_ADDR
 
      // set interrupt ID 15 to group 0 by setting GICD_IGROUP0[15] = 0 
-    ldr  w1, [x2, #GICD_IGROUPR0_OFFSET]
+    ldr  w1, [x4, #GICD_IGROUPR0_OFFSET]
     bic  w1, w1, #GICD_IGROUP0_SGI15
-    str  w1, [x2, #GICD_IGROUPR0_OFFSET]
+    str  w1, [x4, #GICD_IGROUPR0_OFFSET]
 
      // set the priority of SGI 15 to highest
-    ldr  w1, [x2, #GICD_IPRIORITYR3_OFFSET]
+    ldr  w1, [x4, #GICD_IPRIORITYR3_OFFSET]
     bic  w1, w1, #GICD_IPRIORITY_SGI15_MASK
-    str  w1, [x2, #GICD_IPRIORITYR3_OFFSET]
+    str  w1, [x4, #GICD_IPRIORITYR3_OFFSET]
     
      // x0 = core mask lsb
      // x2 = GICD_BASE_ADDR
 
      // enable forwarding of SGI 15 by setting GICD_ISENABLER0[15] = 1
-    ldr  w1, [x2, #GICD_ISENABLER0_OFFSET]
+    ldr  w1, [x4, #GICD_ISENABLER0_OFFSET]
     orr  w1, w1, #GICD_ISENABLE0_SGI15
-    str  w1, [x2, #GICD_ISENABLER0_OFFSET]
+    str  w1, [x4, #GICD_ISENABLER0_OFFSET]
 
      // enable forwarding of group 0 interrupts by setting GICD_CTLR[0] = 1
-    ldr  w1, [x2, #GICD_CTLR_OFFSET]
+    ldr  w1, [x4, #GICD_CTLR_OFFSET]
     orr  w1, w1, #GICD_CTLR_EN_GRP0
     orr  w1, w1, #GICD_CTLR_EN_GRP1
-    str  w1, [x2, #GICD_CTLR_OFFSET]
+    str  w1, [x4, #GICD_CTLR_OFFSET]
     dsb sy
     isb
 
      // activate SGI 15
 //    ldr  x1, =GICD_ISACTIVER0_SGI15
-//    str  w1, [x2, #GICD_ISACTIVER0_OFFSET]
+//    str  w1, [x4, #GICD_ISACTIVER0_OFFSET]
 
      // x0 = core mask lsb
-     // x2 = GICD_BASE_ADDR
+     // x4 = GICD_BASE_ADDR
 
      // fire SGI by writing to GICD_SGIR the following values:
      // [25:24] = 0x0 (forward interrupt to the CPU interfaces specified in CPUTargetList field)
@@ -908,30 +909,20 @@ _soc_core_restart:
      // [3:0]   = 0xF (interrupt ID = 15)
     lsl  w1, w0, #16
     orr  w1, w1, #0xF
-    str  w1, [x2, #GICD_SGIR_OFFSET]
+    str  w1, [x4, #GICD_SGIR_OFFSET]
     dsb sy
     isb
+//---
 
-    mov  x4, x0
-
-     // x2 = GICD_BASE_ADDR
-     // x4 = target core mask lsb
-
-     // get current core mask
-    bl   _get_current_mask
-
-     // x0 = current core mask lsb
-     // x2 = GICD_BASE_ADDR
-     // x4 = target core mask lsb
-
-     // set the interrupt pending
-    lsl  w0, w0, #GICD_SPENDSGIR3_SGI15_OFFSET
-    str  w1, [x2, #GICD_SPENDSGIR3_OFFSET]
+     // x0 = core mask lsb
 
      // get the state of the core and loop til the
      // core state is "RELEASED" or until timeout 
 
     ldr  x3, =RESTART_RETRY_CNT
+    mov  x4, x0
+
+     // x4 = core mask lsb
 
 1:
     mov  x0, x4

@@ -207,7 +207,7 @@ core_in_powerdown:
      // save cpuectlr
     mrs  x1, CPUECTLR_EL1
     mov  x0, x8
-    bl   _save_CPUECTLR
+    saveCoreData x0 x1 CPUECTLR_DATA
 
      // save the core mask and enter power-down
     mov  x9, x8
@@ -225,7 +225,7 @@ core_in_powerdown:
 
      // restore cpuectlr
     mov  x0, x9
-    bl   _get_saved_CPUECTLR
+    getCoreData x0 CPUECTLR_DATA
     msr  CPUECTLR_EL1, x0
 
      // set the spsr for exit from EL3
@@ -338,7 +338,7 @@ cluster_in_pwrdn:
      // save cpuectlr
     mrs  x1, CPUECTLR_EL1
     mov  x0, x12
-    bl   _save_CPUECTLR
+    saveCoreData x0 x1 CPUECTLR_DATA
 
     mov  x0, x12
     bl   _soc_clstr_entr_pwrdn
@@ -353,7 +353,7 @@ cluster_in_pwrdn:
 
      // restore cpuectlr
     mov  x0, x12
-    bl   _get_saved_CPUECTLR
+    getCoreData x0 CPUECTLR_DATA
     msr  CPUECTLR_EL1, x0
 
      // set the spsr for exit from EL3
@@ -456,7 +456,7 @@ system_in_pwrdn:
      // save cpuectlr
     mrs  x1, CPUECTLR_EL1
     mov  x0, x12
-    bl   _save_CPUECTLR
+    saveCoreData x0 x1 CPUECTLR_DATA
 
     mov  x0, x12
     bl   _soc_sys_entr_pwrdn
@@ -473,7 +473,7 @@ system_in_pwrdn:
 
      // restore cpuectlr
     mov  x0, x12
-    bl   _get_saved_CPUECTLR
+    getCoreData x0 CPUECTLR_DATA
     msr  CPUECTLR_EL1, x0
 
      // clear SCR_EL3[IRQ]
@@ -539,11 +539,10 @@ smc64_psci_cpu_on:
      // we have an invalid parameter (mpidr)
     b    psci_invalid
 4:
-    mov  x5, x0
+    mov  x6, x0
 
      // x4   = spsr_el3 of caller
-     // x5   = core mask (lsb)
-     // x6   = target cpu (mpidr)
+     // x6   = core mask (lsb)
      // x7   = start address
      // x8   = context id
 
@@ -553,7 +552,7 @@ smc64_psci_cpu_on:
 
      // check core data area to see if core cannot be turned on
      // read the core state
-    mov  x0, x5
+    mov  x0, x6
     getCoreData x0 CORE_STATE_DATA
 
     cmp  x0, #CORE_DISABLED
@@ -565,31 +564,38 @@ smc64_psci_cpu_on:
     mov  x9, x0
 
      // x4   = spsr_el3 of caller
-     // x5   = core mask (lsb)
-     // x6   = target cpu (mpidr)
+     // x6   = core mask (lsb)
      // x7   = start address
      // x8   = context id
      // x9   = core state (from data area)
 
      // save spsr_el3 in data area
-    mov  x0, x5
+    mov  x0, x6
     mov  x1, x4
     saveCoreData x0 x1 SPSR_EL3_DATA
 
+     // x6   = core mask (lsb)
+     // x7   = start address
+     // x8   = context id
+     // x9   = core state (from data area)
+
      // save +
     and   x1, x4, #SPSR_EL_MASK
-    mov   x0, x5
+    mov   x0, x6
     bl    _save_core_sctlr
 
      // set start addr in data area
-    mov  x0, x5
+    mov  x0, x6
     mov  x1, x7
     saveCoreData x0 x1 START_ADDR_DATA
 
      // set context id in data area
-    mov  x0, x5
+    mov  x0, x6
     mov  x1, x8
     saveCoreData x0 x1 CNTXT_ID_DATA
+
+     // x6   = core mask (lsb)
+     // x9   = core state (from data area)
 
      // load the soc with the address for the secondary core to jump to
      // when it completes execution in the bootrom
@@ -597,23 +603,27 @@ smc64_psci_cpu_on:
     bl   _soc_set_start_addr
 
      // reread the state here
-    mov  x0, x5
+    mov  x0, x6
     getCoreData x0 CORE_STATE_DATA
     mov  x9, x0
     
+     // x6   = core mask (lsb)
+     // x9   = core state (from data area)
+
     cmp  x9, #CORE_IN_RESET
     b.eq core_in_reset
     cmp  x0, #CORE_OFF
     b.eq core_is_off
     cmp  x0, #CORE_OFF_PENDING
      // if state == CORE_OFF_PENDING, set abort
-    mov  x0, x5
-    bl   set_psci_abort
-    ldr  x3, =PSCI_ABORT_CNT
+    mov  x0, x6
+    ldr  x1, =CORE_ABORT_OP
+    saveCoreData x0 x1  ABORT_FLAG_DATA
 
+    ldr  x3, =PSCI_ABORT_CNT
 7:
      // watch for abort to take effect
-    mov  x0, x5
+    mov  x0, x6
     getCoreData x0 CORE_STATE_DATA
     cmp  x0, #CORE_OFF
     b.eq core_is_off
@@ -635,15 +645,15 @@ core_in_reset:
     ldr  x7, =SOC_CORE_RELEASE
     cbz  x7, psci_unimplemented
 
-     // x5   = core mask (lsb)
+     // x6   = core mask (lsb)
 
      // set core state in data area
-    mov  x0, x5
+    mov  x0, x6
     mov  x1, #CORE_PENDING
     saveCoreData x0 x1 CORE_STATE_DATA
 
      // release the core from reset and wait til it's up (or timeout)
-    mov   w0, w5
+    mov   x0, x6
     bl    _soc_core_rls_wait
     cbz   x0, psci_success
      // the core failed to come out of reset
@@ -655,15 +665,15 @@ core_is_off:
     ldr  x7, =SOC_CORE_RESTART
     cbz  x7, psci_unimplemented
 
-     // x5 = core mask (lsb)
+     // x6   = core mask (lsb)
 
      // set core state in data area
-    mov  x0, x5
+    mov  x0, x6
     mov  x1, #CORE_PENDING
     saveCoreData x0 x1 CORE_STATE_DATA
 
      // put the core back into service
-    mov  w0, w5
+    mov  x0, x6
     bl   _soc_core_restart    
     b    psci_success
 
@@ -813,7 +823,7 @@ smc32_psci_cpu_off:
      // we have received a request to power it up - this can happen
      // becasue of the extreme latency to shut a core down
     mov  x0, x10
-    bl   get_psci_abort
+    getCoreData x0 ABORT_FLAG_DATA
     cbz  x0, 4f
 
      // process the abort
@@ -842,7 +852,7 @@ smc32_psci_cpu_off:
      // we have received a request to power it up - this can happen
      // because of the extreme latency to shut a core down
     mov  x0, x10
-    bl   get_psci_abort
+    getCoreData x0 ABORT_FLAG_DATA
     cbz  x0, 5f
 
      // process the abort
@@ -1016,13 +1026,15 @@ _initialize_psci:
 
      // x0 = core data area base address
 
-    str   x2,  [x0, #STATE_DATA_OFFSET]
-    str   wzr, [x0, #SPSR_EL3_DATA_OFFSET]
-    str   xzr, [x0, #CNTXT_DATA_OFFSET]
-    str   xzr, [x0, #START_DATA_OFFSET]
-    str   xzr, [x0, #LR_DATA_OFFSET]
-    str   wzr, [x0, #GICC_CTLR_DATA_OFFSET]
-    str   wzr, [x0, #ABORT_FLAG_OFFSET]
+    str   x2,  [x0, #CORE_STATE_DATA]
+    str   xzr, [x0, #SPSR_EL3_DATA]
+    str   xzr, [x0, #CNTXT_ID_DATA]
+    str   xzr, [x0, #START_ADDR_DATA]
+    str   xzr, [x0, #LINK_REG_DATA]
+    str   xzr, [x0, #GICC_CTLR_DATA]
+    str   xzr, [x0, #ABORT_FLAG_DATA]
+    str   xzr, [x0, #SCTLR_DATA]
+    str   xzr, [x0, #CPUECTLR_DATA]
 
      // loop control
     sub  x4, x4, #1
@@ -1228,79 +1240,6 @@ _save_core_sctlr:
 
 //-----------------------------------------------------------------------------
 
- // this function returns the abort flag value of the specified core
- // in:   w0 = core mask (lsb)
- // out:  x0 = abort value
- // uses: x0, x1
-get_psci_abort:
-
-    mov   x1, x30
-    bl    _get_core_data
-    add   x0, x0, #ABORT_FLAG_OFFSET
-    dc    ivac, x0
-    dsb   sy
-    isb  
-    ldr   w0, [x0]  
-    mov   x30, x1 
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function returns the abort flag value of the specified core
- // in:   w0 = core mask (lsb)
- // out:  none
- // uses: x0, x1, x2
-set_psci_abort:
-
-    mov   x2, x30
-    bl    _get_core_data
-    ldr   w1, =CORE_ABORT_OP 
-    add   x0, x0, #ABORT_FLAG_OFFSET
-    str   w1, [x0]  
-    dc    cvac, x0
-    dsb   sy
-    isb  
-    mov   x30, x2 
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function returns the saved SCTLR value
- // in:   w0 = core mask (lsb)
- // out:  w0 = SCTLR value
- // uses: x0, x1
-_get_saved_CPUECTLR:
-
-    mov   x1, x30
-    bl    _get_core_data
-    add   x0, x0, #CPUECTLR_OFFSET
-    dc    ivac, x0
-    dsb   sy
-    isb  
-    ldr   w0, [x0]
-    mov   x30, x1 
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function saves the caller's sctlr
- // in:   w0 = core mask (lsb)
- //       w1 = SCTLR value
- // uses: x0, x1, x2
-_save_CPUECTLR:
-
-    mov   x2, x30
-    bl    _get_core_data
-    add   x0, x0, #CPUECTLR_OFFSET
-    str   w1, [x0] 
-    dc    cvac, x0
-    dsb   sy
-    isb  
-    mov   x30, x2 
-    ret
-
-//-----------------------------------------------------------------------------
-
  // this function processes a request to abort CPU_OFF - an abort request can
  // occur if we are processing CPU_OFF, and a CPU_ON is issued for the same core
  // in:   w0 = core mask (lsb)
@@ -1310,12 +1249,13 @@ _psci_processAbort:
 
     mov   x2, x30
     bl    _get_core_data
+
      // clear the abort flag
-    str   wzr, [x0, #ABORT_FLAG_OFFSET] 
+    str   xzr, [x0, #ABORT_FLAG_DATA] 
 
      // set the core state to CORE_PENDING
-    ldr   w1, =CORE_PENDING
-    str   w1, [x0, #STATE_DATA_OFFSET]  
+    ldr   x1, =CORE_PENDING
+    str   x1, [x0, #CORE_STATE_DATA]  
     mov   x30, x2 
     ret
 

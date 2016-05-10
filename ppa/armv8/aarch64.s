@@ -65,11 +65,11 @@ flush_dcache_level_u:
     mov    x4, #0x7fff
     and    x4, x4, x6, lsr #13      // x4 <- max number of #sets
 
-     // x8 <- cache level << 1
-     // x2  <- line length offset
-     // x3  <- number of cache ways - 1
-     // x4  <- number of cache sets - 1
-     // x5  <- bit position of #ways
+     // x8  = cache level << 1
+     // x2  = line length offset
+     // x3  = number of cache ways - 1
+     // x4  = number of cache sets - 1
+     // x5  = bit position of #ways
 
 loop_set_u:
     mov    x6, x3                   // x6 <- working copy of #ways
@@ -97,10 +97,10 @@ dcache_all_u:
     cbz    x11, end_flush_u         // if loc is 0, exit
     mov    x0, #0                   // start flush at cache level 0
 
-     // x0  <- cache level
-     // x10 <- clidr_el1
-     // x11 <- loc
-     // x15 <- return address
+     // x0  = cache level
+     // x10 = clidr_el1
+     // x11 = loc
+     // x15 = return address
 
 loop_level:
     lsl    x8, x0, #1
@@ -126,7 +126,7 @@ end_flush_u:
  // clean and invalidate the L1 dcache
  // in:   none
  // out:  none
- // uses: x3-x10
+ // uses: x0, x1, x2, x3, x4, x5, x6
 _flush_L1_dcache:
     dsb  sy
      // select the L1 cache id register
@@ -135,8 +135,8 @@ _flush_L1_dcache:
      // read the cache id register
     mrs  x6, ccsidr_el1
      // get the L offset
-    and  x10, x6,  #7
-    add  x10, x10, #4
+    and  x0, x6,  #7
+    add  x0, x0, #4
 
      // extract the max way
     mov  x3, #0x3ff
@@ -148,24 +148,24 @@ _flush_L1_dcache:
     mov  x4, #0x7fff
     and  x4, x4, x6, lsr #13
 
-     // x3  -> number of cache ways - 1
-     // x4  -> number of cache sets - 1
-     // x5  -> bit position of ways
-     // x10 -> L offset
+     // x0 = L offset
+     // x3 = number of cache ways - 1
+     // x4 = number of cache sets - 1
+     // x5 = bit position of ways
 
 loop_set:
      // load the working copy of the max way
     mov  x6, x3
 loop_way:
      // insert #way and level to data reg
-    lsl  x7, x6, x5
-    orr x9, xzr, x7
+    lsl  x2, x6, x5
+    orr x1, xzr, x2
      // insert #set to data reg
-    lsl  x7, x4, x10
-    orr  x9, x9, x7
+    lsl  x2, x4, x0
+    orr  x1, x1, x2
 
      // clean and invalidate
-    dc    cisw, x9
+    dc    cisw, x1
      // decrement the way
     subs  x6, x6, #1
     b.ge  loop_way

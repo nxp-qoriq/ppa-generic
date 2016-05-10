@@ -166,25 +166,25 @@ monitor_exit_EL3:
     bl   _set_endian_4_exit
 
      // flush dcache
-//    bl   _flush_dcache_all
-//    dsb  sy
-//    isb
+    bl   _flush_dcache_all
+    dsb  sy
+    isb
 
      // invalidate the icache
-//    ic  iallu
-//    isb
+    ic  iallu
+    isb
 
      // invalidate tlb
-//    tlbi alle3
-//    dsb  sy
-//    isb
+    tlbi alle3
+    dsb  sy
+    isb
 
      // disable dcache and mmu
-//    mrs  x2, sctlr_el3
-//    bic  x2, x2, #SCTLR_M_MASK
-//    bic  x2, x2, #SCTLR_C_MASK
-//    msr  sctlr_el3, x2
-//    isb
+    mrs  x2, sctlr_el3
+    bic  x2, x2, #SCTLR_M_MASK
+    bic  x2, x2, #SCTLR_C_MASK
+    msr  sctlr_el3, x2
+    isb
 
      // restore the LR
     mov  x30, x12

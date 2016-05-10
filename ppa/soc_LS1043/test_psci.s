@@ -22,9 +22,7 @@
 
 //-----------------------------------------------------------------------------
 
-.equ  PSCI_CPU_ON,    0xC4000003
-.equ  PSCI_VERSION,   0x84000000
-.equ  PSCI_CPU_OFF,   0x84000002
+.align 3
 .equ  MPIDR_CORE_0,   0x00000000
 .equ  MPIDR_CORE_1,   0x00000001
 .equ  MPIDR_CORE_2,   0x00000002
@@ -57,10 +55,13 @@ _test_psci:
      // x1 = mpidr       = 0x0001
      // x2 = start addr  = core_1a_entry
      // x3 = context id  = CONTEXT_CORE_1
-    ldr  w0, =PSCI_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_1
+    dsb sy
+    isb
+    nop
+    ldr  x0, =PSCI_CPU_ON_ID
+    ldr  x1, =MPIDR_CORE_1
     adr  x2, core_1a_entry
-    ldr  w3, =CONTEXT_CORE_1
+    ldr  x3, =CONTEXT_CORE_1
 
     smc  0x0
     nop
@@ -112,10 +113,10 @@ core_0_hold02:
      // x1 = mpidr       = 0x0001
      // x2 = start addr  = core_1b_entry
      // x3 = context id  = CONTEXT_CORE_1
-    ldr  w0, =PSCI_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_1
+    ldr  x0, =PSCI_CPU_ON_ID
+    ldr  x1, =MPIDR_CORE_1
     adr  x2, core_1b_entry
-    ldr  w3, =CONTEXT_CORE_1
+    ldr  x3, =CONTEXT_CORE_1
 
     smc  0x0
     nop
@@ -132,7 +133,7 @@ core_1a_entry:
 
      // test PSCI_CPU_OFF
      // x0 = function id = 0x84000002
-    ldr x0, =PSCI_CPU_OFF
+    ldr x0, =PSCI_CPU_OFF_ID
     smc 0x0
     nop
     nop
