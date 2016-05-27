@@ -10,178 +10,74 @@
 
 //-----------------------------------------------------------------------------
 
+ // these fields MUST be 64-bit width
+.macro CoreDataStruc
+    .8byte  0x0  // core state
+    .8byte  0x0  // spsr_el3
+    .8byte  0x0  // context_id
+    .8byte  0x0  // start addr
+    .8byte  0x0  // link addr
+    .8byte  0x0  // GICC_CTLR 
+    .8byte  0x0  // abort flag 
+    .8byte  0x0  // sctlr_elx
+    .8byte  0x0  // cpuectlr
+    .8byte  0x0  // AUX_01
+    .8byte  0x0  // AUX_02
+    .8byte  0x0  // AUX_03
+    .8byte  0x0  // AUX_04
+    .8byte  0x0  // AUX_05
+    .8byte  0x0  // AUX_06
+    .8byte  0x0  // AUX_07
+    .8byte  0x0  // AUX_08
+.endm
+
+//-----------------------------------------------------------------------------
+
 .align 3
 cpu0_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
+
 cpu1_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 
 .if (CPU_MAX_COUNT > 2)
 cpu2_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu3_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 .endif
 
 .if (CPU_MAX_COUNT > 4)
 cpu4_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu5_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu6_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu7_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 .endif
 
 .if (CPU_MAX_COUNT > 8)
 cpu8_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu9_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu10_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu11_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 .endif
 
 .if (CPU_MAX_COUNT > 12)
 cpu12_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu13_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu14_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 cpu15_data:
-    .8byte  0x0  // cpu state
-    .8byte  0x0  // spsr_el3
-    .8byte  0x0  // context_id
-    .8byte  0x0  // start addr
-    .8byte  0x0  // link addr
-    .8byte  0x0  // GICC_CTLR 
-    .8byte  0x0  // abort flag 
-    .8byte  0x0  // sctlr_elx
-    .8byte  0x0  // cpuectlr
+    CoreDataStruc
 .endif
 
  // if assembly stops here, you need to add more data areas

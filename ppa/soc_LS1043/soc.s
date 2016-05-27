@@ -23,6 +23,24 @@
 
 #define SWLPM20_WA 1
 
+#define DAIF_DATA  AUX_01_DATA
+
+#define DEVDISR2_MASK_OFFSET  0x0
+#define DEVDISR5_MASK_OFFSET  0x4
+#define DEVDISR1_DATA_OFFSET  0x8
+#define DEVDISR2_DATA_OFFSET  0xC
+#define DEVDISR3_DATA_OFFSET  0x10
+#define DEVDISR4_DATA_OFFSET  0x14
+#define DEVDISR5_DATA_OFFSET  0x18
+#define CPUACTLR_DATA_OFFSET  0x1C
+
+#define IPSTPACK_RETRY_CNT    0x1000
+#define CPUACTLR_EL1          S3_1_C15_C2_0
+#define CPUACTLR_L1PCTL_MASK  0x0000E000
+#define DDR_SDRAM_CFG_2_FRCSR 0x80000000
+#define DDR_SDRAM_CFG_2_OFFSET 0x114
+#define DDR_CNTRL_BASE_ADDR   0x01080000
+
 //-----------------------------------------------------------------------------
 
 .global _soc_sys_reset
@@ -60,7 +78,7 @@
 
 //-----------------------------------------------------------------------------
 
-.equ  RESTART_RETRY_CNT,  1600
+.equ  RESTART_RETRY_CNT,  3000
 
  // retry count for releasing cores from reset - should be > 0
 .equ  CORE_RELEASE_CNT,   800 
@@ -78,7 +96,7 @@ _soc_core_entr_stdby:
 
      // IRQ taken to EL3, set SCR_EL3[IRQ]
     mrs  x0, SCR_EL3
-    orr  x0, x0, #0x2
+    orr  x0, x0, #SCR_IRQ_MASK
     msr  SCR_EL3, x0
 
     dsb  sy
@@ -100,7 +118,7 @@ _soc_core_exit_stdby:
 
      // clear SCR_EL3[IRQ]
     mrs  x0, SCR_EL3
-    bic  x0, x0, #0x2
+    bic  x0, x0, #SCR_IRQ_MASK
     msr  SCR_EL3, x0
 
     isb
@@ -110,65 +128,28 @@ _soc_core_exit_stdby:
 
  // part of CPU_SUSPEND
  // this function puts the calling core into a power-down state
+ // ph20 is defeatured for this device, so pw15 is the lowest core pwr state
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8
+ // uses x0, x1
 _soc_core_entr_pwrdn:
-    mov   x8, x30
 
-     // x0 = core mask lsb
+     // X0 = core mask lsb
 
-     // disable dcache, mmu, and icache for EL1 and EL2
-    ldr x2, =SCTLR_I_C_M_MASK
-    mrs x1, SCTLR_EL1
-    bic x1, x1, x2
-    msr SCTLR_EL1, x1
-
-    mrs x1, SCTLR_EL2
-    bic x1, x1, x2
-    msr SCTLR_EL2, x1
-
-    bl  _flush_L1_dcache
-
-     // disable only dcache for EL3 by clearing SCTLR_EL3[2]
-    mrs x1, SCTLR_EL3
-    ldr x2, =SCTLR_C_MASK
-
-    bic x1, x1, x2
-    msr SCTLR_EL3, x1
+     // mask interrupts by setting DAIF[7:4] to 'b1111
+    mrs  x1, DAIF
+    ldr  x0, =DAIF_SET_MASK
+    orr  x1, x1, x0
+    msr  DAIF, x1 
 
      // IRQ taken to EL3, set SCR_EL3[IRQ]
-    mrs  x1, SCR_EL3
-    orr  x1, x1, #SCR_IRQ_MASK
-    orr  x1, x1, #0x2
-    msr  SCR_EL3, x1
+    mrs  x0, SCR_EL3
+    orr  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
 
-     // enable CPU retention and make sure SMPEN = 1
-    mrs  x1, CPUECTLR_EL1
-    bic  x1, x1, #CPUECTLR_RET_MASK
-    orr  x1, x1, #CPUECTLR_RET_SET
-    orr  x1, x1, #CPUECTLR_SMPEN_EN
-    msr  CPUECTLR_EL1, x1
-
-     // x0 = core mask lsb
-
-     // enable soc retention for this core
-    ldr  x2, =SCFG_BASE_ADDR
-    ldr  w1, [x2, #SCFG_RETREQCR_OFFSET]
-    rev  w3, w1
-    orr  w3, w3, w0
-    rev  w1, w3
-    str  w1, [x2, #SCFG_RETREQCR_OFFSET]
-
-     // set ph20 for this core
-    ldr  x2, =RCPM_BASE_ADDR
-    rev  w3, w0
-    str  w3, [x2, #RCPM_PCPH20SETR_OFFSET]
-
+    dsb  sy
     isb
     wfi
-
-    mov  x30, x8
     ret
 
 //-----------------------------------------------------------------------------
@@ -177,28 +158,10 @@ _soc_core_entr_pwrdn:
  // this function cleans up after a core exits power-down
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1, x2, x3
+ // uses x0
 _soc_core_exit_pwrdn:
 
-     // x0 = core mask lsb
-
-     // clear the PH20 state for this core in question
-    ldr  x2, =RCPM_BASE_ADDR
-    rev  w3, w0
-    str  w3, [x2, #RCPM_PCPH20CLRR_OFFSET]
-
-     // clear the retention request for this core
-    ldr  x2, =SCFG_BASE_ADDR
-    ldr  w1, [x2, #SCFG_RETREQCR_OFFSET]
-    rev  w3, w1
-    orr  w3, w3, w0
-    rev  w1, w3
-    str  w1, [x2, #SCFG_RETREQCR_OFFSET]
-
-     // disable CPU retention
-    mrs  x0, CPUECTLR_EL1
-    bic  x0, x0, #CPUECTLR_RET_MASK
-    msr  CPUECTLR_EL1, x0
+     // X0 = core mask lsb
 
      // clear SCR_EL3[IRQ]
     mrs  x0, SCR_EL3
@@ -315,15 +278,332 @@ _soc_sys_exit_stdby:
  // low-power state
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _soc_sys_entr_pwrdn:
-    mov   x9, x30
+    mov  x10, x30
 
-     // x0 = core mask lsb
+    mov  x8, x0
 
-// need sw LPM20 sequence
+     // x8 = core mask lsb
 
-    mov  x30, x9
+     // set WFIL2_EN in SCFG_COREPMCR
+    ldr  x0, =SCFG_COREPMCR_OFFSET
+    ldr  x1, =COREPMCR_WFIL2
+    bl   write_reg_scfg
+
+     // set OVRD_EN in RCPM2_POWMGTDCR
+    ldr  x0, =RCPM2_POWMGTDCR_OFFSET
+    ldr  x1, =POWMGTDCR_OVRD_EN
+    bl   write_reg_rcpm2
+
+     // save DAIF and mask ints
+    mrs  x1, DAIF
+    mov  x3, x1
+    mov  x0, x8
+    saveCoreData x0 x1 DAIF_DATA
+    ldr  x0, =DAIF_SET_MASK
+    orr  x3, x3, x0
+    msr  DAIF, x3 
+
+     // read IPPDEXPCR0 @ RCPM_IPPDEXPCR0
+    ldr  x0, =RCPM_IPPDEXPCR0_OFFSET
+    bl   read_reg_rcpm
+    mov  x7, x0
+
+     // build an override mask for IPSTPCR4/IPSTPACK4/DEVDISR5
+    mov  x5, xzr
+    ldr  x6, =IPPDEXPCR_MASK2
+    and  x6, x6, x7
+    cbz  x6, 1f
+
+     // x5 = override mask
+     // x6 = IPPDEXPCR bits for DEVDISR5
+     // x7 = IPPDEXPCR
+
+     // get the overrides
+    orr  x4, x5, #DEVDISR5_I2C_1
+    tst  x6, #IPPDEXPCR_I2C1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR5_LPUART1
+    tst  x6, #IPPDEXPCR_LPUART1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR5_FLX_TMR
+    tst  x6, #IPPDEXPCR_FLX_TMR1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR5_OCRAM1
+    tst  x6, #IPPDEXPCR_OCRAM1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR5_GPIO
+    tst  x6, #IPPDEXPCR_GPIO1
+    csel x5, x5, x4, EQ
+1:    
+     // store the DEVDISR5 override mask
+    adr  x2, soc_data_area
+    str  w5, [x2, #DEVDISR5_MASK_OFFSET]
+
+     // build an override mask for IPSTPCR1/IPSTPACK1/DEVDISR2
+    mov  x5, xzr
+    ldr  x6, =IPPDEXPCR_MASK1
+    and  x6, x6, x7
+    cbz  x6, 2f
+
+     // x5 = override mask
+     // x6 = IPPDEXPCR bits for DEVDISR2
+
+     // get the overrides
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC1
+    tst  x6, #IPPDEXPCR_MAC1_1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC2
+    tst  x6, #IPPDEXPCR_MAC1_2
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC3
+    tst  x6, #IPPDEXPCR_MAC1_3
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC4
+    tst  x6, #IPPDEXPCR_MAC1_4
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC5
+    tst  x6, #IPPDEXPCR_MAC1_5
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC6
+    tst  x6, #IPPDEXPCR_MAC1_6
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC9
+    tst  x6, #IPPDEXPCR_MAC1_9
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1
+    tst  x6, #IPPDEXPCR_FM1
+    csel x5, x5, x4, EQ
+    
+2:
+     // store the DEVDISR2 override mask
+    adr  x2, soc_data_area
+    str  w5, [x2, #DEVDISR2_MASK_OFFSET]
+
+     // x5 = DEVDISR2 override mask
+     // x8 = core mask lsb
+
+     // write IPSTPCR0 - no overrides
+    ldr  x0, =RCPM2_IPSTPCR0_OFFSET
+    ldr  x1, =IPSTPCR0_VALUE
+    bl   write_reg_rcpm2
+
+     // x5 = DEVDISR2 override mask
+
+     // write IPSTPCR1 - overrides possible
+    ldr  x0, =RCPM2_IPSTPCR1_OFFSET
+    ldr  x1, =IPSTPCR1_VALUE
+    bic  x1, x1, x5
+    bl   write_reg_rcpm2
+
+     // write IPSTPCR2 - no overrides
+    ldr  x0, =RCPM2_IPSTPCR2_OFFSET
+    ldr  x1, =IPSTPCR2_VALUE
+    bl   write_reg_rcpm2
+
+     // write IPSTPCR3 - no overrides
+    ldr  x0, =RCPM2_IPSTPCR3_OFFSET
+    ldr  x1, =IPSTPCR3_VALUE
+    bl   write_reg_rcpm2
+
+     // write IPSTPCR4 - overrides possible
+    adr  x2, soc_data_area
+    ldr  w6, [x2, #DEVDISR5_MASK_OFFSET]
+    ldr  x0, =RCPM2_IPSTPCR4_OFFSET
+    ldr  x1, =IPSTPCR4_VALUE
+    bic  x1, x1, x6
+    bl   write_reg_rcpm2
+
+     // x5 = DEVDISR2 override mask
+     // x6 = DEVDISR5 override mask
+     // x8 = core mask lsb
+
+     // poll on IPSTPACK0
+    ldr  x3, =RCPM2_IPSTPACKR0_OFFSET
+    ldr  x4, =IPSTPCR0_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+3:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 14f
+    sub  x7, x7, #1
+    cbnz x7, 3b
+
+14:
+     // poll on IPSTPACK1
+    ldr  x3, =IPSTPCR1_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+    bic  x4, x3, x5
+    ldr  x3, =RCPM2_IPSTPACKR1_OFFSET
+4:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 15f
+    sub  x7, x7, #1
+    cbnz x7, 4b
+
+15:
+     // poll on IPSTPACK2
+    ldr  x3, =RCPM2_IPSTPACKR2_OFFSET
+    ldr  x4, =IPSTPCR2_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+5:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 16f
+    sub  x7, x7, #1
+    cbnz x7, 5b
+
+16:
+     // poll on IPSTPACK3
+    ldr  x3, =RCPM2_IPSTPACKR3_OFFSET
+    ldr  x4, =IPSTPCR3_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+6:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 17f
+    sub  x7, x7, #1
+    cbnz x7, 6b
+
+17:
+     // poll on IPSTPACK4
+    ldr  x3, =IPSTPCR4_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+    bic  x4, x3, x6
+    ldr  x3, =RCPM2_IPSTPACKR4_OFFSET
+7:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 18f
+    sub  x7, x7, #1
+    cbnz x7, 7b
+
+18:
+    adr  x7, soc_data_area
+
+     // x5 = DEVDISR2 override mask
+     // x6 = DEVDISR5 override mask
+     // x7 = [soc_data_area]
+     // x8 = core mask lsb
+
+     // save DEVDISR1 and load new value
+    mov  x0, #DCFG_DEVDISR1_OFFSET
+    bl   read_reg_dcfg
+    str  w0, [x7, #DEVDISR1_DATA_OFFSET]
+    mov  x0, #DCFG_DEVDISR1_OFFSET
+    ldr  x1, =DEVDISR1_VALUE
+    bl   write_reg_dcfg
+
+     // save DEVDISR2 and load new value
+    mov  x0, #DCFG_DEVDISR2_OFFSET
+    bl   read_reg_dcfg
+    str  w0, [x7, #DEVDISR2_DATA_OFFSET]
+    mov  x0, #DCFG_DEVDISR2_OFFSET
+    ldr  x1, =DEVDISR2_VALUE
+    bic  x1, x1, x5
+    bl   write_reg_dcfg
+
+     // x6 = DEVDISR5 override mask
+     // x7 = [soc_data_area]
+     // x8 = core mask lsb
+
+     // save DEVDISR3 and load new value
+    mov  x0, #DCFG_DEVDISR3_OFFSET
+    bl   read_reg_dcfg
+    str  w0, [x7, #DEVDISR3_DATA_OFFSET]
+    mov  x0, #DCFG_DEVDISR3_OFFSET
+    ldr  x1, =DEVDISR3_VALUE
+    bl   write_reg_dcfg
+
+     // save DEVDISR4 and load new value
+    mov  x0, #DCFG_DEVDISR4_OFFSET
+    bl   read_reg_dcfg
+    str  w0, [x7, #DEVDISR4_DATA_OFFSET]
+    mov  x0, #DCFG_DEVDISR4_OFFSET
+    ldr  x1, =DEVDISR4_VALUE
+    bl   write_reg_dcfg
+
+     // save DEVDISR5 and load new value
+    mov  x0, #DCFG_DEVDISR5_OFFSET
+    bl   read_reg_dcfg
+    str  w0, [x7, #DEVDISR5_DATA_OFFSET]
+    mov  x0, #DCFG_DEVDISR5_OFFSET
+    ldr  x1, =DEVDISR5_VALUE
+    bic  x1, x1, x6
+    bl   write_reg_dcfg
+
+     // x7 = [soc_data_area]
+     // x8 = core mask lsb
+
+     // save cpuactlr and disable data prefetch
+    mrs  x0, CPUACTLR_EL1
+    str  w0, [x7, #CPUACTLR_DATA_OFFSET]
+    bic  x0, x0, #CPUACTLR_L1PCTL_MASK
+    msr  CPUACTLR_EL1, x0
+
+     // x6 = DEVDISR5 override mask
+
+     // setup registers for cache-only execution
+    ldr  x5, =IPSTPCR4_VALUE
+    bic  x5, x5, x6
+    ldr  x6, =DDR_CNTRL_BASE_ADDR
+    ldr  x7, =DCSR_RCPM2_BASE
+    ldr  x8, =DCFG_BASE_ADDR
+    ldr  x9, =IPSTPACK_RETRY_CNT
+
+     // enter the cache-only sequence
+    bl   final_shutdown
+
+     // when we are here, the core has come out of wfi and we need to
+     // bring the rest of the SoC back up
+
+    adr  x7, soc_data_area
+    ldr  x8, =DCFG_BASE_ADDR
+
+     // x7 = [soc_data_area]
+     // x8 = DCFG_BASE_ADDR
+
+     // restore devdisr1 - devdisr5
+    ldr  w0, [x7, #DEVDISR1_DATA_OFFSET]
+    ldr  w1, [x7, #DEVDISR2_DATA_OFFSET]
+    ldr  w2, [x7, #DEVDISR3_DATA_OFFSET]
+    ldr  w3, [x7, #DEVDISR4_DATA_OFFSET]
+    ldr  w4, [x7, #DEVDISR5_DATA_OFFSET]
+    str  w0, [x8, #DCFG_DEVDISR1_OFFSET]
+    str  w1, [x8, #DCFG_DEVDISR2_OFFSET]
+    str  w2, [x8, #DCFG_DEVDISR3_OFFSET]
+    str  w3, [x8, #DCFG_DEVDISR4_OFFSET]
+    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]
+
+     // clear POWMGTDCR
+    ldr  x0, =RCPM2_POWMGTDCR_OFFSET
+    mov  x1, xzr
+    bl   write_reg_rcpm2
+
+     // clear WFIL2_EN in SCFG_COREPMCR
+    ldr  x0, =SCFG_COREPMCR_OFFSET
+    mov  x1, xzr
+    bl   write_reg_scfg
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
@@ -523,28 +803,6 @@ _soc_core_rls_wait:
 _soc_core_phase1_off:
     mov  x8, x30
 
-#if (SWLPM20_WA)
-
-#else
-
-     // x0 = core mask lsb
-
-     // set CPUECTLR[2:0] for timer ticks before core enters retention
-    mrs   x4, S3_1_C15_C2_1
-    mov   x1, x4
-    saveCoreData x0 x1 CPUECTLR_DATA
-
-    ldr   x0, =CPUECTLR_TIMER_8TICKS
-    bfxil x4, x0, #0, #3 
-     // set CPUECTLR.SMPEN to 1 (regardless of ARM specs) 
-    orr  x4, x4, #CPUECTLR_SMPEN_MASK
-    msr  S3_1_C15_C2_1, x4
-
-#endif
-
-     // clean/invalidate L1 dcache
-    bl  _flush_L1_dcache
-
      // disable dcache, mmu, and icache for EL1 and EL2 by clearing
      // bits 0, 2, and 12 of SCTLR_EL1 and SCTLR_EL2 (MMU, dcache, icache)
     ldr x0, =SCTLR_I_C_M_MASK
@@ -563,7 +821,7 @@ _soc_core_phase1_off:
     msr SCTLR_EL3, x1 
     isb
 
-     // mask interrupts by setting DAIF[7:6] (IRQ and FIQ) to 1
+     // mask interrupts by setting DAIF[7:4] to 'b1111
     mrs  x1, DAIF
     ldr  x0, =DAIF_SET_MASK
     orr  x1, x1, x0
@@ -594,77 +852,64 @@ _soc_core_phase2_off:
      // x0 = core mask lsb
     mov  x4, x0
 
-     // save GICC_CTLR
+     // configure the cpu interface
+
+     // disable signaling of ints
     ldr  x5, =GICC_BASE_ADDR
-    ldr  w1, [x5, #GICC_CTLR_OFFSET]
-    mov  w3, w1
-    saveCoreData x0 x1 GICC_CTLR_DATA
+    ldr  w3, [x5, #GICC_CTLR_OFFSET]
+    bic  w3, w3, #GICC_CTLR_EN_GRP0
+    bic  w3, w3, #GICC_CTLR_EN_GRP1
+    str  w3, [x5, #GICC_CTLR_OFFSET]
+    dsb  sy
+    isb
 
      // x3 = GICC_CTRL
      // x4 = core mask lsb
      // x5 = GICC_BASE_ADDR
 
-     // disable signaling of grp 0 ints
-    bic  w3, w3, #GICC_CTLR_EN_GRP0
-    str  w3, [x5, #GICC_CTLR_OFFSET]
-
      // set the priority filter
-    ldr  w1, [x5, #GICC_PMR_OFFSET]
-    orr  w1, w1, #GICC_PMR_FILTER
-    str  w1, [x5, #GICC_PMR_OFFSET]
+    ldr  w2, [x5, #GICC_PMR_OFFSET]
+    orr  w2, w2, #GICC_PMR_FILTER
+    str  w2, [x5, #GICC_PMR_OFFSET]
 
-     // enable signaling of group 0 by setting GICC_CTLR[0] = 1
-     // enable GRP0 = FIQ
-    ldr  w3, [x5, #GICC_CTLR_OFFSET]
-    orr  w3, w3, #GICC_CTLR_EN_GRP0
-    orr  w3, w3, #GICC_CTLR_FIQ_EN_MASK
-    bic  w3, w3, #GICC_CTLR_EOImodeS_MASK
+     // setup GICC_CTLR
     bic  w3, w3, #GICC_CTLR_ACKCTL_MASK
-//    bic  w3, w3, #GICC_CTLR_EN_GRP1
-    orr  w3, w3, #GICC_CTLR_EN_GRP1
+    orr  w3, w3, #GICC_CTLR_FIQ_EN_MASK
+    orr  w3, w3, #GICC_CTLR_EOImodeS_MASK
+    orr  w3, w3, #GICC_CTLR_CBPR_MASK
     str  w3, [x5, #GICC_CTLR_OFFSET]
 
-#if (SWLPM20_WA)
-
-#else
+     // x3 = GICC_CTRL
      // x4 = core mask lsb
 
-     // set SYS_Counter_CNTCR[0] to 1 to enable timer
-    ldr  x1, =SYS_COUNTER_BASE
-    ldr  w2, [x1, #SYS_COUNTER_CNTCR_OFFSET]
-    rev  w3, w2
-    orr  w2, w2, #CNTCR_EN_MASK
-    rev  w3, w2
-    str  w3, [x1, #SYS_COUNTER_CNTCR_OFFSET]
-     
-    mov  x0, x4
-     // x0 = core mask lsb
+     // setup the banked-per-core GICD registers
+    ldr  x5, =GICD_BASE_ADDR
 
-    mov  w2, w0
-    CoreMaskMsb w2, w3
+     // define SGI15 as Grp0
+    ldr  w2, [x5, #GICD_IGROUPR0_OFFSET]
+    bic  w2, w2, #GICD_IGROUP0_SGI15
+    str  w2, [x5, #GICD_IGROUPR0_OFFSET]
 
-     // x0 = core mask lsb
-     // x2 = core mask msb
+     // set priority of SGI 15 to highest...
+    ldr  w2, [x5, #GICD_IPRIORITYR3_OFFSET]
+    bic  w2, w2, #GICD_IPRIORITY_SGI15_MASK
+    str  w2, [x5, #GICD_IPRIORITYR3_OFFSET]
 
-     // enable retention request
-    ldr  x1, =SCFG_BASE_ADDR
-    ldr  w3, [x1, #SCFG_RETREQCR_OFFSET]
-    rev  w3, w3
-    orr  w3, w3, w2
-    rev  w3, w3
-    str  w3, [x1, #SCFG_RETREQCR_OFFSET]
+     // enable SGI 15
+    ldr  w2, [x5, #GICD_ISENABLER0_OFFSET]
+    orr  w2, w2, #GICD_ISENABLE0_SGI15
+    str  w2, [x5, #GICD_ISENABLER0_OFFSET]
 
-     // x0 = core mask lsb
+     // x3 = GICC_CTRL
 
-     // set RCPM_PH20SETR[core number] to 1 to request core be put into PH20
-    ldr  x1, =RCPM_BASE_ADDR
-    rev  x2, x0
-    str  x2, [x1, #RCPM_PCPH20SETR_OFFSET]
+     // enable the cpu interface
 
-#endif
-
+    ldr  x5, =GICC_BASE_ADDR
+    orr  w3, w3, #GICC_CTLR_EN_GRP0
+    str  w3, [x5, #GICC_CTLR_OFFSET]
     dsb  sy
     isb
+
     mov  x30, x6
     ret
 
@@ -674,9 +919,9 @@ _soc_core_phase2_off:
  // this function performs the final steps to shutdown the core
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1, x2, x3
+ // uses x0, x1, x2, x3, x4, x5
 _soc_core_entr_off:
-    mov  x4, x30
+    mov  x5, x30
     mov  x3, x0
 
      // x0 = core mask lsb
@@ -696,20 +941,42 @@ _soc_core_entr_off:
     dsb  sy
     isb
 
-     // x3  = core mask (lsb)
+     // clear any pending SGIs
+    ldr   x2, =GICD_CPENDSGIR_CLR_MASK
+    ldr   x4, =GICD_BASE_ADDR
+    add   x0, x4, #GICD_CPENDSGIR3_OFFSET
+    str   w2, [x0]
+
+     // x3 = core mask (lsb)
+     // x4 = GICD_BASE_ADDR
 
 3:
      // enter low-power state by executing wfi
     wfi
 
+     // x3 = core mask (lsb)
+     // x4 = GICD_BASE_ADDR
+
+     // see if we got hit by SGI 15
+    add   x0, x4, #GICD_SPENDSGIR3_OFFSET
+    ldr   w2, [x0]
+    and   w2, w2, #GICD_SPENDSGIR3_SGI15_MASK
+    cbz   w2, 4f
+
+     // clear the pending SGI
+    ldr   x2, =GICD_CPENDSGIR_CLR_MASK
+    add   x0, x4, #GICD_CPENDSGIR3_OFFSET
+    str   w2, [x0]
+4:
      // check if core has been turned on
     mov  x0, x3 
     getCoreData x0 CORE_STATE_DATA
-
     cmp  x0, #CORE_PENDING
     b.ne 3b
 
-    mov  x30, x4
+     // if we get here, then we have exited the wfi
+
+    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -721,10 +988,16 @@ _soc_core_entr_off:
  // uses x0, x1
 _soc_core_exit_off:
 
-     // clear the pending SGI
-    ldr  x1, =GICD_BASE_ADDR
-    ldr  x0, =GICD_CPENDSGIR_CLR_MASK
-    str  w0, [x1, #GICD_CPENDSGIR3_OFFSET]
+    ldr  x1, =GICC_BASE_ADDR
+
+     // read GICC_IAR
+    ldr  w0, [x1, #GICC_IAR_OFFSET]
+
+     // write GICC_EIOR - signal end-of-interrupt
+    str  w0, [x1, #GICC_EOIR_OFFSET]
+
+     // write GICC_DIR - disable interrupt
+    str  w0, [x1, #GICC_DIR_OFFSET]
 
      // enable icache in SCTLR_EL3
     mrs  x0, SCTLR_EL3
@@ -747,16 +1020,6 @@ _soc_core_phase1_clnup:
 
      // x0 = core mask lsb
 
-#if (SWLPM20_WA)
-
-#else
-
-     // restore cpuectlr
-    bl   _get_saved_CPUECTLR
-    msr  S3_1_C15_C2_1, x0 
-
-#endif   
-
      // clr SCR_EL3[FIQ]
     mrs   x0, scr_el3
     bic   x0, x0, #SCR_FIQ_MASK
@@ -778,40 +1041,14 @@ _soc_core_phase2_clnup:
 
      // x0 = core mask lsb
 
-#if (SWLPM20_WA)
-
-#else
-
-     // set the clear bit in the RCPM_PH20CLRR
-    ldr  x1, =RCPM_BASE_ADDR
-    rev  x2, x0
-    str  x2, [x1, #RCPM_PCPH20CLRR_OFFSET]
-
-    mov  w2, w0
-    CoreMaskMsb w2, w3
-
-     // x0 = core mask lsb
-     // x2 = core mask msb
-
-     // clear retention request
-    ldr  x1, =SCFG_BASE_ADDR
-    ldr  w3, [x1, #SCFG_RETREQCR_OFFSET]
-    rev  w3, w3
-    bic  w3, w3, w2
-    rev  w3, w3
-    str  w3, [x1, #SCFG_RETREQCR_OFFSET]
-
-#endif
-
-     // x0 = core mask lsb
-
-     // restore GICC_CTLR
-    getCoreData x0 GICC_CTLR_DATA
+     // disable signaling of grp0 ints
     ldr  x2, =GICC_BASE_ADDR
-    str  w0, [x2, #GICC_CTLR_OFFSET]
-
+    ldr  w3, [x2, #GICC_CTLR_OFFSET]
+    bic  w3, w3, #GICC_CTLR_EN_GRP0
+    str  w3, [x2, #GICC_CTLR_OFFSET]
     dsb  sy
     isb
+
     mov  x30, x4
     ret
 
@@ -828,76 +1065,17 @@ _soc_core_restart:
 
      // x0 = core mask lsb
 
-#if (SWLPM20_WA)
-
-#else
-     // x0 = core mask lsb
-
-     // set the clear bit in the RCPM_PH20CLRR
-    ldr  x1, =RCPM_BASE_ADDR
-    rev  x2, x0
-    str  x2, [x1, #RCPM_PCPH20CLRR_OFFSET]
-
-    mov  w2, w0
-    CoreMaskMsb w2, w3
-
-     // x0 = core mask lsb
-     // x2 = core mask msb
-
-     // clear retention request
-    ldr  x1, =SCFG_BASE_ADDR
-    ldr  w3, [x1, #SCFG_RETREQCR_OFFSET]
-    rev  w3, w3
-    bic  w3, w3, w2
-    rev  w3, w3
-    str  w3, [x1, #SCFG_RETREQCR_OFFSET]
-    dsb sy
-    isb
-
-#endif
-
-     // x0 = core mask lsb
-//---
-     // disable forwarding of group 0 interrupts by setting GICD_CTLR[0] = 0
     ldr  x4, =GICD_BASE_ADDR
-    ldr  w1, [x4, #GICD_CTLR_OFFSET]
-    bic  w1, w1, #GICD_CTLR_EN_GRP0
-    str  w1, [x4, #GICD_CTLR_OFFSET]
-    dsb sy
-    isb
 
      // x0 = core mask lsb
      // x4 = GICD_BASE_ADDR
 
-     // set interrupt ID 15 to group 0 by setting GICD_IGROUP0[15] = 0 
-    ldr  w1, [x4, #GICD_IGROUPR0_OFFSET]
-    bic  w1, w1, #GICD_IGROUP0_SGI15
-    str  w1, [x4, #GICD_IGROUPR0_OFFSET]
-
-     // set the priority of SGI 15 to highest
-    ldr  w1, [x4, #GICD_IPRIORITYR3_OFFSET]
-    bic  w1, w1, #GICD_IPRIORITY_SGI15_MASK
-    str  w1, [x4, #GICD_IPRIORITYR3_OFFSET]
-    
-     // x0 = core mask lsb
-     // x2 = GICD_BASE_ADDR
-
-     // enable forwarding of SGI 15 by setting GICD_ISENABLER0[15] = 1
-    ldr  w1, [x4, #GICD_ISENABLER0_OFFSET]
-    orr  w1, w1, #GICD_ISENABLE0_SGI15
-    str  w1, [x4, #GICD_ISENABLER0_OFFSET]
-
      // enable forwarding of group 0 interrupts by setting GICD_CTLR[0] = 1
     ldr  w1, [x4, #GICD_CTLR_OFFSET]
     orr  w1, w1, #GICD_CTLR_EN_GRP0
-    orr  w1, w1, #GICD_CTLR_EN_GRP1
     str  w1, [x4, #GICD_CTLR_OFFSET]
     dsb sy
     isb
-
-     // activate SGI 15
-//    ldr  x1, =GICD_ISACTIVER0_SGI15
-//    str  w1, [x4, #GICD_ISACTIVER0_OFFSET]
 
      // x0 = core mask lsb
      // x4 = GICD_BASE_ADDR
@@ -912,7 +1090,6 @@ _soc_core_restart:
     str  w1, [x4, #GICD_SGIR_OFFSET]
     dsb sy
     isb
-//---
 
      // x0 = core mask lsb
 
@@ -1159,7 +1336,7 @@ _get_core_mask_lsb:
  // in:  w1 = value to write
  // uses x0, x1, x2, x3
 write_reg_scfg:
-    ldr  w2, =SCFG_BASE_ADDR
+    ldr  x2, =SCFG_BASE_ADDR
      // swap for BE
     rev  w3, w1
     str  w3, [x2, x0]
@@ -1172,7 +1349,7 @@ write_reg_scfg:
  // out: w0 = value read
  // uses x0, x1, x2
 read_reg_scfg:
-    ldr  w2, =SCFG_BASE_ADDR
+    ldr  x2, =SCFG_BASE_ADDR
     ldr  w1, [x2, x0]
      // swap for BE
     rev  w0, w1
@@ -1185,7 +1362,7 @@ read_reg_scfg:
  // in:  w1 = value to write
  // uses x0, x1, x2, x3
 write_reg_dcfg:
-    ldr  w2, =DCFG_BASE_ADDR
+    ldr  x2, =DCFG_BASE_ADDR
      // swap for BE
     rev  w3, w1
     str  w3, [x2, x0]
@@ -1198,7 +1375,7 @@ write_reg_dcfg:
  // out: w0 = value read
  // uses x0, x1, x2
 read_reg_dcfg:
-    ldr  w2, =DCFG_BASE_ADDR
+    ldr  x2, =DCFG_BASE_ADDR
     ldr  w1, [x2, x0]
      // swap for BE
     rev  w0, w1
@@ -1211,7 +1388,7 @@ read_reg_dcfg:
  // in:  w1 = value to write
  // uses x0, x1, x2, x3
 write_reg_rcpm:
-    ldr  w2, =RCPM_BASE_ADDR
+    ldr  x2, =RCPM_BASE_ADDR
      // swap for BE
     rev  w3, w1
     str  w3, [x2, x0]
@@ -1223,7 +1400,32 @@ write_reg_rcpm:
  // out: w0 = value read
  // uses x0, x1, x2
 read_reg_rcpm:
-    ldr  w2, =RCPM_BASE_ADDR
+    ldr  x2, =RCPM_BASE_ADDR
+    ldr  w1, [x2, x0]
+     // swap for BE
+    rev  w0, w1
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // write a register in the DCSR-RCPM2 block
+ // in:  x0 = offset
+ // in:  w1 = value to write
+ // uses x0, x1, x2, x3
+write_reg_rcpm2:
+    ldr  x2, =DCSR_RCPM2_BASE
+     // swap for BE
+    rev  w3, w1
+    str  w3, [x2, x0]
+    ret
+//-----------------------------------------------------------------------------
+
+ // read a register in the DCSR-RCPM2 block
+ // in:  x0 = offset
+ // out: w0 = value read
+ // uses x0, x1, x2
+read_reg_rcpm2:
+    ldr  x2, =DCSR_RCPM2_BASE
     ldr  w1, [x2, x0]
      // swap for BE
     rev  w0, w1
@@ -1236,7 +1438,7 @@ read_reg_rcpm:
  // in:  w1 = value to write
  // uses x0, x1, x2, x3
 write_reg_sys_counter:
-    ldr  w2, =SYS_COUNTER_BASE
+    ldr  x2, =SYS_COUNTER_BASE
      // swap for BE
     rev  w3, w1
     str  w3, [x2, x0]
@@ -1248,7 +1450,7 @@ write_reg_sys_counter:
  // out: w0 = value read
  // uses x0, x1, x2
 read_reg_sys_counter:
-    ldr  w2, =SYS_COUNTER_BASE
+    ldr  x2, =SYS_COUNTER_BASE
     ldr  w1, [x2, x0]
      // swap for BE
     rev  w0, w1
@@ -1261,7 +1463,7 @@ read_reg_sys_counter:
  // in:  w1 = value to write
  // uses x0, x1, x2, x3
 write_reg_gicd:
-    ldr  w2, =GICD_BASE_ADDR
+    ldr  x2, =GICD_BASE_ADDR
     str  w1, [x2, x0]
     ret
 
@@ -1272,7 +1474,7 @@ write_reg_gicd:
  // out: w0 = value read
  // uses x0, x1, x2
 read_reg_gicd:
-    ldr  w2, =GICD_BASE_ADDR
+    ldr  x2, =GICD_BASE_ADDR
     ldr  w0, [x2, x0]
     ret
 
@@ -1283,7 +1485,7 @@ read_reg_gicd:
  // in:  w1 = value to write
  // uses x0, x1, x2, x3
 write_reg_gicc:
-    ldr  w2, =GICC_BASE_ADDR
+    ldr  x2, =GICC_BASE_ADDR
     str  w1, [x2, x0]
     ret
 
@@ -1294,15 +1496,143 @@ write_reg_gicc:
  // out: w0 = value read
  // uses x0, x1, x2
 read_reg_gicc:
-    ldr  w2, =GICC_BASE_ADDR
+    ldr  x2, =GICC_BASE_ADDR
     ldr  w0, [x2, x0]
     ret
 
 //-----------------------------------------------------------------------------
 
+ // read a register in the ddr controller block
+ // in:  x0 = offset
+ // out: w0 = value read
+ // uses x0, x1, x2
+read_reg_ddr:
+    ldr  x2, =DDR_CNTRL_BASE_ADDR
+    ldr  w0, [x2, x0]
+    ret
 
+//-----------------------------------------------------------------------------
 
+ // write a register in the ddr controller block
+ // in:  x0 = offset
+ // in:  w1 = value to write
+ // uses x0, x1, x2, x3
+write_reg_ddr:
+    ldr  x2, =DDR_CNTRL_BASE_ADDR
+    str  w1, [x2, x0]
+    ret
 
+//-----------------------------------------------------------------------------
+
+ // this function will shutdown ddr and the final core - it will do this
+ // by loading itself into the icache and then executing from there
+ // in:  x5 = ipstpcr4 (IPSTPCR4_VALUE bic DEVDISR5_MASK)
+ //      x6 = DDR_CNTRL_BASE_ADDR
+ //      x7 = DCSR_RCPM2_BASE
+ //      x8 = DCFG_BASE_ADDR
+ //      x9 = IPSTPACK_RETRY_CNT
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+
+ // 4Kb aligned
+.align 12
+final_shutdown:
+
+    mov  x0, xzr
+    b    touch_line_0
+start_line_0:
+    mov  x2, #DDR_SDRAM_CFG_2_FRCSR         // put ddr in self refresh - start
+    ldr  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]
+    rev  w4, w3
+    orr  w4, w4, w2
+    rev  w3, w4
+touch_line_0:
+    cbz  x0, touch_line_1
+
+start_line_1:
+    str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // put ddr in self refresh - end
+    orr  w3, w5, #DEVDISR5_DDR              // disable ddr clk - start
+    rev  w4, w3                             // w4 contains polling target value
+    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // disable ddr clk - end
+    nop
+    nop
+    mov  x2, x9                             // poll on ipstpack4 - start
+touch_line_1:
+    cbz  x0, touch_line_2
+
+start_line_2:
+    ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
+    cmp  w1, w4
+    b.eq 1f
+    sub  x2, x2, #1
+    cbnz x2, start_line_2                   // poll on ipstpack4 - end
+1:
+    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // disable ddr in devdisr5
+    wfi                                     // stop the final core
+touch_line_2:
+    cbz  x0, touch_line_3
+
+start_line_3:
+    bic  w3, w5, #DEVDISR5_DDR
+    rev  w4, w3
+    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // re-enable ddr in devdisr5
+    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // re-enable ddr clk in ipstpcr4
+    nop
+    nop
+    mov  x2, x9                             // poll on ipstpack4 - start
+touch_line_3:
+    cbz  x0, touch_line_4
+
+start_line_4:
+    ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
+    cmp  w1, w4
+    b.eq 2f
+    sub  x2, x2, #1
+    cbnz x2, start_line_4                   // poll on ipstpack4 - end
+2:
+    nop
+    nop
+touch_line_4:
+    cbz  x0, touch_line_5
+
+start_line_5:
+    mov  x2, #DDR_SDRAM_CFG_2_FRCSR         // take ddr out-of self refresh - start
+    ldr  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]
+    rev  w4, w3
+    bic  w4, w4, w2
+    rev  w3, w4
+    str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // take ddr out-of self refresh - end
+    nop
+touch_line_5:
+    cbz  x0, touch_line_6
+
+start_line_6:
+    add  x0, x0, #1
+    cmp  x0, #1
+    b.eq start_line_0
+    b    continue_restart
+    nop
+    nop
+    nop
+touch_line_6:
+    cbz  x0, start_line_6
+
+ // execute here after ddr is back up
+continue_restart:
+    ret
+
+//-----------------------------------------------------------------------------
+
+.align 3
+soc_data_area:
+    .4byte  0x0  // soc storage 1, offset 0x0
+    .4byte  0x0  // soc storage 2, offset 0x4
+    .4byte  0x0  // soc storage 3, offset 0x8
+    .4byte  0x0  // soc storage 4, offset 0xC
+    .4byte  0x0  // soc storage 5, offset 0x10
+    .4byte  0x0  // soc storage 6, offset 0x14
+    .4byte  0x0  // soc storage 7, offset 0x18
+    .4byte  0x0  // soc storage 8, offset 0x1C
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

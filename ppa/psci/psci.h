@@ -127,7 +127,7 @@
 .equ RESET_RETRY_CNT,       800
 .equ PSCI_ABORT_CNT,        100
 
- // data area offsets
+ // data area offsets - must be in synch with CoreDataStruc in psci_data.h
 .equ CORE_STATE_DATA,   0x0
 .equ SPSR_EL3_DATA,     0x8
 .equ CNTXT_ID_DATA,     0x10
@@ -137,6 +137,14 @@
 .equ ABORT_FLAG_DATA,   0x30
 .equ SCTLR_DATA,        0x38
 .equ CPUECTLR_DATA,     0x40
+.equ AUX_01_DATA,       0x48  // usage defined per SoC
+.equ AUX_02_DATA,       0x50  // usage defined per SoC
+.equ AUX_03_DATA,       0x58  // usage defined per SoC
+.equ AUX_04_DATA,       0x60  // usage defined per SoC
+.equ AUX_05_DATA,       0x68  // usage defined per SoC
+.equ AUX_06_DATA,       0x70  // usage defined per SoC
+.equ AUX_07_DATA,       0x78  // usage defined per SoC
+.equ AUX_08_DATA,       0x80  // usage defined per SoC
 
 //-----------------------------------------------------------------------------
 
