@@ -711,15 +711,8 @@ _soc_sys_reset:
  // uses x0, x1, x2
 _soc_ck_disabled:
 
-     // get base addr of dcfg block
-    ldr  x1, =DCFG_BASE_ADDR
-
-     // read COREDISR
-    ldr  w1, [x1, #DCFG_COREDISR_OFFSET]
-    rev  w2, w1
-
-     // test core bit
-    and  w0, w2, w0
+     // alwayd return 'disabled'
+    mov  w0, #0
     ret
 
 //-----------------------------------------------------------------------------
@@ -731,41 +724,6 @@ _soc_ck_disabled:
  // uses: x0, x1, x2, x3
 _soc_core_release:
 
-#if (SIMULATOR_BUILD)
-     // x0 = core mask lsb
-
-    mov  w2, w0
-    CoreMaskMsb w2, w3
-
-     // x0 = core mask lsb
-     // x2 = core mask msb
-
-#else
-     // x0 = core mask lsb
-
-    mov  x2, x0
-
-#endif
-     // write COREBCR 
-    ldr   x1, =SCFG_BASE_ADDR
-    rev   w3, w2
-    str   w3, [x1, #SCFG_COREBCR_OFFSET]
-    isb
-
-     // x0 = core mask lsb
-
-     // read-modify-write BRR
-    ldr  x1, =DCFG_BASE_ADDR
-    ldr  w2, [x1, #DCFG_BRR_OFFSET]
-    rev  w3, w2
-    orr  w3, w3, w0
-    rev  w2, w3
-    str  w2, [x1, #DCFG_BRR_OFFSET]
-    isb
-
-     // send event
-    sev
-    isb
     ret
 
 //-----------------------------------------------------------------------------
@@ -778,38 +736,8 @@ _soc_core_release:
  //       x0 != 0, failure
  // uses: x0, x1, x2, x3, x4, x5
 _soc_core_rls_wait:
-    mov  x4, x30
-    mov  x5, x0
 
-     // release the core from reset
-    bl   _soc_core_release
-
-     // x5 = core_mask_lsb
-
-    ldr  x3, =CORE_RELEASE_CNT
-
-     // x3 = retry count
-     // x5 = core_mask_lsb
-1:
-    sev
-    isb
-    mov  x0, x5
-    getCoreData x0 CORE_STATE_DATA
-
-     // see if the core has signaled that it is up
-    cmp  x0, #CORE_RELEASED
     mov  x0, xzr
-    b.eq 2f
-
-     // see if we used up our retries
-    sub  w3, w3, #1
-    mov  x0, #1
-    cbz  w3, 2f
-
-     // loop back and try again
-    b    1b
-2:
-    mov  x30, x4
     ret
 
 //-----------------------------------------------------------------------------
@@ -821,41 +749,7 @@ _soc_core_rls_wait:
  // out: none
  // uses x0, x1, x2, x3, x4, x5, x6, x7, x8
 _soc_core_phase1_off:
-    mov  x8, x30
 
-     // disable dcache, mmu, and icache for EL1 and EL2 by clearing
-     // bits 0, 2, and 12 of SCTLR_EL1 and SCTLR_EL2 (MMU, dcache, icache)
-    ldr x0, =SCTLR_I_C_M_MASK
-    mrs x1, SCTLR_EL1
-    bic x1, x1, x0
-    msr SCTLR_EL1, x1 
-
-    mrs x1, SCTLR_EL2
-    bic x1, x1, x0
-    msr SCTLR_EL2, x1 
-
-     // disable only dcache for EL3 by clearing SCTLR_EL3[2] 
-    mrs x1, SCTLR_EL3
-    ldr x0, =SCTLR_C_MASK
-    bic x1, x1, x0      
-    msr SCTLR_EL3, x1 
-    isb
-
-     // mask interrupts by setting DAIF[7:4] to 'b1111
-    mrs  x1, DAIF
-    ldr  x0, =DAIF_SET_MASK
-    orr  x1, x1, x0
-    msr  DAIF, x1 
-
-     // FIQ taken to EL3, set SCR_EL3[FIQ]
-    mrs   x0, scr_el3
-    orr   x0, x0, #SCR_FIQ_MASK
-    msr   scr_el3, x0
-
-    dsb  sy
-    isb
-
-    mov  x30, x8               
     ret
 
 //-----------------------------------------------------------------------------
@@ -867,70 +761,7 @@ _soc_core_phase1_off:
  // out: none
  // uses x0, x1, x2, x3, x4, x5, x6
 _soc_core_phase2_off:
-    mov  x6, x30
 
-     // x0 = core mask lsb
-    mov  x4, x0
-
-     // configure the cpu interface
-
-     // disable signaling of ints
-    ldr  x5, =GICC_BASE_ADDR
-    ldr  w3, [x5, #GICC_CTLR_OFFSET]
-    bic  w3, w3, #GICC_CTLR_EN_GRP0
-    bic  w3, w3, #GICC_CTLR_EN_GRP1
-    str  w3, [x5, #GICC_CTLR_OFFSET]
-    dsb  sy
-    isb
-
-     // x3 = GICC_CTRL
-     // x4 = core mask lsb
-     // x5 = GICC_BASE_ADDR
-
-     // set the priority filter
-    ldr  w2, [x5, #GICC_PMR_OFFSET]
-    orr  w2, w2, #GICC_PMR_FILTER
-    str  w2, [x5, #GICC_PMR_OFFSET]
-
-     // setup GICC_CTLR
-    bic  w3, w3, #GICC_CTLR_ACKCTL_MASK
-    orr  w3, w3, #GICC_CTLR_FIQ_EN_MASK
-    orr  w3, w3, #GICC_CTLR_EOImodeS_MASK
-    orr  w3, w3, #GICC_CTLR_CBPR_MASK
-    str  w3, [x5, #GICC_CTLR_OFFSET]
-
-     // x3 = GICC_CTRL
-     // x4 = core mask lsb
-
-     // setup the banked-per-core GICD registers
-    ldr  x5, =GICD_BASE_ADDR
-
-     // define SGI15 as Grp0
-    ldr  w2, [x5, #GICD_IGROUPR0_OFFSET]
-    bic  w2, w2, #GICD_IGROUP0_SGI15
-    str  w2, [x5, #GICD_IGROUPR0_OFFSET]
-
-     // set priority of SGI 15 to highest...
-    ldr  w2, [x5, #GICD_IPRIORITYR3_OFFSET]
-    bic  w2, w2, #GICD_IPRIORITY_SGI15_MASK
-    str  w2, [x5, #GICD_IPRIORITYR3_OFFSET]
-
-     // enable SGI 15
-    ldr  w2, [x5, #GICD_ISENABLER0_OFFSET]
-    orr  w2, w2, #GICD_ISENABLE0_SGI15
-    str  w2, [x5, #GICD_ISENABLER0_OFFSET]
-
-     // x3 = GICC_CTRL
-
-     // enable the cpu interface
-
-    ldr  x5, =GICC_BASE_ADDR
-    orr  w3, w3, #GICC_CTLR_EN_GRP0
-    str  w3, [x5, #GICC_CTLR_OFFSET]
-    dsb  sy
-    isb
-
-    mov  x30, x6
     ret
 
 //-----------------------------------------------------------------------------
@@ -941,62 +772,7 @@ _soc_core_phase2_off:
  // out: none
  // uses x0, x1, x2, x3, x4, x5
 _soc_core_entr_off:
-    mov  x5, x30
-    mov  x3, x0
 
-     // x0 = core mask lsb
-
-     // change state of core in data area
-    mov  x1, #CORE_OFF
-    saveCoreData x0 x1 CORE_STATE_DATA
-
-     // disable EL3 icache by clearing SCTLR_EL3[12]
-    mrs x1, SCTLR_EL3
-    ldr x2, =SCTLR_I_MASK
-    bic x1, x1, x2      
-    msr SCTLR_EL3, x1 
-
-     // invalidate icache
-    ic iallu
-    dsb  sy
-    isb
-
-     // clear any pending SGIs
-    ldr   x2, =GICD_CPENDSGIR_CLR_MASK
-    ldr   x4, =GICD_BASE_ADDR
-    add   x0, x4, #GICD_CPENDSGIR3_OFFSET
-    str   w2, [x0]
-
-     // x3 = core mask (lsb)
-     // x4 = GICD_BASE_ADDR
-
-3:
-     // enter low-power state by executing wfi
-    wfi
-
-     // x3 = core mask (lsb)
-     // x4 = GICD_BASE_ADDR
-
-     // see if we got hit by SGI 15
-    add   x0, x4, #GICD_SPENDSGIR3_OFFSET
-    ldr   w2, [x0]
-    and   w2, w2, #GICD_SPENDSGIR3_SGI15_MASK
-    cbz   w2, 4f
-
-     // clear the pending SGI
-    ldr   x2, =GICD_CPENDSGIR_CLR_MASK
-    add   x0, x4, #GICD_CPENDSGIR3_OFFSET
-    str   w2, [x0]
-4:
-     // check if core has been turned on
-    mov  x0, x3 
-    getCoreData x0 CORE_STATE_DATA
-    cmp  x0, #CORE_PENDING
-    b.ne 3b
-
-     // if we get here, then we have exited the wfi
-
-    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -1008,24 +784,6 @@ _soc_core_entr_off:
  // uses x0, x1
 _soc_core_exit_off:
 
-    ldr  x1, =GICC_BASE_ADDR
-
-     // read GICC_IAR
-    ldr  w0, [x1, #GICC_IAR_OFFSET]
-
-     // write GICC_EIOR - signal end-of-interrupt
-    str  w0, [x1, #GICC_EOIR_OFFSET]
-
-     // write GICC_DIR - disable interrupt
-    str  w0, [x1, #GICC_DIR_OFFSET]
-
-     // enable icache in SCTLR_EL3
-    mrs  x0, SCTLR_EL3
-    orr  x0, x0, #SCTLR_I_MASK
-    msr  SCTLR_EL3, x0
-
-    dsb sy
-    isb
     ret
 
 //-----------------------------------------------------------------------------
@@ -1036,17 +794,7 @@ _soc_core_exit_off:
  // out: none
  // uses x0, x1, x3
 _soc_core_phase1_clnup:
-    mov  x3, x30
 
-     // x0 = core mask lsb
-
-     // clr SCR_EL3[FIQ]
-    mrs   x0, scr_el3
-    bic   x0, x0, #SCR_FIQ_MASK
-    msr   scr_el3, x0
-
-    isb
-    mov  x30, x3
     ret
 
 //-----------------------------------------------------------------------------
@@ -1057,19 +805,7 @@ _soc_core_phase1_clnup:
  // out: none
  // uses x0, x1, x2, x3, x4
 _soc_core_phase2_clnup:
-    mov  x4, x30
 
-     // x0 = core mask lsb
-
-     // disable signaling of grp0 ints
-    ldr  x2, =GICC_BASE_ADDR
-    ldr  w3, [x2, #GICC_CTLR_OFFSET]
-    bic  w3, w3, #GICC_CTLR_EN_GRP0
-    str  w3, [x2, #GICC_CTLR_OFFSET]
-    dsb  sy
-    isb
-
-    mov  x30, x4
     ret
 
 //-----------------------------------------------------------------------------
@@ -1081,66 +817,7 @@ _soc_core_phase2_clnup:
  //      x0 != 0, on failure
  // uses x0, x1, x2, x3, x4, x5
 _soc_core_restart:
-    mov  x5, x30
 
-     // x0 = core mask lsb
-
-    ldr  x4, =GICD_BASE_ADDR
-
-     // x0 = core mask lsb
-     // x4 = GICD_BASE_ADDR
-
-     // enable forwarding of group 0 interrupts by setting GICD_CTLR[0] = 1
-    ldr  w1, [x4, #GICD_CTLR_OFFSET]
-    orr  w1, w1, #GICD_CTLR_EN_GRP0
-    str  w1, [x4, #GICD_CTLR_OFFSET]
-    dsb sy
-    isb
-
-     // x0 = core mask lsb
-     // x4 = GICD_BASE_ADDR
-
-     // fire SGI by writing to GICD_SGIR the following values:
-     // [25:24] = 0x0 (forward interrupt to the CPU interfaces specified in CPUTargetList field)
-     // [23:16] = core mask lsb[7:0] (forward interrupt to target cpu)
-     // [15]    = 0 (forward SGI only if it is configured as group 0 interrupt)
-     // [3:0]   = 0xF (interrupt ID = 15)
-    lsl  w1, w0, #16
-    orr  w1, w1, #0xF
-    str  w1, [x4, #GICD_SGIR_OFFSET]
-    dsb sy
-    isb
-
-     // x0 = core mask lsb
-
-     // get the state of the core and loop til the
-     // core state is "RELEASED" or until timeout 
-
-    ldr  x3, =RESTART_RETRY_CNT
-    mov  x4, x0
-
-     // x4 = core mask lsb
-
-1:
-    mov  x0, x4
-    getCoreData x0 CORE_STATE_DATA
-
-    cmp  x0, #CORE_RELEASED
-    b.eq 2f    
-
-     // decrement the retry cnt and see if we're finished
-    sub  x3, x3, #1
-    cbnz x3, 1b
-
-     // load '1' on failure
-//    mov  x0, #1
-//    b    3f 
-
-2:
-     // load '0' on success
-    mov  x0, xzr
-3:
-    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -1283,7 +960,6 @@ _get_current_mask:
 
 //-----------------------------------------------------------------------------
 
-
  // this function starts the initialization tasks of the soc, using secondary cores
  // if they are available
  // in: 
@@ -1303,29 +979,9 @@ _soc_init_start:
      // see if we are initializing ocram
     ldr x0, =POLICY_USING_ECC
     cbz x0, 1f
+
      // initialize the OCRAM for ECC
 
-     // get a secondary core to initialize the upper half of ocram
-    bl  _find_core      // 0-4
-    cbz x0, 2f
-    bl  init_task_1     // 0-4   
-5:
-     // wait til task 1 has started
-    bl  get_task1_start // 0-1
-    cbnz x0, 4f
-    b    5b
-4:
-     // get a secondary core to initialize the lower
-     // half of ocram
-    bl  _find_core      // 0-4
-    cbz x0, 3f
-    bl  init_task_2     // 0-4
-6:
-     // wait til task 2 has started
-    bl  get_task2_start // 0-1
-    cbnz x0, 7f
-    b    6b
-2:
      // there are no secondary cores available, so the
      // boot core will have to init upper ocram
     bl  _ocram_init_upper // 0-9
@@ -1350,44 +1006,7 @@ _soc_init_start:
  // out: 
  // uses x0, x1, x2, x3, x4
 _soc_init_finish:
-    mov   x4, x30
 
-     // are we initializing ocram?
-    ldr x0, =POLICY_USING_ECC
-    cbz x0, 4f
-
-     // if the ocram init is not completed, wait til it is
-1:
-    bl   get_task1_done
-    cbnz x0, 2f
-    wfe
-    b    1b    
-2:
-    bl   get_task2_done
-    cbnz x0, 3f
-    wfe
-    b    2b    
-3:
-     // set the task 1 core state to IN_RESET
-    bl   get_task1_core
-    cbz  x0, 5f
-     // x0 = core mask lsb of the task 1 core
-    mov  w1, #CORE_IN_RESET
-    saveCoreData x0 x1 CORE_STATE_DATA
-5:
-     // set the task 2 core state to IN_RESET
-    bl   get_task2_core
-    cbz  x0, 4f
-     // x0 = core mask lsb of the task 2 core
-    mov  w1, #CORE_IN_RESET
-    saveCoreData x0 x1 CORE_STATE_DATA
-4:
-     // restore bootlocptr
-    adr  x1, saved_bootlocptr
-    ldr  x0, [x1]
-    bl    _soc_set_start_addr
-
-    mov   x30, x4
     ret
 
 //-----------------------------------------------------------------------------
@@ -1395,7 +1014,6 @@ _soc_init_finish:
  // this function sets the security mechanisms in the SoC to implement the
  // Platform Security Policy
 _set_platform_security:
-
 
     ret
 
