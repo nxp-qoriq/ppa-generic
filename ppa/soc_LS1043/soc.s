@@ -286,6 +286,18 @@ _soc_sys_entr_pwrdn:
 
      // x8 = core mask lsb
 
+     // disable dcache for EL3
+    mrs x1, SCTLR_EL3
+    bic x1, x1, #SCTLR_C_MASK
+     // make sure icache is enabled
+    orr x1, x1, #SCTLR_I_MASK      
+    msr SCTLR_EL3, x1 
+    isb
+
+     // clean and invalidate the dcache
+    mov  x0, #CLN_INV_DCACHE
+    bl   _cln_inv_L1_dcache
+
      // set WFIL2_EN in SCFG_COREPMCR
     ldr  x0, =SCFG_COREPMCR_OFFSET
     ldr  x1, =COREPMCR_WFIL2
@@ -303,7 +315,12 @@ _soc_sys_entr_pwrdn:
     saveCoreData x0 x1 DAIF_DATA
     ldr  x0, =DAIF_SET_MASK
     orr  x3, x3, x0
-    msr  DAIF, x3 
+    msr  DAIF, x3
+
+     // IRQ taken to EL3, set SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    orr  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
 
      // read IPPDEXPCR0 @ RCPM_IPPDEXPCR0
     ldr  x0, =RCPM_IPPDEXPCR0_OFFSET
@@ -618,7 +635,10 @@ _soc_sys_exit_pwrdn:
 
      // x0 = core mask lsb
 
-// need sw LMP20 cleanup here
+     // clear SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    bic  x0, x0, #0x2
+    msr  SCR_EL3, x0
 
     ret
 
@@ -1263,14 +1283,64 @@ _get_current_mask:
 
 //-----------------------------------------------------------------------------
 
+
  // this function starts the initialization tasks of the soc, using secondary cores
  // if they are available
  // in: 
  // out: 
- // uses x0, x1, x2, x3, x4, x5
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _soc_init_start:
+    mov   x10, x30
 
+     // init the task flags
+    bl  init_task_flags   // 0-1
 
+     // save start address
+    bl  _soc_get_start_addr   // 0-2
+    adr x1, saved_bootlocptr
+    str x0, [x1]
+
+     // see if we are initializing ocram
+    ldr x0, =POLICY_USING_ECC
+    cbz x0, 1f
+     // initialize the OCRAM for ECC
+
+     // get a secondary core to initialize the upper half of ocram
+    bl  _find_core      // 0-4
+    cbz x0, 2f
+    bl  init_task_1     // 0-4   
+5:
+     // wait til task 1 has started
+    bl  get_task1_start // 0-1
+    cbnz x0, 4f
+    b    5b
+4:
+     // get a secondary core to initialize the lower
+     // half of ocram
+    bl  _find_core      // 0-4
+    cbz x0, 3f
+    bl  init_task_2     // 0-4
+6:
+     // wait til task 2 has started
+    bl  get_task2_start // 0-1
+    cbnz x0, 7f
+    b    6b
+2:
+     // there are no secondary cores available, so the
+     // boot core will have to init upper ocram
+    bl  _ocram_init_upper // 0-9
+3:
+     // there are no secondary cores available, so the
+     // boot core will have to init lower ocram
+    bl  _ocram_init_lower // 0-9
+    b   1f
+7:
+     // clear bootlocptr
+    mov  x0, xzr
+    bl    _soc_set_start_addr
+
+1:
+    mov   x30, x10
     ret
 
 //-----------------------------------------------------------------------------
@@ -1280,8 +1350,44 @@ _soc_init_start:
  // out: 
  // uses x0, x1, x2, x3, x4
 _soc_init_finish:
+    mov   x4, x30
 
+     // are we initializing ocram?
+    ldr x0, =POLICY_USING_ECC
+    cbz x0, 4f
 
+     // if the ocram init is not completed, wait til it is
+1:
+    bl   get_task1_done
+    cbnz x0, 2f
+    wfe
+    b    1b    
+2:
+    bl   get_task2_done
+    cbnz x0, 3f
+    wfe
+    b    2b    
+3:
+     // set the task 1 core state to IN_RESET
+    bl   get_task1_core
+    cbz  x0, 5f
+     // x0 = core mask lsb of the task 1 core
+    mov  w1, #CORE_IN_RESET
+    saveCoreData x0 x1 CORE_STATE_DATA
+5:
+     // set the task 2 core state to IN_RESET
+    bl   get_task2_core
+    cbz  x0, 4f
+     // x0 = core mask lsb of the task 2 core
+    mov  w1, #CORE_IN_RESET
+    saveCoreData x0 x1 CORE_STATE_DATA
+4:
+     // restore bootlocptr
+    adr  x1, saved_bootlocptr
+    ldr  x0, [x1]
+    bl    _soc_set_start_addr
+
+    mov   x30, x4
     ret
 
 //-----------------------------------------------------------------------------
@@ -1524,6 +1630,443 @@ write_reg_ddr:
 
 //-----------------------------------------------------------------------------
 
+ // this function initializes the upper-half of OCRAM for ECC checking
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+_ocram_init_upper:
+
+     // set the start flag
+    adr  x8, init_task1_flags
+    mov  w9, #1
+    str  w9, [x8]
+
+     // use 64-bit accesses to r/w all locations of the upper-half of OCRAM
+    ldr  x0, =OCRAM_BASE_ADDR
+    ldr  x1, =OCRAM_SIZE_IN_BYTES
+     // divide size in half
+    lsr  x1, x1, #1
+     // add size to base addr to get start addr of upper half
+    add  x0, x0, x1
+     // convert bytes to 64-byte chunks (using quad load/store pair ops)
+    lsr  x1, x1, #6
+
+     // x0 = start address
+     // x1 = size in 64-byte chunks
+1:
+     // for each location, read and write-back
+    ldp  x2, x3, [x0]
+    ldp  x4, x5, [x0, #16]
+    ldp  x6, x7, [x0, #32]
+    ldp  x8, x9, [x0, #48]
+    stp  x2, x3, [x0]
+    stp  x4, x5, [x0, #16]
+    stp  x6, x7, [x0, #32]
+    stp  x8, x9, [x0, #48]
+
+    sub  x1, x1, #1
+    cbz  x1, 2f
+    add  x0, x0, #64
+    b    1b
+
+2:
+     // make sure the data accesses are complete
+    dsb  sy
+    isb
+
+     // set the done flag
+    adr  x6, init_task1_flags
+    mov  w7, #1
+    str  w7, [x6, #4]
+
+     // clean the registers
+    mov  x0, #0
+    mov  x1, #0
+    mov  x2, #0
+    mov  x3, #0
+    mov  x4, #0
+    mov  x5, #0
+    mov  x6, #0
+    mov  x7, #0
+    mov  x8, #0
+    mov  x9, #0
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function initializes the lower-half of OCRAM for ECC checking
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+_ocram_init_lower:
+
+     // set the start flag
+    adr  x8, init_task2_flags
+    mov  w9, #1
+    str  w9, [x8]
+
+     // use 64-bit accesses to r/w all locations of the upper-half of OCRAM
+    ldr  x0, =OCRAM_BASE_ADDR
+    ldr  x1, =OCRAM_SIZE_IN_BYTES
+     // divide size in half
+    lsr  x1, x1, #1
+     // convert bytes to 64-byte chunks (using quad load/store pair ops)
+    lsr  x1, x1, #6
+
+     // x0 = start address
+     // x1 = size in 64-byte chunks
+1:
+     // for each location, read and write-back
+    ldp  x2, x3, [x0]
+    ldp  x4, x5, [x0, #16]
+    ldp  x6, x7, [x0, #32]
+    ldp  x8, x9, [x0, #48]
+    stp  x2, x3, [x0]
+    stp  x4, x5, [x0, #16]
+    stp  x6, x7, [x0, #32]
+    stp  x8, x9, [x0, #48]
+
+    sub  x1, x1, #1
+    cbz  x1, 2f
+    add  x0, x0, #64
+    b    1b
+
+2:
+     // make sure the data accesses are complete
+    dsb  sy
+    isb
+
+     // set the done flag
+    adr  x6, init_task2_flags
+    mov  w7, #1
+    str  w7, [x6, #4]
+
+     // clean the registers
+    mov  x0, #0
+    mov  x1, #0
+    mov  x2, #0
+    mov  x3, #0
+    mov  x4, #0
+    mov  x5, #0
+    mov  x6, #0
+    mov  x7, #0
+    mov  x8, #0
+    mov  x9, #0
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this is soc initialization task 1
+ // this function releases a secondary core to init the upper half of OCRAM
+ // in:  x0 = core mask lsb of the secondary core to put to work
+ // out: none
+ // uses x0, x1, x2, x3, x4
+init_task_1:
+
+    mov  x3, x30
+    mov  x4, x0
+
+     // set the core state to WORKING_INIT
+    mov  w1, #CORE_WORKING_INIT
+    saveCoreData x0 x1 CORE_STATE_DATA
+
+     // save the core mask
+    mov  x0, x4
+    bl   set_task1_core
+
+     // load bootlocptr with start addr
+    adr  x0, prep_init_ocram_hi
+    bl   _soc_set_start_addr
+
+     // release secondary core
+    mov  x0, x4
+    bl  _soc_core_release
+
+    mov  x30, x3
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this is soc initialization task 2
+ // this function releases a secondary core to init the lower half of OCRAM
+ // in:  x0 = core mask lsb of the secondary core to put to work
+ // out: none
+ // uses x0, x1, x2, x3, x4
+init_task_2:
+
+    mov  x3, x30
+    mov  x4, x0
+
+     // set the core state to WORKING_INIT
+    mov  w1, #CORE_WORKING_INIT
+    saveCoreData x0 x1 CORE_STATE_DATA
+
+     // save the core mask
+    mov  x0, x4
+    bl   set_task2_core
+
+     // load bootlocptr with start addr
+    adr  x0, prep_init_ocram_lo
+    bl   _soc_set_start_addr
+
+     // release secondary core
+    mov  x0, x4
+    bl  _soc_core_release
+
+    mov  x30, x3
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function initializes the soc init task flags
+ // in:  none
+ // out: none
+ // uses x0, x1
+init_task_flags:
+
+    adr  x0, init_task1_flags
+    adr  x1, init_task2_flags
+    str  wzr, [x0]
+    str  wzr, [x0, #4]
+    str  wzr, [x0, #8]
+    str  wzr, [x1]
+    str  wzr, [x1, #4]
+    str  wzr, [x1, #8]
+    adr  x0, init_task3_flags
+    str  wzr, [x0]
+    str  wzr, [x0, #4]
+    str  wzr, [x0, #8]
+
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the state of the task 1 start flag
+ // in:  
+ // out: 
+ // uses x0, x1
+get_task1_start:
+
+    adr  x1, init_task1_flags
+    ldr  w0, [x1]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the state of the task 1 done flag
+ // in:  
+ // out: 
+ // uses x0, x1
+get_task1_done:
+
+    adr  x1, init_task1_flags
+    ldr  w0, [x1, #4]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the core mask of the core performing task 1
+ // in:  
+ // out: x0 = core mask lsb of the task 1 core
+ // uses x0, x1
+get_task1_core:
+
+    adr  x1, init_task1_flags
+    ldr  w0, [x1, #8]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function saves the core mask of the core performing task 1
+ // in:  x0 = core mask lsb of the task 1 core
+ // out:
+ // uses x0, x1
+set_task1_core:
+
+    adr  x1, init_task1_flags
+    str  w0, [x1, #8]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the state of the task 2 start flag
+ // in:  
+ // out: 
+ // uses x0, x1
+get_task2_start:
+
+    adr  x1, init_task2_flags
+    ldr  w0, [x1]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the state of the task 2 done flag
+ // in:  
+ // out: 
+ // uses x0, x1
+get_task2_done:
+
+    adr  x1, init_task2_flags
+    ldr  w0, [x1, #4]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the core mask of the core performing task 2
+ // in:  
+ // out: x0 = core mask lsb of the task 2 core
+ // uses x0, x1
+get_task2_core:
+
+    adr  x1, init_task2_flags
+    ldr  w0, [x1, #8]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function saves the core mask of the core performing task 2
+ // in:  x0 = core mask lsb of the task 2 core
+ // out:
+ // uses x0, x1
+set_task2_core:
+
+    adr  x1, init_task2_flags
+    str  w0, [x1, #8]
+    ret
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+ // DO NOT CALL THIS FUNCTION FROM THE BOOT CORE!!
+ // this function uses a secondary core to initialize the upper portion of OCRAM
+ // the core does not return from this function
+prep_init_ocram_hi:
+
+     // invalidate the icache
+    ic  iallu
+    isb
+
+     // enable the icache on the secondary core
+    mrs  x1, sctlr_el3
+    orr  x1, x1, #SCTLR_I_MASK
+    msr  sctlr_el3, x1
+    isb
+
+     // init the range of ocram
+    bl  _ocram_init_upper
+
+     // get the core mask
+    mrs  x0, MPIDR_EL1
+    bl   _get_core_mask_lsb
+
+     // x0 = core mask lsb
+
+     // turn off icache, mmu
+    mrs  x1, sctlr_el3
+    bic  x1, x1, #SCTLR_I_MASK
+    bic  x1, x1, #SCTLR_M_MASK
+    msr  sctlr_el3, x1
+
+     // invalidate the icache
+    ic  iallu
+    isb
+
+     // wakeup the bootcore - it might be asleep waiting for us to finish
+    sev
+    isb
+    sev
+    isb
+
+    mov  x5, x0
+
+     // x5 = core mask lsb
+
+1:
+     // see if our state has changed to CORE_PENDING
+    mov   x0, x5
+    getCoreData x0 CORE_STATE_DATA
+    cmp   x0, #CORE_PENDING
+    b.eq  2f
+     // if not core_pending, then wfe
+    wfe
+    b  1b
+
+2:
+     // branch to the start code in the monitor
+    adr  x0, _secondary_core_init
+    br   x0
+
+//-----------------------------------------------------------------------------
+
+ // DO NOT CALL THIS FUNCTION FROM THE BOOT CORE!!
+ // this function uses a secondary core to initialize the lower portion of OCRAM
+ // the core does not return from this function
+prep_init_ocram_lo:
+
+     // invalidate the icache
+    ic  iallu
+    isb
+
+     // enable the icache on the secondary core
+    mrs  x1, sctlr_el3
+    orr  x1, x1, #SCTLR_I_MASK
+    msr  sctlr_el3, x1
+    isb
+
+     // init the range of ocram
+    bl  _ocram_init_lower    // 0-9
+
+     // get the core mask
+    mrs  x0, MPIDR_EL1
+    bl   _get_core_mask_lsb  // 0-2
+
+     // x0 = core mask lsb
+
+     // turn off icache
+    mrs  x1, sctlr_el3
+    bic  x1, x1, #SCTLR_I_MASK
+    msr  sctlr_el3, x1
+
+     // invalidate tlb
+    tlbi  alle3
+    dsb   sy
+    isb
+
+     // invalidate the icache
+    ic  iallu
+    isb
+
+     // wakeup the bootcore - it might be asleep waiting for us to finish
+    sev
+    isb
+    sev
+    isb
+
+    mov  x5, x0
+
+     // x5 = core mask lsb
+
+1:
+     // see if our state has changed to CORE_PENDING
+    mov   x0, x5
+    getCoreData x0 CORE_STATE_DATA
+    cmp   x0, #CORE_PENDING
+    b.eq  2f
+     // if not core_pending, then wfe
+    wfe
+    b  1b
+
+2:
+     // branch to the start code in the monitor
+    adr  x0, _secondary_core_init
+    br   x0
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
  // this function will shutdown ddr and the final core - it will do this
  // by loading itself into the icache and then executing from there
  // in:  x5 = ipstpcr4 (IPSTPCR4_VALUE bic DEVDISR5_MASK)
@@ -1541,19 +2084,36 @@ final_shutdown:
     mov  x0, xzr
     b    touch_line_0
 start_line_0:
+    mov  x0, #1
     mov  x2, #DDR_SDRAM_CFG_2_FRCSR         // put ddr in self refresh - start
     ldr  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]
     rev  w4, w3
     orr  w4, w4, w2
     rev  w3, w4
+    str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // put ddr in self refresh - end
+    orr  w3, w5, #DEVDISR5_MEM              // disable ddr (+ ocram?) clocks - start
+    rev  w4, w3                             // w4 contains polling target value
+    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // disable ddr (+ ocram?) clocks - end
+    nop
+    nop
+    mov  x2, x9                             // poll on ipstpack4 - start
 touch_line_0:
     cbz  x0, touch_line_1
 
 start_line_1:
-    str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // put ddr in self refresh - end
-    orr  w3, w5, #DEVDISR5_DDR              // disable ddr clk - start
-    rev  w4, w3                             // w4 contains polling target value
-    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // disable ddr clk - end
+    ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
+    cmp  w1, w4
+    b.eq 1f
+    sub  x2, x2, #1
+    cbnz x2, start_line_1                   // poll on ipstpack4 - end
+1:
+    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // disable ddr in devdisr5
+    wfi                                     // stop the final core
+    nop
+    rev  w4, w5
+    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // re-enable ddr in devdisr5
+    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // re-enable ddr clk in ipstpcr4
+    nop
     nop
     nop
     mov  x2, x9                             // poll on ipstpack4 - start
@@ -1563,39 +2123,10 @@ touch_line_1:
 start_line_2:
     ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
     cmp  w1, w4
-    b.eq 1f
-    sub  x2, x2, #1
-    cbnz x2, start_line_2                   // poll on ipstpack4 - end
-1:
-    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // disable ddr in devdisr5
-    wfi                                     // stop the final core
-touch_line_2:
-    cbz  x0, touch_line_3
-
-start_line_3:
-    bic  w3, w5, #DEVDISR5_DDR
-    rev  w4, w3
-    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // re-enable ddr in devdisr5
-    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // re-enable ddr clk in ipstpcr4
-    nop
-    nop
-    mov  x2, x9                             // poll on ipstpack4 - start
-touch_line_3:
-    cbz  x0, touch_line_4
-
-start_line_4:
-    ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
-    cmp  w1, w4
     b.eq 2f
     sub  x2, x2, #1
-    cbnz x2, start_line_4                   // poll on ipstpack4 - end
+    cbnz x2, start_line_2                   // poll on ipstpack4 - end
 2:
-    nop
-    nop
-touch_line_4:
-    cbz  x0, touch_line_5
-
-start_line_5:
     mov  x2, #DDR_SDRAM_CFG_2_FRCSR         // take ddr out-of self refresh - start
     ldr  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]
     rev  w4, w3
@@ -1603,25 +2134,129 @@ start_line_5:
     rev  w3, w4
     str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // take ddr out-of self refresh - end
     nop
-touch_line_5:
-    cbz  x0, touch_line_6
-
-start_line_6:
-    add  x0, x0, #1
-    cmp  x0, #1
-    b.eq start_line_0
+    nop
+    nop
     b    continue_restart
-    nop
-    nop
-    nop
-touch_line_6:
-    cbz  x0, start_line_6
+touch_line_2:
+    cbz  x0, start_line_0
 
  // execute here after ddr is back up
 continue_restart:
     ret
 
 //-----------------------------------------------------------------------------
+
+ // this function will shutdown ddr and the final core - it will do this
+ // by loading itself into the icache and then executing from there
+ // in:  x5 = ipstpcr4 (IPSTPCR4_VALUE bic DEVDISR5_MASK)
+ //      x6 = DDR_CNTRL_BASE_ADDR
+ //      x7 = DCSR_RCPM2_BASE
+ //      x8 = DCFG_BASE_ADDR
+ //      x9 = IPSTPACK_RETRY_CNT
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+
+ // 4Kb aligned
+//.align 12
+//final_shutdown:
+//
+//    mov  x0, xzr
+//    b    touch_line_0
+//start_line_0:
+//    mov  x2, #DDR_SDRAM_CFG_2_FRCSR         // put ddr in self refresh - start
+//    ldr  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]
+//    rev  w4, w3
+//    orr  w4, w4, w2
+//    rev  w3, w4
+//touch_line_0:
+//    cbz  x0, touch_line_1
+//
+//start_line_1:
+//    str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // put ddr in self refresh - end
+//    orr  w3, w5, #DEVDISR5_DDR              // disable ddr clk - start
+//    rev  w4, w3                             // w4 contains polling target value
+//    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // disable ddr clk - end
+//    nop
+//    nop
+//    mov  x2, x9                             // poll on ipstpack4 - start
+//touch_line_1:
+//    cbz  x0, touch_line_2
+//
+//start_line_2:
+//    ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
+//    cmp  w1, w4
+//    b.eq 1f
+//    sub  x2, x2, #1
+//    cbnz x2, start_line_2                   // poll on ipstpack4 - end
+//1:
+//    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // disable ddr in devdisr5
+//    wfi                                     // stop the final core
+//touch_line_2:
+//    cbz  x0, touch_line_3
+//
+//start_line_3:
+//    bic  w3, w5, #DEVDISR5_DDR
+//    rev  w4, w3
+//    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // re-enable ddr in devdisr5
+//    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // re-enable ddr clk in ipstpcr4
+//    nop
+//    nop
+//    mov  x2, x9                             // poll on ipstpack4 - start
+//touch_line_3:
+//    cbz  x0, touch_line_4
+//
+//start_line_4:
+//    ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
+//    cmp  w1, w4
+//    b.eq 2f
+//    sub  x2, x2, #1
+//    cbnz x2, start_line_4                   // poll on ipstpack4 - end
+//2:
+//    nop
+//    nop
+//touch_line_4:
+//    cbz  x0, touch_line_5
+//
+//start_line_5:
+//    mov  x2, #DDR_SDRAM_CFG_2_FRCSR         // take ddr out-of self refresh - start
+//    ldr  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]
+//    rev  w4, w3
+//    bic  w4, w4, w2
+//    rev  w3, w4
+//    str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // take ddr out-of self refresh - end
+//    nop
+//touch_line_5:
+//    cbz  x0, touch_line_6
+//
+//start_line_6:
+//    add  x0, x0, #1
+//    cmp  x0, #1
+//    b.eq start_line_0
+//    b    continue_restart
+//    nop
+//    nop
+//    nop
+//touch_line_6:
+//    cbz  x0, start_line_6
+//
+// // execute here after ddr is back up
+//continue_restart:
+//    ret
+
+//-----------------------------------------------------------------------------
+
+psci_features_table:
+    .4byte  PSCI_VERSION_ID         // psci_version
+    .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
+    .4byte  PSCI_CPU_OFF_ID         // cpu_off
+    .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
+    .4byte  PSCI_CPU_ON_ID          // cpu_on
+    .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
+    .4byte  PSCI_FEATURES_ID        // psci_features
+    .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
+    .4byte  PSCI_AFFINITY_INFO_ID   // psci_affinity_info
+    .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
+    .4byte  FEATURES_TABLE_END      // table terminating value - must always be last entry in table
 
 .align 3
 soc_data_area:
@@ -1633,6 +2268,22 @@ soc_data_area:
     .4byte  0x0  // soc storage 6, offset 0x14
     .4byte  0x0  // soc storage 7, offset 0x18
     .4byte  0x0  // soc storage 8, offset 0x1C
+
+.align 3
+saved_bootlocptr:
+    .8byte 0x0   // 
+init_task1_flags:
+    .4byte  0x0  // begin flag
+    .4byte  0x0  // completed flag
+    .4byte  0x0  // core mask
+init_task2_flags:
+    .4byte  0x0  // begin flag
+    .4byte  0x0  // completed flag
+    .4byte  0x0  // core mask
+init_task3_flags:
+    .4byte  0x0  // begin flag
+    .4byte  0x0  // completed flag
+    .4byte  0x0  // core mask
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

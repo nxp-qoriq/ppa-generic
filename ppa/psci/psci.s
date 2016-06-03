@@ -228,9 +228,6 @@ core_in_powerdown:
     getCoreData x0 CPUECTLR_DATA
     msr  CPUECTLR_EL1, x0
 
-     // set the spsr for exit from EL3
-    bl   _set_spsr_4_exit
-
      // x9 = core mask lsb
 
      // return to entry point address
@@ -356,9 +353,6 @@ cluster_in_pwrdn:
     getCoreData x0 CPUECTLR_DATA
     msr  CPUECTLR_EL1, x0
 
-     // set the spsr for exit from EL3
-    bl   _set_spsr_4_exit
-
      // return to entry point address
     mov  x0, x12
     getCoreData x0 START_ADDR_DATA
@@ -435,65 +429,57 @@ system_in_pwrdn:
 
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
-    mov  x12, x0
+    mov  x11, x0
     mov  x1, x10
     saveCoreData x0 x1 CNTXT_ID_DATA
 
      // x9  = entry point address
-     // x12 = core mask
+     // x11 = core mask
 
      // save entry point address
-    mov  x0, x12
+    mov  x0, x11
     mov  x1, x9
     saveCoreData x0 x1 START_ADDR_DATA
 
-     // x12 = core mask
+     // x11 = core mask
 
-    mov  x0, x12
+    mov  x0, x11
     mov  x1, #CORE_PWR_DOWN
     saveCoreData x0 x1 CORE_STATE_DATA
 
      // save cpuectlr
     mrs  x1, CPUECTLR_EL1
-    mov  x0, x12
+    mov  x0, x11
     saveCoreData x0 x1 CPUECTLR_DATA
 
-    mov  x0, x12
+    mov  x0, x11
     bl   _soc_sys_entr_pwrdn
 
      // cleanup after the system exits power-down
-    mov  x0, x12
+    mov  x0, x11
     bl   _soc_sys_exit_pwrdn
 
-     // x12 = core mask lsb
+     // x11 = core mask lsb
 
-    mov  x0, x12
+    mov  x0, x11
     mov  x1, #CORE_RELEASED
     saveCoreData x0 x1 CORE_STATE_DATA
 
      // restore cpuectlr
-    mov  x0, x12
+    mov  x0, x11
     getCoreData x0 CPUECTLR_DATA
     msr  CPUECTLR_EL1, x0
 
-     // clear SCR_EL3[IRQ]
-    mrs  x0, SCR_EL3
-    bic  x0, x0, #0x2
-    msr  SCR_EL3, x0
-
-    mov  x0, x12
+    mov  x0, x11
     mov  x1, #CORE_RELEASED
     saveCoreData x0 x1 CORE_STATE_DATA
 
-     // set the spsr for exit from EL3
-    bl   _set_spsr_4_exit
-
      // return to entry point address
-    mov  x0, x12
+    mov  x0, x11
     getCoreData x0 START_ADDR_DATA
     msr  ELR_EL3, x0
 
-    mov  w0, w12
+    mov  x0, x11
     getCoreData x0 CNTXT_ID_DATA
 
      // we have a context id in x0 - don't overwrite this

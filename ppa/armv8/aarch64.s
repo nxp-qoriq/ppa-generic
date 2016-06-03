@@ -21,7 +21,6 @@
 //-----------------------------------------------------------------------------
 
 .global _flush_dcache_all
-.global _flush_L1_dcache
 .global _set_tcr
 .global _is_EL2_supported
 .global _set_spsr_4_exit
@@ -33,6 +32,7 @@
 .global _init_core_EL2
 .global _init_core_EL1
 .global _set_EL3_vectors
+.global _cln_inv_L1_dcache
 
 //-----------------------------------------------------------------------------
 
@@ -123,55 +123,57 @@ end_flush_u:
 
 //-----------------------------------------------------------------------------
 
- // clean and invalidate the L1 dcache
- // in:   none
- // out:  none
- // uses: x0, x1, x2, x3, x4, x5, x6
-_flush_L1_dcache:
-    dsb  sy
-     // select the L1 cache id register
-    msr  csselr_el1, xzr
+ // this function cleans, and optionally also invalidates, the L1 dcache
+ // in:  x0 = 0, clean only
+ //      x0 = 1, clean and invalidate
+_cln_inv_L1_dcache:
+
+     // set for L1
+    msr   csselr_el1, xzr
     isb
-     // read the cache id register
-    mrs  x6, ccsidr_el1
-     // get the L offset
-    and  x0, x6,  #7
-    add  x0, x0, #4
+     // read the cssidr_el1
+    mrs   x1, ccsidr_el1
+    mov   x2, xzr
+    mov   x3, xzr
+    bfxil x2, x1, #3, #10
+    bfxil x3, x1, #13, #15
 
-     // extract the max way
-    mov  x3, #0x3ff
-    and  x3, x3, x6, lsr #3
-     // get the bit position of the ways field
-    clz  w5, w3
+     // x2 = ways-1
+     // x3 = sets-1
 
-     // extract the max set
-    mov  x4, #0x7fff
-    and  x4, x4, x6, lsr #13
+    clz  w4, w2
 
-     // x0 = L offset
-     // x3 = number of cache ways - 1
-     // x4 = number of cache sets - 1
-     // x5 = bit position of ways
+     // x2 = ways-1
+     // x3 = sets-1
+     // x4 = bit position of way # (left-shift amount)
 
-loop_set:
-     // load the working copy of the max way
-    mov  x6, x3
-loop_way:
-     // insert #way and level to data reg
-    lsl  x2, x6, x5
-    orr x1, xzr, x2
-     // insert #set to data reg
-    lsl  x2, x4, x0
-    orr  x1, x1, x2
+     // extract line-len field
+    and  x1, x1, #7
+     // generate L=log2(linelength)
+    add  x1, x1, #4
 
-     // clean and invalidate
-    dc    cisw, x1
-     // decrement the way
-    subs  x6, x6, #1
-    b.ge  loop_way
-     // decrement the set
-    subs  x4, x4, #1
-    b.ge  loop_set
+     // x1 = L, bit position of set # (left-shift amount)
+     // x2 = ways-1
+     // x3 = sets-1
+     // x4 = bit position of way # (left-shift amount)
+
+set_loop:
+    mov  x5, x2
+
+way_loop:
+     // construct the way/set input to the cache op
+    lsl  x6, x3, x1
+    lsl  x7, x5, x4
+    orr  x6, x6, x7
+    dc   csw, x6
+    cbz  x0, 1f
+    dc   isw, x6
+1:
+    subs x5, x5, #1
+    b.ge way_loop
+
+    subs x3, x3, #1
+    b.ge set_loop
 
     isb
     ret

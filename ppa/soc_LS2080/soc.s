@@ -92,7 +92,7 @@
  // if they are available
  // in: 
  // out: 
- // uses x0, x1, x2, x3, x4, x5
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _soc_init_start:
     mov   x10, x30
 

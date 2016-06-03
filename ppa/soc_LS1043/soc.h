@@ -10,6 +10,13 @@
 #ifndef _SOC_H
 #define	_SOC_H
 
+ // set this switch to 1 if you need to keep the debug block
+ // clocked during system power-down
+#define DEBUG_ACTIVE  0
+ // set this switch to 1 if you need to keep the ocram 1&2
+ // clocked during system power-down
+#define OCRAM_ACTIVE  1
+
  // base addresses
 #define SCFG_BASE_ADDR            0x01570000
 #define DCFG_BASE_ADDR            0x01EE0000
@@ -89,7 +96,11 @@
 #define IPSTPCR1_VALUE            0x00000080
 #define IPSTPCR2_VALUE            0x000C0000
 #define IPSTPCR3_VALUE            0x38000000
-#define IPSTPCR4_VALUE            0x10A13BFC
+#if (DEBUG_ACTIVE)
+  #define IPSTPCR4_VALUE          0x10833BFC
+#else
+  #define IPSTPCR4_VALUE          0x10A33BFC
+#endif
 
 #define DEVDISR1_QE               0x00000001
 #define DEVDISR1_SEC              0x00000200
@@ -145,12 +156,21 @@
 #define DEVDISR5_OCRAM1           0x02000000
 #define DEVDISR5_LPUART4          0x10000000
 #define DEVDISR5_DDR              0x80000000
+#if (OCRAM_ACTIVE)
+  #define DEVDISR5_MEM            0x80000000
+#else
+  #define DEVDISR5_MEM            0x83000000
+#endif
 
 #define DEVDISR1_VALUE            0xA0C3C201
 #define DEVDISR2_VALUE            0xCC0C0080
 #define DEVDISR3_VALUE            0xE00C0000
 #define DEVDISR4_VALUE            0x38000000
-#define DEVDISR5_VALUE            0x13A33BFC
+#if (DEBUG_ACTIVE)
+  #define DEVDISR5_VALUE          0x10833BFC
+#else
+  #define DEVDISR5_VALUE          0x10A33BFC
+#endif
 
  // number of cpu's, clusters in this SoC
 #define CPU_MAX_COUNT             0x4
@@ -220,6 +240,12 @@
 #define GICC_IAR_OFFSET           0x000C
 #define GICC_DIR_OFFSET           0x1000
 #define GICC_EOIR_OFFSET          0x0010
+
+ // OCRAM
+#define  OCRAM_BASE_ADDR     0x10000000
+#define  OCRAM_MID_ADDR      0x10010000
+#define  OCRAM_SIZE_IN_BYTES 0x20000
+#define  OCRAM_INIT_RETRY    0x2000
 
 //-----------------------------------------------------------------------------
 

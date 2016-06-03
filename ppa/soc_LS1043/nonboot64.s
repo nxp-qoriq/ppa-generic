@@ -74,7 +74,8 @@ core_disable:
     msr  SCTLR_EL3, x1
 
      // clean & inv L1 dcache
-    bl  _flush_L1_dcache 
+    mov  x0, #1
+    bl   _cln_inv_L1_dcache
 
      // clear SMP and set retention control in CPUECTLR
     mov  x1, #0x2

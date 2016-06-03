@@ -21,9 +21,12 @@
 .equ  SPSR_EL2,        0x8
 .equ  SPSR_EL3,        0xC
 
-.equ  SCTLR_EE_WXN_SA_A_MASK, 0x0408000A
-.equ  SCTLR_EE_WXN_MASK,      0x04080000
-.equ  SCTLR_EE_MASK,          0x04000000
+.equ  SPSR32_E_MASK,          0x200
+.equ  SPSR32_DEFAULT,         0x1DA
+
+.equ  SCTLR_EE_WXN_SA_A_MASK, 0x0208000A
+.equ  SCTLR_EE_WXN_MASK,      0x02080000
+.equ  SCTLR_EE_MASK,          0x02000000
 .equ  SCTLR_WXN_MASK,         0x00080000
 .equ  SCTLR_I_C_M_MASK,       0x00001005
 .equ  SCTLR_I_MASK,           0x00001000
@@ -38,7 +41,7 @@
 
 .equ  CPTR_EL2_RES1_MASK,     0x33FF
 
-.equ  DAIF_SET_MASK,            0x3C0
+.equ  DAIF_SET_MASK,          0x3C0
 
 .equ  CPUECTLR_SMPEN_MASK,    0x40
 .equ  CPUECTLR_SMPEN_EN,      0x40
@@ -62,8 +65,12 @@
 
 .equ  SCR_FIQ_MASK,           0x4
 .equ  SCR_IRQ_MASK,           0x2
+.equ  SCR_RW_MASK,            0x400
 
 .equ  SPSEL_SP,               0x1
+
+.equ  CLEAN_DCACHE,           0x0
+.equ  CLN_INV_DCACHE,         0x1
 
 //-----------------------------------------------------------------------------
 
