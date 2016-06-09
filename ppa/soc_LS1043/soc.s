@@ -34,12 +34,17 @@
 #define DEVDISR5_DATA_OFFSET  0x18
 #define CPUACTLR_DATA_OFFSET  0x1C
 
-#define IPSTPACK_RETRY_CNT    0x1000
+#define IPSTPACK_RETRY_CNT    0x10000
+#define DDR_SLEEP_RETRY_CNT   0x100000   
 #define CPUACTLR_EL1          S3_1_C15_C2_0
 #define CPUACTLR_L1PCTL_MASK  0x0000E000
 #define DDR_SDRAM_CFG_2_FRCSR 0x80000000
 #define DDR_SDRAM_CFG_2_OFFSET 0x114
 #define DDR_CNTRL_BASE_ADDR   0x01080000
+
+#define ERROR_DDR_SLEEP       -1
+#define ERROR_DDR_WAKE        -2
+#define ERROR_NO_QUIESCE      -3
 
 //-----------------------------------------------------------------------------
 
@@ -277,7 +282,8 @@ _soc_sys_exit_stdby:
  // this function puts the calling core, and potentially the soc, into a
  // low-power state
  // in:  x0 = core mask lsb
- // out: none
+ // out: x0 = 0, success
+ //      x0 < 0, failure
  // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _soc_sys_entr_pwrdn:
     mov  x10, x30
@@ -524,7 +530,7 @@ _soc_sys_entr_pwrdn:
      // save DEVDISR1 and load new value
     mov  x0, #DCFG_DEVDISR1_OFFSET
     bl   read_reg_dcfg
-    str  w0, [x7, #DEVDISR1_DATA_OFFSET]
+    mov  w13, w0
     mov  x0, #DCFG_DEVDISR1_OFFSET
     ldr  x1, =DEVDISR1_VALUE
     bl   write_reg_dcfg
@@ -532,7 +538,7 @@ _soc_sys_entr_pwrdn:
      // save DEVDISR2 and load new value
     mov  x0, #DCFG_DEVDISR2_OFFSET
     bl   read_reg_dcfg
-    str  w0, [x7, #DEVDISR2_DATA_OFFSET]
+    mov  w14, w0
     mov  x0, #DCFG_DEVDISR2_OFFSET
     ldr  x1, =DEVDISR2_VALUE
     bic  x1, x1, x5
@@ -545,7 +551,7 @@ _soc_sys_entr_pwrdn:
      // save DEVDISR3 and load new value
     mov  x0, #DCFG_DEVDISR3_OFFSET
     bl   read_reg_dcfg
-    str  w0, [x7, #DEVDISR3_DATA_OFFSET]
+    mov  w15, w0
     mov  x0, #DCFG_DEVDISR3_OFFSET
     ldr  x1, =DEVDISR3_VALUE
     bl   write_reg_dcfg
@@ -553,7 +559,7 @@ _soc_sys_entr_pwrdn:
      // save DEVDISR4 and load new value
     mov  x0, #DCFG_DEVDISR4_OFFSET
     bl   read_reg_dcfg
-    str  w0, [x7, #DEVDISR4_DATA_OFFSET]
+    mov  w16, w0
     mov  x0, #DCFG_DEVDISR4_OFFSET
     ldr  x1, =DEVDISR4_VALUE
     bl   write_reg_dcfg
@@ -561,7 +567,7 @@ _soc_sys_entr_pwrdn:
      // save DEVDISR5 and load new value
     mov  x0, #DCFG_DEVDISR5_OFFSET
     bl   read_reg_dcfg
-    str  w0, [x7, #DEVDISR5_DATA_OFFSET]
+    mov  w17, w0
     mov  x0, #DCFG_DEVDISR5_OFFSET
     ldr  x1, =DEVDISR5_VALUE
     bic  x1, x1, x6
@@ -584,41 +590,13 @@ _soc_sys_entr_pwrdn:
     ldr  x6, =DDR_CNTRL_BASE_ADDR
     ldr  x7, =DCSR_RCPM2_BASE
     ldr  x8, =DCFG_BASE_ADDR
-    ldr  x9, =IPSTPACK_RETRY_CNT
+    dsb sy
+    isb
 
      // enter the cache-only sequence
     bl   final_shutdown
-
-     // when we are here, the core has come out of wfi and we need to
-     // bring the rest of the SoC back up
-
-    adr  x7, soc_data_area
-    ldr  x8, =DCFG_BASE_ADDR
-
-     // x7 = [soc_data_area]
-     // x8 = DCFG_BASE_ADDR
-
-     // restore devdisr1 - devdisr5
-    ldr  w0, [x7, #DEVDISR1_DATA_OFFSET]
-    ldr  w1, [x7, #DEVDISR2_DATA_OFFSET]
-    ldr  w2, [x7, #DEVDISR3_DATA_OFFSET]
-    ldr  w3, [x7, #DEVDISR4_DATA_OFFSET]
-    ldr  w4, [x7, #DEVDISR5_DATA_OFFSET]
-    str  w0, [x8, #DCFG_DEVDISR1_OFFSET]
-    str  w1, [x8, #DCFG_DEVDISR2_OFFSET]
-    str  w2, [x8, #DCFG_DEVDISR3_OFFSET]
-    str  w3, [x8, #DCFG_DEVDISR4_OFFSET]
-    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]
-
-     // clear POWMGTDCR
-    ldr  x0, =RCPM2_POWMGTDCR_OFFSET
-    mov  x1, xzr
-    bl   write_reg_rcpm2
-
-     // clear WFIL2_EN in SCFG_COREPMCR
-    ldr  x0, =SCFG_COREPMCR_OFFSET
-    mov  x1, xzr
-    bl   write_reg_scfg
+    
+     // when we are here, the core has come out of wfi and the SoC is back up
 
     mov  x30, x10
     ret
@@ -2069,13 +2047,17 @@ prep_init_ocram_lo:
 
  // this function will shutdown ddr and the final core - it will do this
  // by loading itself into the icache and then executing from there
- // in:  x5 = ipstpcr4 (IPSTPCR4_VALUE bic DEVDISR5_MASK)
- //      x6 = DDR_CNTRL_BASE_ADDR
- //      x7 = DCSR_RCPM2_BASE
- //      x8 = DCFG_BASE_ADDR
- //      x9 = IPSTPACK_RETRY_CNT
+ // in:  x5  = ipstpcr4 (IPSTPCR4_VALUE bic DEVDISR5_MASK)
+ //      x6  = DDR_CNTRL_BASE_ADDR
+ //      x7  = DCSR_RCPM2_BASE
+ //      x8  = DCFG_BASE_ADDR
+ //      w13 = DEVDISR1 saved value
+ //      w14 = DEVDISR2 saved value
+ //      w15 = DEVDISR3 saved value
+ //      w16 = DEVDISR4 saved value
+ //      w17 = DEVDISR5 saved value
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8
 
  // 4Kb aligned
 .align 12
@@ -2091,41 +2073,46 @@ start_line_0:
     orr  w4, w4, w2
     rev  w3, w4
     str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // put ddr in self refresh - end
-    orr  w3, w5, #DEVDISR5_MEM              // disable ddr (+ ocram?) clocks - start
-    rev  w4, w3                             // w4 contains polling target value
-    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // disable ddr (+ ocram?) clocks - end
-    nop
-    nop
-    mov  x2, x9                             // poll on ipstpack4 - start
+    orr  w3, w5, #DEVDISR5_MEM              // disable ddr clocks - start
+    rev  w4, w3
+    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // disable ddr clocks - end
+
+    mov  w3, #DEVDISR5_MEM
+    rev  w3, w3                             // polling mask
+    mov  x2, #DDR_SLEEP_RETRY_CNT           // poll on ipstpack4 - start
 touch_line_0:
     cbz  x0, touch_line_1
 
 start_line_1:
     ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
-    cmp  w1, w4
-    b.eq 1f
-    sub  x2, x2, #1
-    cbnz x2, start_line_1                   // poll on ipstpack4 - end
+    tst  w1, w3
+    b.ne 1f
+    subs x2, x2, #1
+    b.gt start_line_1                       // poll on ipstpack4 - end
+
+     // if we get here, we have a timeout err
+    rev  w4, w5
+    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // re-enable ddr clks interface
+    mov  x0, #ERROR_DDR_SLEEP               // load error code
+    b    2f
 1:
     str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // disable ddr in devdisr5
     wfi                                     // stop the final core
-    nop
+
     rev  w4, w5
     str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // re-enable ddr in devdisr5
     str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // re-enable ddr clk in ipstpcr4
     nop
-    nop
-    nop
-    mov  x2, x9                             // poll on ipstpack4 - start
 touch_line_1:
     cbz  x0, touch_line_2
 
 start_line_2:
-    ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
-    cmp  w1, w4
+    ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET] // poll on ipstpack4 - start
+    tst  w1, w3
     b.eq 2f
-    sub  x2, x2, #1
-    cbnz x2, start_line_2                   // poll on ipstpack4 - end
+    nop
+    b    start_line_2                       // poll on ipstpack4 - end
+    nop
 2:
     mov  x2, #DDR_SDRAM_CFG_2_FRCSR         // take ddr out-of self refresh - start
     ldr  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]
@@ -2134,14 +2121,53 @@ start_line_2:
     rev  w3, w4
     str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // take ddr out-of self refresh - end
     nop
+    str  w17, [x8, #DCFG_DEVDISR5_OFFSET]   // reset devdisr5
+    str  w16, [x8, #DCFG_DEVDISR4_OFFSET]   // reset devdisr4
+touch_line_2:
+    cbz  x0, touch_line_3
+
+start_line_3:
+    str  w15, [x8, #DCFG_DEVDISR3_OFFSET]   // reset devdisr3
+    str  w14, [x8, #DCFG_DEVDISR2_OFFSET]   // reset devdisr2
+    str  w13, [x8, #DCFG_DEVDISR1_OFFSET]   // reset devdisr1
+    str  wzr, [x7, #RCPM2_IPSTPCR4_OFFSET]  // reset ipstpcr4
+    str  wzr, [x7, #RCPM2_IPSTPCR3_OFFSET]  // reset ipstpcr3
+    str  wzr, [x7, #RCPM2_IPSTPCR2_OFFSET]  // reset ipstpcr2
+    str  wzr, [x7, #RCPM2_IPSTPCR1_OFFSET]  // reset ipstpcr1
+    str  wzr, [x7, #RCPM2_IPSTPCR0_OFFSET]  // reset ipstpcr0
+    nop
+    nop
+    nop
+    nop
     nop
     nop
     b    continue_restart
-touch_line_2:
+touch_line_3:
     cbz  x0, start_line_0
 
  // execute here after ddr is back up
 continue_restart:
+    mov  x7, x30
+    mov  x6, x0
+
+     // clear POWMGTDCR
+    ldr  x0, =RCPM2_POWMGTDCR_OFFSET
+    mov  x1, xzr
+    bl   write_reg_rcpm2
+
+     // clear WFIL2_EN in SCFG_COREPMCR
+    ldr  x0, =SCFG_COREPMCR_OFFSET
+    mov  x1, xzr
+    bl   write_reg_scfg
+
+     // if x0 = 1, all is well
+     // if x0 < 1, we had an error
+    mov  x0, x6
+    cmp  x0, #1
+    b.ne 3f
+    mov  x0, #0
+3:
+    mov  x30, x7
     ret
 
 //-----------------------------------------------------------------------------

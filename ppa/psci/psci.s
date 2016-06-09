@@ -454,6 +454,8 @@ system_in_pwrdn:
 
     mov  x0, x11
     bl   _soc_sys_entr_pwrdn
+     // we have an return status code in x0
+    mov  x6, x0
 
      // cleanup after the system exits power-down
     mov  x0, x11
@@ -470,10 +472,12 @@ system_in_pwrdn:
     getCoreData x0 CPUECTLR_DATA
     msr  CPUECTLR_EL1, x0
 
-    mov  x0, x11
-    mov  x1, #CORE_RELEASED
-    saveCoreData x0 x1 CORE_STATE_DATA
+     // if we have an error, return to the caller rather
+     // than the entry point address
+    cbz  x6, 1f
+    b    psci_failure
 
+1:
      // return to entry point address
     mov  x0, x11
     getCoreData x0 START_ADDR_DATA

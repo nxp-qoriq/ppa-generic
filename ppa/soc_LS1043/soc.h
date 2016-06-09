@@ -13,9 +13,6 @@
  // set this switch to 1 if you need to keep the debug block
  // clocked during system power-down
 #define DEBUG_ACTIVE  0
- // set this switch to 1 if you need to keep the ocram 1&2
- // clocked during system power-down
-#define OCRAM_ACTIVE  1
 
  // base addresses
 #define SCFG_BASE_ADDR            0x01570000
@@ -156,11 +153,7 @@
 #define DEVDISR5_OCRAM1           0x02000000
 #define DEVDISR5_LPUART4          0x10000000
 #define DEVDISR5_DDR              0x80000000
-#if (OCRAM_ACTIVE)
-  #define DEVDISR5_MEM            0x80000000
-#else
-  #define DEVDISR5_MEM            0x83000000
-#endif
+#define DEVDISR5_MEM              0x80000000
 
 #define DEVDISR1_VALUE            0xA0C3C201
 #define DEVDISR2_VALUE            0xCC0C0080
