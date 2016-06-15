@@ -284,20 +284,20 @@ cluster_in_stdby:
      // put this core in stdby
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
-    mov  x8, x0
+    mov  x10, x0
     mov  x1, #CORE_STANDBY
     saveCoreData x0 x1 CORE_STATE_DATA
 
-     // w8 = core mask lsb
+     // w10 = core mask lsb
 
-    mov  x0, x8
+    mov  x0, x10
     bl   _soc_clstr_entr_stdby
 
      // cleanup after the cluster exits standby
-    mov  x0, x8
+    mov  x0, x10
     bl   _soc_clstr_exit_stdby
 
-    mov  x0, x8
+    mov  x0, x10
     mov  x1, #CORE_RELEASED
     saveCoreData x0 x1 CORE_STATE_DATA
     b    psci_success
@@ -312,53 +312,53 @@ cluster_in_pwrdn:
 
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
-    mov  x12, x0
+    mov  x11, x0
     mov  x1, x10
     saveCoreData x0 x1 CNTXT_ID_DATA
 
      // x9  = entry point address
-     // x12 = core mask
+     // x11 = core mask
 
      // save entry point address
-    mov  x0, x12
+    mov  x0, x11
     mov  x1, x9
     saveCoreData x0 x1 START_ADDR_DATA
 
-     // x12 = core mask
+     // x11 = core mask
 
      // to put the cluster in power down, we also
      // have to power-down this core
-    mov  x0, x12
+    mov  x0, x11
     mov  x1, #CORE_PWR_DOWN
     saveCoreData x0 x1 CORE_STATE_DATA
 
      // save cpuectlr
     mrs  x1, CPUECTLR_EL1
-    mov  x0, x12
+    mov  x0, x11
     saveCoreData x0 x1 CPUECTLR_DATA
 
-    mov  x0, x12
+    mov  x0, x11
     bl   _soc_clstr_entr_pwrdn
 
      // cleanup after the cluster exits power-down
-    mov  x0, x12
+    mov  x0, x11
     bl   _soc_clstr_exit_pwrdn
 
-    mov  x0, x12
+    mov  x0, x11
     mov  x1, #CORE_RELEASED
     saveCoreData x0 x1 CORE_STATE_DATA
 
      // restore cpuectlr
-    mov  x0, x12
+    mov  x0, x11
     getCoreData x0 CPUECTLR_DATA
     msr  CPUECTLR_EL1, x0
 
      // return to entry point address
-    mov  x0, x12
+    mov  x0, x11
     getCoreData x0 START_ADDR_DATA
     msr  ELR_EL3, x0
 
-    mov  w0, w12
+    mov  w0, w11
     getCoreData x0 CNTXT_ID_DATA
 
      // we have a context id in x0 - don't overwrite this
@@ -401,20 +401,20 @@ system_in_stdby:
      // put this core in stdby
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
-    mov  x8, x0
+    mov  x10, x0
     mov  x1, #CORE_STANDBY
     saveCoreData x0 x1 CORE_STATE_DATA
 
-     // x8 = core mask lsb
+     // x10 = core mask lsb
 
-    mov  x0, x8
+    mov  x0, x10
     bl   _soc_sys_entr_stdby
 
      // cleanup after the system exits standby
-    mov  x0, x8
+    mov  x0, x10
     bl   _soc_sys_exit_stdby
 
-    mov  x0, x8
+    mov  x0, x10
     mov  x1, #CORE_RELEASED
     saveCoreData x0 x1 CORE_STATE_DATA
     b    psci_success
