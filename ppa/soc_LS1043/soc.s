@@ -40,7 +40,11 @@
 #define CPUACTLR_L1PCTL_MASK  0x0000E000
 #define DDR_SDRAM_CFG_2_FRCSR 0x80000000
 #define DDR_SDRAM_CFG_2_OFFSET 0x114
+#define DDR_TIMING_CFG_4_OFFSET 0x160
 #define DDR_CNTRL_BASE_ADDR   0x01080000
+
+#define DLL_LOCK_MASK   0x3
+#define DLL_LOCK_VALUE  0x2
 
 #define ERROR_DDR_SLEEP       -1
 #define ERROR_DDR_WAKE        -2
@@ -682,6 +686,24 @@ _soc_sys_entr_pwrdn:
     mov  x8, #DCFG_BASE_ADDR
     dsb sy
     isb
+
+     // set the DLL_LOCK cycle count
+    ldr  w1, [x6, #DDR_TIMING_CFG_4_OFFSET]
+    rev  w2, w1
+    bic  w2, w2, #DLL_LOCK_MASK
+    orr  w2, w2, #DLL_LOCK_VALUE
+    rev  w1, w2
+    str  w1, [x6, #DDR_TIMING_CFG_4_OFFSET]
+
+     // x5  = ipstpcr4 (IPSTPCR4_VALUE bic DEVDISR5_MASK)
+     // x6  = DDR_CNTRL_BASE_ADDR
+     // x7  = DCSR_RCPM2_BASE
+     // x8  = DCFG_BASE_ADDR
+     // w13 = DEVDISR1 saved value
+     // w14 = DEVDISR2 saved value
+     // w15 = DEVDISR3 saved value
+     // w16 = DEVDISR4 saved value
+     // w17 = DEVDISR5 saved value
 
      // enter the cache-only sequence
     bl   final_shutdown
@@ -1617,6 +1639,7 @@ write_reg_sys_counter:
     rev  w3, w1
     str  w3, [x2, x0]
     ret
+
 //-----------------------------------------------------------------------------
 
  // read a register in the SYS_COUNTER block
