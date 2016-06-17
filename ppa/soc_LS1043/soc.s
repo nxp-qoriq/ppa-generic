@@ -35,7 +35,7 @@
 #define CPUACTLR_DATA_OFFSET  0x1C
 
 #define IPSTPACK_RETRY_CNT    0x10000
-#define DDR_SLEEP_RETRY_CNT   0x100000   
+#define DDR_SLEEP_RETRY_CNT   0x10000
 #define CPUACTLR_EL1          S3_1_C15_C2_0
 #define CPUACTLR_L1PCTL_MASK  0x0000E000
 #define DDR_SDRAM_CFG_2_FRCSR 0x80000000
@@ -391,15 +391,11 @@ _soc_sys_entr_pwrdn:
     orr  x3, x3, x0
     msr  DAIF, x3
 
-     // disable icache, dcache, mmu @ EL2 & EL1
+     // disable icache, dcache, mmu @ EL1
     mov  x1, #SCTLR_I_C_M_MASK
     mrs  x0, sctlr_el1
     bic  x0, x0, x1
     msr  sctlr_el1, x0
-
-    mrs  x0, sctlr_el2
-    bic  x0, x0, x1
-    msr  sctlr_el2, x0
 
      // disable dcache for EL3
     mrs x1, SCTLR_EL3
@@ -913,6 +909,12 @@ _soc_core_rls_wait:
 _soc_core_phase1_off:
     mov  x8, x30
 
+     // mask interrupts by setting DAIF[7:4] to 'b1111
+    mrs  x1, DAIF
+    ldr  x0, =DAIF_SET_MASK
+    orr  x1, x1, x0
+    msr  DAIF, x1 
+
      // disable dcache, mmu, and icache for EL1 and EL2 by clearing
      // bits 0, 2, and 12 of SCTLR_EL1 and SCTLR_EL2 (MMU, dcache, icache)
     ldr x0, =SCTLR_I_C_M_MASK
@@ -931,11 +933,9 @@ _soc_core_phase1_off:
     msr SCTLR_EL3, x1 
     isb
 
-     // mask interrupts by setting DAIF[7:4] to 'b1111
-    mrs  x1, DAIF
-    ldr  x0, =DAIF_SET_MASK
-    orr  x1, x1, x0
-    msr  DAIF, x1 
+     // cln/inv L1 dcache
+    mov  x0, #1
+    bl   _cln_inv_L1_dcache
 
      // FIQ taken to EL3, set SCR_EL3[FIQ]
     mrs   x0, scr_el3
