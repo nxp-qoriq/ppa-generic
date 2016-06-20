@@ -24,11 +24,41 @@
 
  // this function performs one-time gic init, executed by the boot core
  // out: none
- // uses x0, x1, x2, x3
+ // uses x0, x1
 _gic_init_common:
 
+    ldr  x1, =GICD_BASE_ADDR
 
-      ret
+     // disable interrupts at the distributor
+    ldr  w0, [x1, #GICD_CTLR_OFFSET]
+    bic  w0, w0, #GICD_CTLR_EN_GRP_MASK
+    str  w0, [x1, #GICD_CTLR_OFFSET]
+     // poll on RWP til write completes
+1:
+    ldr  w0, [x1, #GICD_CTLR_OFFSET]
+    tst  w0, #GICD_CTLR_RWP_MASK
+    b.ne 1b   
+    
+     // enable affinity routing for secure interrupts
+    orr  w0, w0, #GICD_CTLR_ARE_S_MASK
+    str  w0, [x1, #GICD_CTLR_OFFSET]
+     // poll on RWP til write completes
+2:
+    ldr  w0, [x1, #GICD_CTLR_OFFSET]
+    tst  w0, #GICD_CTLR_RWP_MASK
+    b.ne 2b
+
+     // enable GRP1 interrupts
+    orr  w0, w0, #GICD_CTLR_EN_GRP_1NS
+    orr  w0, w0, #GICD_CTLR_EN_GRP_1S
+    str  w0, [x1, #GICD_CTLR_OFFSET]
+     // poll on RWP til write completes
+3:
+    ldr  w0, [x1, #GICD_CTLR_OFFSET]
+    tst  w0, #GICD_CTLR_RWP_MASK
+    b.ne 3b
+
+    ret
 
 //-----------------------------------------------------------------------------
 
@@ -39,7 +69,7 @@ _gic_init_common:
 _gic_init_percpu:
 
      // get the base address of the gic redistributor
-    ldr  x1, =GICR_BASE_ADDR
+    ldr  x1, =GICR_RD_BASE_ADDR
 
 	 // x1: ReDistributor Base Address
 
@@ -110,6 +140,20 @@ _gic_init_percpu:
      // Non-Secure access to ICC_PMR_EL1
 	mov   x2, #0x1 << 7
 	msr   s3_0_c4_c6_0, x2
+
+     // cpu interface setup
+
+     // set SRE access for EL3
+    mrs   x1, ICC_SRE_EL3
+    orr   x1, x1, #ICC_SRE_EL3_SRE
+    msr   ICC_SRE_EL3, x1
+
+     // setup ICC_CTLR_EL3
+    mrs   x2, ICC_CTLR_EL3
+    bic   x2, x2, #ICC_CTLR_EL3_RM
+    bic   x2, x2, #ICC_CTLR_EL3_EOIMODE_EL3
+    orr   x2, x2, #ICC_CTLR_EL3_PMHE
+    msr   ICC_CTLR_EL3, x2
 
     ret
 

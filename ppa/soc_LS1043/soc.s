@@ -1093,7 +1093,7 @@ _soc_core_entr_off:
 
  // part of CPU_OFF
  // this function starts the process of starting a core back up
- // in:  none
+ // in:  x0 = core mask lsb
  // out: none
  // uses x0, x1
 _soc_core_exit_off:

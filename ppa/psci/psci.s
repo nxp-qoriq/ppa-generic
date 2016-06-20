@@ -856,6 +856,7 @@ smc32_psci_cpu_off:
     bl   _soc_core_entr_off
 
      // start the core back up
+    mov  x0, x10
     bl   _soc_core_exit_off
 
      // x10 = core mask (lsb)
