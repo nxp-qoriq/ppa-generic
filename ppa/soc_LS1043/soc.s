@@ -170,10 +170,6 @@ _soc_core_entr_pwrdn:
     bic  x0, x0, x1
     msr  sctlr_el1, x0
 
-    mrs  x0, sctlr_el2
-    bic  x0, x0, x1
-    msr  sctlr_el2, x0
-
      // disable dcache @ EL3
     mrs  x0, sctlr_el3
     bic  x0, x0, #SCTLR_C_MASK
@@ -284,10 +280,6 @@ _soc_clstr_entr_pwrdn:
     mrs  x0, sctlr_el1
     bic  x0, x0, x1
     msr  sctlr_el1, x0
-
-    mrs  x0, sctlr_el2
-    bic  x0, x0, x1
-    msr  sctlr_el2, x0
 
      // disable dcache @ EL3
     mrs  x0, sctlr_el3
