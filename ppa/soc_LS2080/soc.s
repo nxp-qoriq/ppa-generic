@@ -682,20 +682,14 @@ _soc_core_phase2_off:
      // x6 = gicr rd  base addr
      // x7 = core mask lsb
 
-     // disable GRP0 ints at redistributor - GICR_ICENABLER0
-     // read-modify-write-read-tst
-    ldr  w3, [x5, #GICR_ICENABLER0_OFFSET]
-3:
-    orr  w3, w3, #GICR_ICENABLER0_SGI15
+     // disable SGI 15 at redistributor - GICR_ICENABLER0
+    mov  w3, #GICR_ICENABLER0_SGI15
     str  w3, [x5, #GICR_ICENABLER0_OFFSET]
 2:
      // poll on rwp bit in GICR_CTLR
     ldr  w4, [x6, #GICR_CTLR_OFFSET]
     tst  w4, #GICR_CTLR_RWP_MASK
     b.ne 2b
-    ldr  w3, [x5, #GICR_ICENABLER0_OFFSET]
-    tst  w3, #GICR_ICENABLER0_SGI15
-    b.ne 3b
 
      // disable GRP1 interrupts at cpu interface
     msr  ICC_IGRPEN1_EL1, xzr
@@ -720,28 +714,14 @@ _soc_core_phase2_off:
     bic  w4, w4, #GICR_IPRIORITYR3_SGI15_MASK
     str  w4, [x5, #GICR_IPRIORITYR3_OFFSET]
 
-     // enable forwarding of GRP0 - GICR_ICENABLER0
-    ldr  w3, [x5, #GICR_ICENABLER0_OFFSET]
-4:
-    orr  w3, w3, #GICR_ICENABLER0_SGI15
-    str  w3, [x5, #GICR_ICENABLER0_OFFSET]
-5:
+     // enable SGI 15 at redistributor - GICR_ISENABLER0
+    mov  w3, #GICR_ISENABLER0_SGI15
+    str  w3, [x5, #GICR_ISENABLER0_OFFSET]
+3:
      // poll on rwp bit in GICR_CTLR
     ldr  w4, [x6, #GICR_CTLR_OFFSET]
     tst  w4, #GICR_CTLR_RWP_MASK
-    b.ne 5b
-    ldr  w3, [x5, #GICR_ICENABLER0_OFFSET]
-    tst  w3, #GICR_ICENABLER0_SGI15
-    b.eq 4b
-
-     // enable forwarding of SGI 15 - GICR_ISENABLER0
-    ldr  w3, [x5, #GICR_ISENABLER0_OFFSET]
-6:
-    orr  w3, w3, #GICR_ISENABLER0_SGI15
-    str  w3, [x5, #GICR_ISENABLER0_OFFSET]
-    ldr  w3, [x5, #GICR_ISENABLER0_OFFSET]
-    tst  w3, #GICR_ISENABLER0_SGI15
-    b.eq 6b
+    b.ne 3b
 
      // program the cpu interface
 
@@ -1479,12 +1459,24 @@ init_tzasc:
  // in x1
  // in:  x0 - core mask lsb of specified core
  // out: x0 = redistributor rd base address for specified core
- // uses x0, x1
+ // uses x0, x1, x2
 get_gic_rd_base:
-    ldr  x1, =GICR_RD_BASE_ADDR
-     // generate offset to specified core
-    lsl  x0, x0, #17
+     // get the 0-based core number
+    clz  w1, w0
+    mov  w2, #0x20
+    sub  w2, w2, w1
+    sub  w2, w2, #1
+
+     // x2 = core number / loop counter
+
+    ldr  x0, =GICR_RD_BASE_ADDR
+    mov  x1, #GICR_OFFSET
+2:
+    cbz  x2, 1f
     add  x0, x0, x1
+    sub  x2, x2, #1
+    b    2b
+1:
     ret
 
 //-----------------------------------------------------------------------------
@@ -1493,12 +1485,24 @@ get_gic_rd_base:
  // in x1
  // in:  x0 - core mask lsb of specified core
  // out: x0 = redistributor sgi base address for specified core
- // uses x0, x1
+ // uses x0, x1, x2
 get_gic_sgi_base:
-    ldr  x1, =GICR_SGI_BASE_ADDR
-     // generate offset to specified core
-    lsl  x0, x0, #17
+     // get the 0-based core number
+    clz  w1, w0
+    mov  w2, #0x20
+    sub  w2, w2, w1
+    sub  w2, w2, #1
+
+     // x2 = core number / loop counter
+
+    ldr  x0, =GICR_SGI_BASE_ADDR
+    mov  x1, #GICR_OFFSET
+2:
+    cbz  x2, 1f
     add  x0, x0, x1
+    sub  x2, x2, #1
+    b    2b
+1:
     ret
 
 //-----------------------------------------------------------------------------

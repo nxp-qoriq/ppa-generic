@@ -145,12 +145,57 @@ _test_psci:
     nop
     nop
 
+4:
+     // test AFFINITY_INFO of core 1
+     // x0 = function id = 0xC4000004
+     // x1 = mpidr       = 0x0001
+     // x2 = level       = 0x0
+    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x1, =MPIDR_CORE_1
+    mov  x2, #0
+    smc  0x0
+    nop
+    nop
+    nop
+     // test the return value
+    ldr  x1, =AFFINITY_LEVEL_OFF
+    cmp  x0, x1
+    b.ne 4b
+
+_cpu_0_pause:
+    b  _cpu_0_pause
+
+     // test PSCI_CPU_ON (core 1)
+     // x0 = function id = 0xC4000003
+     // x1 = mpidr       = 0x0001
+     // x2 = start addr  = core_1b_entry
+     // x3 = context id  = CONTEXT_CORE_1
+    ldr  x0, =PSCI_CPU_ON_ID
+    ldr  x1, =MPIDR_CORE_1
+    adr  x2, cpu_1_pass
+    ldr  x3, =CONTEXT_CORE_1
+
+    smc  0x0
+    nop
+    nop
+    nop
+
 _cpu_0_loop:
     b  _cpu_0_loop
 
 cpu_1_start:
     ldr  w9, =CONTEXT_CORE_1
     bl context_id_chk
+
+     // shut down the core via CPU_OFF
+     // test PSCI_CPU_OFF
+     // x0 = function id = 0x84000002
+    ldr x0, =PSCI_CPU_OFF_ID
+    smc 0x0
+    nop
+    nop
+    nop
+
 cpu_1_pass:
     b cpu_1_pass
 

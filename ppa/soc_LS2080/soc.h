@@ -51,6 +51,7 @@
 #define GICR_IPRIORITYR3_OFFSET 0x40C
 #define GICR_ICPENDR0_OFFSET    0x280
 #define GICR_ISENABLER0_OFFSET  0x100
+#define GICR_OFFSET             0x20000
 
  // gic bitfields
 #define GICD_CTLR_EN_GRP_MASK  0x7
