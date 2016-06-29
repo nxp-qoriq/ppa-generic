@@ -273,6 +273,12 @@ _get_core_mask_lsb:
  // uses x0, x1
 get_mpidr_value:
 
+     // convert a core mask to an SoC core number
+    clz  w0, w0
+    mov  w1, #31
+    sub  w0, w1, w0
+
+     // get the mpidr core number from the SoC core number
     mov  w1, wzr
     tst  x0, #1
     b.eq 1f
@@ -495,15 +501,18 @@ _soc_core_restart:
      // x1 = gicd base addr
      // x4 = core mask lsb of target core
 
-     // generate a target core for SGI 15
-    mov  x2, #ICC_SGI0R_EL1_INTID
-     // extract affinity 0 and insert as target list
-    bfxil x2, x0, #0, #8
+     // generate target list bit
+    mov   x2, x4
+     // insert the SGI 15 INTID
+    orr   x2, x2, #ICC_SGI0R_EL1_INTID
      // extract affinity1
-    and  w3, w0, #MPIDR_AFFINITY1_MASK
+    and  x3, x0, #MPIDR_AFFINITY1_MASK
+     // combine affinity1 field, target list field, and INTID
     orr  x2, x2, x3, lsl #8
      // fire the SGI
     msr  ICC_SGI0R_EL1, x2
+    dsb  sy
+    isb
 
      // x1 = gicd base addr
      // x4 = core mask lsb
@@ -873,33 +882,29 @@ _soc_core_phase2_clnup:
 
      // x3 = core mask lsb
 
+     // get redistributor sgi base addr for this core
+    mov  x0, x3
+    bl   get_gic_sgi_base
+    mov  x4, x0
+
+     // x4 = gicr sgi base addr
+
+     // disable SGI 15 at redistributor - GICR_ICENABLER0
+    mov  w1, #GICR_ICENABLER0_SGI15
+    str  w1, [x4, #GICR_ICENABLER0_OFFSET]
+
      // get redistributor rd base addr for this core
     mov  x0, x3
     bl   get_gic_rd_base
     mov  x4, x0
 
-     // get redistributor sgi base addr for this core
-    mov  x0, x3
-    bl   get_gic_sgi_base
-    mov  x3, x0
-
-     // x3 = gicr sgi base addr
      // x4 = gicr rd  base addr
 
-     // disable GRP0 ints at redistributor - GICR_ICENABLER0
-     // read-modify-write-read-tst
-    ldr  w1, [x3, #GICR_ICENABLER0_OFFSET]
-3:
-    orr  w1, w1, #GICR_ICENABLER0_SGI15
-    str  w1, [x3, #GICR_ICENABLER0_OFFSET]
 2:
      // poll on rwp bit in GICR_CTLR
     ldr  w2, [x4, #GICR_CTLR_OFFSET]
     tst  w2, #GICR_CTLR_RWP_MASK
     b.ne 2b
-    ldr  w1, [x3, #GICR_ICENABLER0_OFFSET]
-    tst  w1, #GICR_ICENABLER0_SGI15
-    b.ne 3b
 
     dsb sy
     isb
