@@ -97,6 +97,7 @@
 #define  ICC_EOIR0_EL1   S3_0_C12_C8_1
 #define  ICC_SRE_EL3     S3_6_C12_C12_5
 #define  ICC_CTLR_EL3    S3_6_C12_C12_4
+#define  ICC_IGRPEN1_EL3 S3_6_C12_C12_7
 
 //-----------------------------------------------------------------------------
 
