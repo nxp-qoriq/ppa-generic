@@ -701,7 +701,7 @@ _soc_core_phase2_off:
     b.ne 2b
 
      // disable GRP1 interrupts at cpu interface
-    msr  ICC_IGRPEN1_EL1, xzr
+    msr  ICC_IGRPEN1_EL3, xzr
 
      // disable GRP0 ints at cpu interface
     msr  ICC_IGRPEN0_EL1, xzr

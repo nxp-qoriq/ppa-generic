@@ -18,7 +18,7 @@
  // pwr mgmt features supported in the soc-specific code:
  //   value == 0x0, the soc code does not support this feature
  //   value != 0x0, the soc code supports this feature
-#define SOC_CORE_RELEASE      0x0
+#define SOC_CORE_RELEASE      0x1
 #define SOC_CORE_RESTART      0x0
 #define SOC_CORE_OFF          0x0
 #define SOC_CORE_STANDBY      0x0
@@ -34,13 +34,13 @@
 #define RESET_FAILURE         0x1
 
  // base addresses
-#define DCFG_BASE_ADDR     0x
-#define TIMER_BASE_ADDR    0x
-#define RESET_BASE_ADDR    0x
+#define DCFG_BASE_ADDR     0x01E00000
+#define TIMER_BASE_ADDR    0x023E0000
+#define RESET_BASE_ADDR    0x01E60000
 
-#define GICR_RD_BASE_ADDR  0x
-#define GICR_SGI_BASE_ADDR 0x
-#define GICD_BASE_ADDR     0x
+#define GICR_RD_BASE_ADDR  0x06100000
+#define GICR_SGI_BASE_ADDR 0x06110000
+#define GICD_BASE_ADDR     0x06000000
 
  // gic register offsets
 #define GICD_CTLR_OFFSET        0x0
@@ -77,14 +77,14 @@
 
  // dcfg block register offsets
 #define DCFG_SCRATCHRW7_OFFSET  0x218
-#define DCFG_COREDISR_OFFSET    0x94
+#define COREDISABLEDSR_OFFSET   0x990
 
  // timer frequency - 25mhz
 #define  COUNTER_FRQ_EL0 0x017D7840
 
  // OCRAM
-#define  OCRAM_BASE_ADDR     0x
-#define  OCRAM_MID_ADDR      0x
+#define  OCRAM_BASE_ADDR     0x18000000
+#define  OCRAM_MID_ADDR      0x18010000
 #define  OCRAM_SIZE_IN_BYTES 0x20000
 #define  OCRAM_INIT_RETRY    0x2000
 

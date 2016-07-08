@@ -1,13 +1,8 @@
 // 
-// ARM v8 AArch64 Bootrom 
+// ARM v8 AArch64 PSCI testcode 
 //
-// Copyright (c) 2013-2014, Freescale Semiconductor, Inc. All rights reserved.
+// Copyright (c) 2013-2016, Freescale Semiconductor, Inc. All rights reserved.
 //
-
-// This romcode includes:
-// (1) EL3 reset handler
-// (2) EL3 exception vectors
-// (3) SoC personality config code
 
 //-----------------------------------------------------------------------------
 

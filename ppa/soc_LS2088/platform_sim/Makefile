@@ -38,7 +38,7 @@ HDRS_PSCI  =psci.h psci_data.h
 
 # add soc-specific source and headers here
 SRC_SOC    =bootmain.64.s nonboot64.s soc.s vector.s
-HDRS_SOC   =soc.h soc.mac
+HDRS_SOC   =soc.h soc.mac boot.h
 
 # add arm-specific source and headers here
 SRC_ARMV8  =aarch64.s ccn504.s gicv3.s

@@ -273,6 +273,12 @@ _get_core_mask_lsb:
  // uses x0, x1
 get_mpidr_value:
 
+     // convert a core mask to an SoC core number
+    clz  w0, w0
+    mov  w1, #31
+    sub  w0, w1, w0
+
+     // get the mpidr core number from the SoC core number
     mov  w1, wzr
     tst  x0, #1
     b.eq 1f
@@ -356,12 +362,21 @@ _soc_get_start_addr:
 
 //-----------------------------------------------------------------------------
 
- // this function determines if a core is disabled via COREDISR
+ // this function determines if a core is disabled via COREDISABLEDSR
  // in:  w0  = core_mask_lsb
  // out: w0  = 0, core not disabled
  //      w0 != 0, core disabled
  // uses x0, x1
 _soc_ck_disabled:
+
+     // get base addr of dcfg block
+    ldr  x1, =DCFG_BASE_ADDR
+
+     // read COREDISABLEDSR
+    ldr  w1, [x1, #COREDISABLEDSR_OFFSET]
+
+     // test core bit
+    and  w0, w1, w0
 
     ret
 
@@ -370,9 +385,39 @@ _soc_ck_disabled:
  // this function releases a secondary core from reset
  // in:   x0 = core_mask_lsb
  // out:  none
- // uses: x0, x1, x2
+ // uses: x0, x1, x2, x3
 _soc_core_release:
+    mov   x3, x30
+    mov   x2, x0
 
+     // x2 = core mask
+
+     // get mpidr value of target core
+    mov   x0, x2
+    bl    get_mpidr_value
+
+     // x0 = mpidr
+     // x2 = core mask
+
+     // write mpidr value of target core to SCRATCHRW7
+    mov  x1, #DCFG_BASE_ADDR
+    str  w0, [x1, #DCFG_SCRATCHRW7_OFFSET]
+
+     // x2 = core mask
+
+     // read-modify-write BRRL
+    mov  x1, #RESET_BASE_ADDR
+    ldr  w0, [x1, #BRR_OFFSET]
+    orr  w0, w0, w2
+    str  w0, [x1, #BRR_OFFSET]
+    dsb  sy
+    isb
+
+     // send event
+    sev
+    isb
+
+    mov   x30, x3
     ret
 
 //-----------------------------------------------------------------------------
@@ -384,17 +429,37 @@ _soc_core_release:
  //       x0 != 0, failure
  // uses: x0, x1, x2, x3, x4
 _soc_core_rls_wait:
+    mov   x4, x30
+    mov   x2, x0
 
+     // x2 = core mask
 
+     // get mpidr value of target core
+    mov   x0, x2
+    bl    get_mpidr_value
 
+     // x0 = mpidr
+     // x2 = core mask
 
+     // write mpidr value of target core to SCRATCHRW7
+    mov  x1, #DCFG_BASE_ADDR
+    str  w0, [x1, #DCFG_SCRATCHRW7_OFFSET]
 
+     // x2 = core mask
 
+     // read-modify-write BRRL
+    mov  x1, #RESET_BASE_ADDR
+    ldr  w0, [x1, #BRR_OFFSET]
+    orr  w0, w0, w2
+    str  w0, [x1, #BRR_OFFSET]
+    dsb  sy
+    isb
 
+     // send event
+    sev
+    isb
 
-
-
-
+    mov  x3, #CORE_RELEASE_CNT
 
      // x2 = core_mask_lsb
      // x3 = retry count
@@ -585,7 +650,50 @@ _soc_core_phase2_clnup:
  // out: x0 = [PSCI_SUCCESS | PSCI_INTERNAL_FAILURE | PSCI_NOT_SUPPORTED]
  // uses: x0, x1, x2, x3, x4, x5, x6
 _soc_sys_reset:
+    mov  x3, x30
 
+     // make sure the mask is cleared in the reset request mask register
+    mov  x0, #RST_RSTRQMR1_OFFSET
+    mov  w1, wzr
+    bl   _write_reg_reset
+
+     // set the reset request
+    mov  x4, #RST_RSTCR_OFFSET
+    mov  x0, x4
+    mov  w1, #RSTCR_RESET_REQ
+    bl   _write_reg_reset
+
+     // x4 = RST_RSTCR_OFFSET
+
+     // just in case this address range is mapped as cacheable,
+     // flush the write out of the dcaches
+    mov  x2, #RESET_BASE_ADDR
+    add  x2, x2, x4
+    dc   cvac, x2
+    dsb  st
+    isb
+
+     // now poll on the status bit til it goes high
+    mov  x5, #RST_RSTRQSR1_OFFSET
+    mov  x4, #RSTRQSR1_SWRR
+    mov  x6, #RESET_RETRY_CNT
+1:
+    mov  x0, x5
+    bl   _read_reg_reset
+     // test status bit
+    tst  x0, x4
+    mov  x0, #PSCI_SUCCESS
+    b.ne 2f
+
+     // decrement retry count and test
+    sub  x6, x6, #1
+    cmp  x6, xzr
+    b.ne 1b
+
+     // signal failure and return
+    ldr  x0, =PSCI_INTERNAL_FAILURE
+2:
+    mov  x30, x3
     ret
 
 //-----------------------------------------------------------------------------

@@ -15,6 +15,7 @@
  
 //-----------------------------------------------------------------------------
 
+#include "boot.h"
 #include "soc.h"
 #include "psci.h"
 
@@ -24,9 +25,12 @@
   .global am_i_boot_core
   .global reset_vector_el3
   .global get_exec_addr
+  .global init_EL3
+  .global init_EL2
 
 //-----------------------------------------------------------------------------
 
+.align 3
 reset_vector_el3:
 
      // perform any critical init that must occur early
@@ -52,7 +56,8 @@ reset_vector_el3:
 
      // see if we have an execution start address
     bl   get_exec_addr
-    cbnz x0,  boot_core_exit
+     // cbnz x0,  boot_core_exit
+    b    boot_core_exit
 
      // if we get here then the start address was NULL, so
      // get a start address based on the boot device
