@@ -60,6 +60,9 @@
 .equ AFFINITY_LEVEL_OFF,  0x1
 .equ AFFINITY_LEVEL_PEND, 0x2
 
+ // mask for testing address alignment
+.equ ALIGNED_32BIT_MASK,  0x3
+
  // core ID data area constants - correspond to core_mask_lsb
 .equ CORE_0_MASK,       0x1
 .equ CORE_1_MASK,       0x2

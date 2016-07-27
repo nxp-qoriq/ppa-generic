@@ -34,7 +34,8 @@ _start_monitor_el3:
     mov   x12, x30
 
      // clean/invalidate the dcache
-    bl  _flush_dcache_all
+    mov x0, #1
+    bl  _cln_inv_all_dcache
 
      // invalidate the icache
     ic  iallu
@@ -166,9 +167,8 @@ monitor_exit_EL3:
     bl   _set_endian_4_exit
 
      // flush dcache
-    bl   _flush_dcache_all
-    dsb  sy
-    isb
+    mov x0, #1
+    bl  _cln_inv_all_dcache
 
      // invalidate the icache
     ic  iallu

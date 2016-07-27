@@ -531,6 +531,12 @@ smc64_psci_cpu_on:
 4:
     mov  x6, x0
 
+     // ck for 32-bit aligned start address
+    tst  x7, #ALIGNED_32BIT_MASK
+    b.eq 5f    
+     // we have an invalid parameter (misaligned address)
+    b    psci_invalid
+5:
      // x4   = spsr_el3 of caller
      // x6   = core mask (lsb)
      // x7   = start address

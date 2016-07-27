@@ -20,7 +20,6 @@
 
 //-----------------------------------------------------------------------------
 
-.global _flush_dcache_all
 .global _set_tcr
 .global _is_EL2_supported
 .global _set_spsr_4_exit
@@ -34,7 +33,6 @@
 .global _set_EL3_vectors
 .global _cln_inv_L1_dcache
 .global _cln_inv_all_dcache
-.global _flush_all_dcache
 
 //-----------------------------------------------------------------------------
 
@@ -47,85 +45,6 @@
 .equ CTYPE_FIELD_WIDTH,      0x3
  // cache level field is left-shifted by 1, so add 2 for next level
 .equ NEXT_CACHE_LEVEL,       0x2
-
-//-----------------------------------------------------------------------------
-
- // this function cleans and invalidates all levels of the dcache
- // in:  none
- // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11
-_flush_dcache_all:
-    mov    x0, #0
-    b      dcache_all_u
-
-flush_dcache_level_u:
-    lsl    x8, x0, #1
-    msr    csselr_el1, x8           // select cache level
-    isb                             // sync change of cssidr_el1
-    mrs    x6, ccsidr_el1           // read the new cssidr_el1
-    and    x2, x6, #7               // x2 <- log2(cache line size)-4
-    add    x2, x2, #4               // x2 <- log2(cache line size)
-    mov    x3, #0x3ff
-    and    x3, x3, x6, lsr #3       // x3 <- max number of #ways
-    clz    w5, w3                   // bit position of #ways
-    mov    x4, #0x7fff
-    and    x4, x4, x6, lsr #13      // x4 <- max number of #sets
-
-     // x8  = cache level << 1
-     // x2  = line length offset
-     // x3  = number of cache ways - 1
-     // x4  = number of cache sets - 1
-     // x5  = bit position of #ways
-
-loop_set_u:
-    mov    x6, x3                   // x6 <- working copy of #ways
-loop_way_u:
-    lsl    x7, x6, x5
-    orr    x9, x8, x7               // map way and level to cisw value
-    lsl    x7, x4, x2
-    orr    x9, x9, x7               // map set number to cisw value
-    tbz    w1, #0, 1f
-    dc     isw, x9
-    b      2f
-1:  dc     cisw, x9                 // clean & invalidate by set/way
-2:  subs   x6, x6, #1               // decrement the way
-    b.ge   loop_way_u
-    subs   x4, x4, #1               // decrement the set
-    b.ge   loop_set_u
-    b      next_level
-
-dcache_all_u:
-    mov    x1, x0
-    dsb    sy
-    mrs    x10, clidr_el1           // read clidr_el1
-    lsr    x11, x10, #24
-    and    x11, x11, #0x7           // x11 <- loc
-    cbz    x11, end_flush_u         // if loc is 0, exit
-    mov    x0, #0                   // start flush at cache level 0
-
-     // x0  = cache level
-     // x10 = clidr_el1
-     // x11 = loc
-     // x15 = return address
-
-loop_level:
-    lsl    x8, x0, #1
-    add    x8, x8, x0               // x0 <- tripled cache level
-    lsr    x8, x10, x8
-    and    x8, x8, #7               // x8 <- cache type
-    cmp    x8, #2
-    b.lt   next_level               // skip if no cache or icache
-    b      flush_dcache_level_u     // x1 = 0 flush, 1 invalidate
-next_level:
-    add    x0, x0, #1               // increment cache level
-    cmp    x11, x0
-    b.gt   loop_level
-
-end_flush_u:
-    msr    csselr_el1, xzr          // restore csselr_el1
-    dsb    sy
-    isb
-    ret
 
 //-----------------------------------------------------------------------------
 
@@ -261,78 +180,6 @@ _cln_inv_L1_dcache:
     subs x3, x3, #1
     b.ge 3b
 
-    isb
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function cleans and invalidates all levels of dcache
- // in:  none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8
-_flush_all_dcache:
-
-     // read info on all caches into x8
-    mrs   x1, clidr_el1
-    mov   x8, xzr
-    bfxil x8, x1, #0, #21
-
-     // x0 holds cache level being worked on
-    mov   x0, xzr
-
-1:   // cache-level loop
-     // check if current selected cache level has a dcache
-    tst   x8, #DCACHE_MASK
-    b.eq  2f
-
-     // read info on currently selected data cache into x1
-    msr   csselr_el1, x0
-    isb
-    mrs   x1, ccsidr_el1
-
-     // x2 = (# of ways)-1
-     // x3 = (# of sets)-1
-     // x4 = Way shift amount
-     // x5 = Set shift amount (log2(linesize))
-    mov   x2, xzr
-    mov   x3, xzr
-    bfxil x2, x1, #3, #10
-    bfxil x3, x1, #13, #15
-    and   x5, x1, #7
-    add   x5, x5, #4
-    clz   w4, w2
-
-     // x7 is register used for maintenance instruction
-     // x6 is the way being worked on
-
-4:   //set-loop
-    mov   x6, x2
-
-     // x1 holds the shifted set # and the cache level 
-    lsl   x1, x3, x5
-    orr   x1, x1, x0
-3:   // way-loop
-     // insert way #, set #, and cache level into x7
-    lsl   x7, x6, x4
-    orr   x7, x7, x1
-   
-     // perform a clean and invalidate 
-    dc    cisw, x7
-    
-     // decrement way and check
-    subs  x6, x6, #1
-    b.ge  3b
-
-     // decrement set and check
-    subs  x3, x3, #1
-    b.ge  4b
-
-     // increment to next cache level
-    add   x0, x0, #NEXT_CACHE_LEVEL
-    lsr   x8, x8, #CTYPE_FIELD_WIDTH
-    b     1b
-
-2:
-    dsb sy
     isb
     ret
 
