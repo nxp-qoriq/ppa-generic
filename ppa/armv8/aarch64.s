@@ -33,6 +33,7 @@
 .global _set_EL3_vectors
 .global _cln_inv_L1_dcache
 .global _cln_inv_all_dcache
+.global _cln_inv_L3_dcache
 
 //-----------------------------------------------------------------------------
 
@@ -45,6 +46,24 @@
 .equ CTYPE_FIELD_WIDTH,      0x3
  // cache level field is left-shifted by 1, so add 2 for next level
 .equ NEXT_CACHE_LEVEL,       0x2
+
+ // the number of sets - 1
+ // 1 MB / (16 ways * 64-byte lines) = 1024 sets
+.equ L3_MAX_SET,  1023
+
+ // the number of ways - 1
+.equ L3_MAX_WAY,  15
+
+ // amount to shift the set #
+ // Log2(64-byte line) = 6
+.equ L3_SET_SHIFT, 6
+
+ // amount to shift the way #
+ // 32 - Log2(16 ways) = 28
+.equ L3_WAY_SHIFT, 28
+
+ // 0-based cache level
+.equ L3_LEVEL, 2
 
 //-----------------------------------------------------------------------------
 
@@ -170,9 +189,11 @@ _cln_inv_L1_dcache:
     lsl  x6, x3, x1
     lsl  x7, x5, x4
     orr  x6, x6, x7
+    cbnz x0, 4f
     dc   csw, x6
-    cbz  x0, 1f
-    dc   isw, x6
+    b    1f
+4:
+    dc   cisw, x6
 1:
     subs x5, x5, #1
     b.ge 2b
@@ -180,6 +201,60 @@ _cln_inv_L1_dcache:
     subs x3, x3, #1
     b.ge 3b
 
+    isb
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function cleans and optionally invalidates an l3 cache with
+ // the following properties:
+ //  64 byte line size
+ //  16-way set associative
+ //  1 MB in size
+ // in:  x0 = 0, clean only
+ //      x0 = 1, clean and invalidate
+ // uses x0, x1, x2, x3, x4, x5
+_cln_inv_L3_dcache:
+    mov  x1, #L3_MAX_SET
+
+     // put the cache level into x5, left-shifted by 1
+    mov x5, #L3_LEVEL
+    lsl x5, x5, #1
+
+     // x1 = set #
+     // x4 = way #
+     // x5 = cache level, left-shifted by 1
+
+1:   // set loop
+     // put the cache level into x2
+    mov x2, x5
+
+    // put the set # into x2
+    orr   x2, x2, x1, lsl #L3_SET_SHIFT
+
+    mov   x4, #L3_MAX_WAY
+    
+2:   // way loop
+     // put all the parameters for cache maintenance into x3
+    orr   x3, x2, x4, lsl #L3_WAY_SHIFT
+    cbz   x0, 3f
+
+     // perform a clean and invalidate
+    dc    cisw, x3
+    b     4f
+3:
+     // clean only
+    dc    csw, x3
+4:
+     // decrement way
+    subs  x4, x4, #1
+    b.ge  2b
+
+     // decrement set
+    subs  x1, x1, #1
+    b.ge  1b
+
+    dsb   sy
     isb
     ret
 

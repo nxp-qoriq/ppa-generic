@@ -36,6 +36,10 @@ _start_monitor_el3:
      // clean/invalidate the dcache
     mov x0, #1
     bl  _cln_inv_all_dcache
+#if (L3_VIA_CCN504)
+    mov x0, #1
+    bl  _cln_inv_L3_dcache
+#endif
 
      // invalidate the icache
     ic  iallu
@@ -169,6 +173,10 @@ monitor_exit_EL3:
      // flush dcache
     mov x0, #1
     bl  _cln_inv_all_dcache
+#if (L3_VIA_CCN504)
+    mov x0, #1
+    bl  _cln_inv_L3_dcache
+#endif
 
      // invalidate the icache
     ic  iallu

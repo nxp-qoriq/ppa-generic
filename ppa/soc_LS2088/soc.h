@@ -15,6 +15,9 @@
 #define CLUSTER_COUNT            0x4
 #define CPU_PER_CLUSTER          0x2   
 
+ // set this if the device has L3 cache on a CCN-504
+#define L3_VIA_CCN504 1
+
  // pwr mgmt features supported in the soc-specific code:
  //   value == 0x0, the soc code does not support this feature
  //   value != 0x0, the soc code supports this feature

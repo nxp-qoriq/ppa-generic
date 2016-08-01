@@ -23,7 +23,7 @@
 
   .global __dead_loop
   .global am_i_boot_core
-  .global reset_vector_el3
+  .global _reset_vector_el3
   .global get_exec_addr
   .global init_EL3
   .global init_EL2
@@ -31,7 +31,7 @@
 //-----------------------------------------------------------------------------
 
 .align 3
-reset_vector_el3:
+_reset_vector_el3:
 
      // perform any critical init that must occur early
     bl   early_init

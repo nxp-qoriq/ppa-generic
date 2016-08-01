@@ -10,6 +10,14 @@
 #ifndef _SOC_H
 #define	_SOC_H
 
+ // number of cpu's, clusters in this SoC
+#define CPU_MAX_COUNT             0x4
+#define CLUSTER_COUNT             0x1
+#define CPU_PER_CLUSTER           0x4
+
+ // set this if the device has L3 cache on a CCN-504
+#define L3_VIA_CCN504 0
+
  // set this switch to 1 if you need to keep the debug block
  // clocked during system power-down
 #define DEBUG_ACTIVE  0
@@ -72,11 +80,6 @@
 #define RSTRQSR1_SWRR             0x100000
 #define COREPMCR_WFIL2            0x1
 #define POWMGTDCR_OVRD_EN         0x80000000
-
- // number of cpu's, clusters in this SoC
-#define CPU_MAX_COUNT             0x4
-#define CLUSTER_COUNT             0x1
-#define CPU_PER_CLUSTER           0x4
 
  // 25mhz
 #define  COUNTER_FRQ_EL0  0x017D7840    

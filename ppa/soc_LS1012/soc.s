@@ -307,8 +307,9 @@ _soc_sys_entr_pwrdn:
     msr SCTLR_EL3, x1 
     isb
 
-     // clean and invalidate all levels of dcache
-    bl   _flush_all_dcache
+     // clean/invalidate the dcache
+    mov x0, #1
+    bl  _cln_inv_all_dcache
 
      // set WFIL2_EN in SCFG_COREPMCR
     mov  x0, #SCFG_COREPMCR_OFFSET
