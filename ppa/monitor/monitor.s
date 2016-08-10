@@ -387,6 +387,11 @@ _mon_core_restart:
  // this function sets up c runtime env
 set_runtime_env:
 
+#if 1
+	/* Debug in NOR, set stack at the top of ocram */
+	ldr	x0, =(OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES)
+	bic	sp, x0, #0xf
+#else
      // BSS Section need not be zeroized - linker Will padd with zero
 
      // set Core Stack - SPSel - EL3
@@ -394,6 +399,7 @@ set_runtime_env:
     msr spsel, x0
     m_get_cur_stack_top x0, x1, x2
     mov sp, x0
+#endif
 
     ret
 
