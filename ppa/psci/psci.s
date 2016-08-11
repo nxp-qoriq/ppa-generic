@@ -762,12 +762,12 @@ smc32_psci_version:
 //-----------------------------------------------------------------------------
 
 smc32_psci_cpu_off:
+     // save link register initially in x12 
+    mov  x12, x30
+
      // see if the soc-specific module supports this op
     ldr  x7, =SOC_CORE_OFF
     cbz  x7, psci_unimplemented
-
-     // save link register initially in x12 
-    mov  x12, x30
 
      // get EL level of core
      //  - err return if 0 or 3
@@ -881,6 +881,9 @@ smc32_psci_cpu_off:
 //-----------------------------------------------------------------------------
 
 smc32_psci_system_off:
+     // save link register
+    mov  x12, x30
+
      // see if the soc-specific module supports this op
     ldr  x7, =SOC_SYSTEM_OFF
     cbz  x7, psci_unimplemented
@@ -902,6 +905,9 @@ smc32_psci_system_reset:
 //-----------------------------------------------------------------------------
 
 smc32_psci_features:
+     // save link register
+    mov  x12, x30
+
     b  psci_unimplemented
 
 //-----------------------------------------------------------------------------

@@ -229,8 +229,6 @@ _soc_clstr_entr_stdby:
     mov  x0, xzr
     bl   _cln_inv_all_dcache
 
-    dsb  sy
-    isb
     wfi
 
     mov  x30, x10
@@ -369,9 +367,9 @@ _soc_sys_exit_stdby:
  // in:  x0 = core mask lsb
  // out: x0 = 0, success
  //      x0 < 0, failure
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _soc_sys_entr_pwrdn:
-    mov  x9, x30
+    mov  x10, x30
 
      // x0 = core mask lsb
 
@@ -699,7 +697,7 @@ _soc_sys_entr_pwrdn:
     
      // when we are here, the core has come out of wfi and the SoC is back up
 
-    mov  x30, x9
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------

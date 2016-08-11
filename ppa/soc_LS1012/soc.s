@@ -279,9 +279,9 @@ _soc_sys_exit_stdby:
  // in:  x0 = core mask lsb
  // out: x0 = 0, success
  //      x0 < 0, failure
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _soc_sys_entr_pwrdn:
-    mov  x9, x30
+    mov  x10, x30
 
      // x0 = core mask lsb
 
@@ -506,7 +506,7 @@ _soc_sys_entr_pwrdn:
 
      // when we are here, the core has come out of wfi and the SoC is back up
 
-    mov  x30, x9
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
@@ -1586,7 +1586,7 @@ prep_init_ocram_lo:
  //      w16 = DEVDISR4 saved value
  //      w17 = DEVDISR5 saved value
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8
 
  // 4Kb aligned
 .align 12
