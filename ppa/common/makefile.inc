@@ -46,8 +46,9 @@ COMMON_HDRS=common.h lnkr.cmd
 
 BUILD_ASM  =$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
-BUILD_C    =$(SRC_PLAT) $(COMMON_C)
-HDRS_ASM   =$(HDRS_SOC) $(HDRS_PSCI) $(HDRS_ARMV8) $(HDRS_PLAT) $(COMMON_HDRS) $(HDRS_MNTR)
+BUILD_C    =$(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C)
+HDRS_ASM   =$(HDRS_SOC) $(HDRS_PSCI) $(HDRS_ARMV8) $(HDRS_PLAT) $(COMMON_HDRS) \
+	    $(HDRS_MNTR) $(DRIVER_HDRS)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 
 #------------------------------------------------
@@ -95,6 +96,9 @@ ppa.its: src
 $(SRC_SOC) $(HDRS_SOC) $(LINK_ASM): src
 	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
 
+$(CSRC_SOC) $(CHDRS_SOC): src
+	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+
 $(SRC_PSCI) $(HDRS_PSCI): src
 	@cp $(PSCI_SRC)/$@ $(SRC_DIR)/$@
 
@@ -113,7 +117,7 @@ $(PLAT_ASM): src
 $(TEST_ASM): src
 	@cp $(TEST_SRC)/$@ $(SRC_DIR)/$@
 
-$(COMMON_C) $(COMMON_ASM) $(COMMON_HDRS): src
+$(COMMON_C) $(COMMON_ASM) $(COMMON_HDRS) $(DRIVER_C) $(DRIVER_HDRS): src
 	@cp $(CMMN_SRC)/$@ $(SRC_DIR)/$@
 
 #------------------------------------------------

@@ -97,8 +97,14 @@ debug_stop:
     bl   _gic_init_common
     bl   _gic_init_percpu
 
+     // init uart
+    bl   uart_init
+
+    bl   soc_errata
+    bl   timer_init
+
      // setup i2c and initialize ddr
-    bl   _init_i2c 
+    bl   i2c_init
     bl   _init_ddr
 
      // exit the monitor
