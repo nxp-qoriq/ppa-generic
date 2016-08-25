@@ -18,7 +18,7 @@ ENTRY(_reset_vector_el3)
 
 SECTIONS
 {
-    ro . : {
+    .text . : {
         __PPA_PROG_START__ = .;
         *bootmain.64.o(.text*)
         *(.text*)

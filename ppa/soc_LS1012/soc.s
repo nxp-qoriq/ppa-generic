@@ -71,6 +71,8 @@
 
 .global _get_current_mask
 .global _get_core_mask_lsb
+.global _getCoreData
+.global _setCoreData
 
 .global _soc_init_start
 .global _soc_init_finish
@@ -285,13 +287,16 @@ _soc_sys_entr_pwrdn:
 
      // x0 = core mask lsb
 
-     // save DAIF and mask ints
-    mrs  x1, DAIF
-    mov  x3, x1
-    saveCoreData x0 x1 DAIF_DATA
+     // save DAIF
+    mrs  x2, DAIF
+    mov  x6, x2
+    mov  x1, #DAIF_DATA
+    bl   _setCoreData
+
+     // mask interrupts at the core
     mov  x0, #DAIF_SET_MASK
-    orr  x3, x3, x0
-    msr  DAIF, x3
+    orr  x6, x6, x0
+    msr  DAIF, x6
 
      // disable icache, dcache, mmu @ EL1
     mov  x1, #SCTLR_I_C_M_MASK
@@ -1269,15 +1274,15 @@ _ocram_init_lower:
  // this function releases a secondary core to init the upper half of OCRAM
  // in:  x0 = core mask lsb of the secondary core to put to work
  // out: none
- // uses x0, x1, x2, x3, x4
+ // uses x0, x1, x2, x3, x4, x5
 init_task_1:
-
-    mov  x3, x30
+    mov  x5, x30
     mov  x4, x0
 
      // set the core state to WORKING_INIT
-    mov  w1, #CORE_WORKING_INIT
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_WORKING_INIT
+    bl   _setCoreData
 
      // save the core mask
     mov  x0, x4
@@ -1291,7 +1296,7 @@ init_task_1:
     mov  x0, x4
     bl  _soc_core_release
 
-    mov  x30, x3
+    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -1300,15 +1305,15 @@ init_task_1:
  // this function releases a secondary core to init the lower half of OCRAM
  // in:  x0 = core mask lsb of the secondary core to put to work
  // out: none
- // uses x0, x1, x2, x3, x4
+ // uses x0, x1, x2, x3, x4, x5
 init_task_2:
-
-    mov  x3, x30
+    mov  x5, x30
     mov  x4, x0
 
      // set the core state to WORKING_INIT
-    mov  w1, #CORE_WORKING_INIT
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_WORKING_INIT
+    bl   _setCoreData
 
      // save the core mask
     mov  x0, x4
@@ -1322,7 +1327,7 @@ init_task_2:
     mov  x0, x4
     bl  _soc_core_release
 
-    mov  x30, x3
+    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -1445,6 +1450,83 @@ set_task2_core:
     ret
 
 //-----------------------------------------------------------------------------
+
+ // this function returns the specified data field value from the specified cpu
+ // core data area
+ // in:  x0 = core mask lsb
+ //      x1 = data field name/offset
+ // out: x0 = data value
+ // uses x0, x1, x2
+_getCoreData:
+     // x0 = core mask
+     // x1 = field offset
+
+     // generate a 0-based core number from the input mask
+    clz   x2, x0
+    mov   x0, #63
+    sub   x0, x0, x2
+
+     // x0 = core number (0-based)
+     // x1 = field offset
+
+    mov   x2, #CORE_DATA_OFFSET
+    mul   x2, x2, x0
+    add   x1, x1, x2
+
+     // x1 = cumulative offset to data field
+
+    adr   x2, _cpu0_data
+
+     // a53 errata
+    add   x2, x2, x1
+    dc    ivac, x2
+    dsb   sy
+    isb 
+ 
+     // read data
+    ldr   x0, [x2]
+    ret
+    
+//-----------------------------------------------------------------------------
+
+ // this function writes the specified data value into the specified cpu
+ // core data area
+ // in:  x0 = core mask lsb
+ //      x1 = data field name/offset
+ //      x2 = data value to write/store
+ // out: none
+ // uses x0, x1, x2, x3
+_setCoreData:
+     // x0 = core mask
+     // x1 = field offset
+     // x2 = data value
+
+    clz   x3, x0
+    mov   x0, #63
+    sub   x0, x0, x3
+
+     // x0 = core number (0-based)
+     // x1 = field offset
+     // x2 = data value
+
+    mov   x3, #CORE_DATA_OFFSET
+    mul   x3, x3, x0
+    add   x1, x1, x3
+
+     // x1 = cumulative offset to data field
+     // x2 = data value
+
+    adr   x3, _cpu0_data
+    str   x2, [x3, x1]
+
+     // a53 errata
+    add   x3, x3, x1
+    dc    cvac, x3
+    dsb   sy
+    isb  
+    ret
+    
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
@@ -1495,7 +1577,11 @@ prep_init_ocram_hi:
 1:
      // see if our state has changed to CORE_PENDING
     mov   x0, x5
-    getCoreData x0 CORE_STATE_DATA
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+
+     // x0 = core state
+
     cmp   x0, #CORE_PENDING
     b.eq  2f
      // if not core_pending, then wfe
@@ -1560,7 +1646,11 @@ prep_init_ocram_lo:
 1:
      // see if our state has changed to CORE_PENDING
     mov   x0, x5
-    getCoreData x0 CORE_STATE_DATA
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+
+     // x0 = core state
+
     cmp   x0, #CORE_PENDING
     b.eq  2f
      // if not core_pending, then wfe

@@ -14,9 +14,9 @@
 //-----------------------------------------------------------------------------
 
 #include "soc.h"
-#include "soc.mac"
 #include "aarch64.h"
 #include "psci.h"
+#include "soc.mac"
 #include "policy.h"
 
 //-----------------------------------------------------------------------------
@@ -37,6 +37,7 @@ _start_monitor_el3:
     mov x0, #0
     bl  _cln_inv_all_dcache
 #if (L3_VIA_CCN504)
+    mov x0, #1
     bl  _manual_L3_flush
 #endif
 
@@ -173,6 +174,7 @@ monitor_exit_EL3:
     mov x0, #1
     bl  _cln_inv_all_dcache
 #if (L3_VIA_CCN504)
+    mov x0, #0
     bl  _manual_L3_flush
 #endif
 
@@ -224,16 +226,25 @@ _secondary_core_exit:
     bl   _get_current_mask
     mov  x4, x0
 
+     // x0 = core_mask_lsb
+     // x4 = core_mask_lsb
+
      // get the start addr and load in ELR_EL3
-    getCoreData x0 START_ADDR_DATA
+    mov   x1, #START_ADDR_DATA
+    bl    _getCoreData
+
+     // x0 = start address
+
+     // load start addr in ELR_EL3
     msr  elr_el3, x0
 
      // x4 = core_mask_lsb
 
      // set the core state to released
     mov  x0, x4
-    mov  x1, #CORE_RELEASED
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_RELEASED
+    bl   _setCoreData
 
      // x4 = core_mask_lsb
 
@@ -245,7 +256,8 @@ _secondary_core_exit:
 
      // get the saved sctlr 
     mov  x0, x4
-    getCoreData x0 SCTLR_DATA
+    mov  x1, #SCTLR_DATA
+    bl   _getCoreData
 
      // x0 = saved sctlr
      // x4 = core mask lsb
@@ -264,7 +276,8 @@ _secondary_core_exit:
 
      // get the context id into x0
     mov  x0, x4
-    getCoreData x0 CNTXT_ID_DATA
+    mov  x1, #CNTXT_ID_DATA
+    bl   _getCoreData
 
      // invalidate the icache
     ic  iallu
@@ -301,16 +314,25 @@ _mon_core_restart:
     bl   _get_current_mask
     mov  x4, x0
 
-     // get the start addr and load in ELR_EL3
-    getCoreData x0 START_ADDR_DATA
+     // x0 = core mask (lsb)
+     // x4 = core mask (lsb)
+
+     // get the start addr
+    mov  x1, #START_ADDR_DATA
+    bl   _getCoreData
+
+     // x0 = start address
+
+     // load start addr in ELR_EL3
     msr  elr_el3, x0
 
      // x4 = core mask (lsb)
 
      // set the core state to released
     mov  x0, x4
-    mov  x1, #CORE_RELEASED
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_RELEASED
+    bl   _setCoreData
 
      // set the spsr value for exit
     bl   _set_spsr_4_exit
@@ -320,14 +342,17 @@ _mon_core_restart:
 
      // restore the link register
     mov  x0, x4
-    getCoreData x0 LINK_REG_DATA
+    mov  x1, #LINK_REG_DATA
+    bl   _getCoreData
     mov  x12, x0
 
-     // x4 = core mask (lsb)
+     // x4  = core mask (lsb)
+     // x12 = saved link reg
 
      // get the context id into x0
     mov  x0, x4
-    getCoreData x0 CNTXT_ID_DATA
+    mov  x1, #CNTXT_ID_DATA
+    bl   _getCoreData
 
      // invalidate icache
     ic iallu

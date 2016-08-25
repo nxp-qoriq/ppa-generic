@@ -30,6 +30,8 @@
 
 .global _get_core_mask_lsb
 .global _get_current_mask
+.global _getCoreData
+.global _setCoreData
 
 .global _soc_init_start
 .global _soc_init_finish
@@ -188,15 +190,17 @@ _soc_init_finish:
     bl   get_task1_core
     cbz  x0, 5f
      // x0 = core mask lsb of the task 1 core
-    mov  w1, #CORE_IN_RESET
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_IN_RESET
+    bl   _setCoreData
 5:
      // set the task 2 core state to IN_RESET
     bl   get_task2_core
     cbz  x0, 4f
      // x0 = core mask lsb of the task 2 core
-    mov  w1, #CORE_IN_RESET
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_IN_RESET
+    bl   _setCoreData
 4:
      // restore bootlocptr
     adr  x1, saved_bootlocptr
@@ -414,9 +418,9 @@ _soc_core_release:
  // in:   x0 = core_mask_lsb
  // out:  x0 == 0, success
  //       x0 != 0, failure
- // uses: x0, x1, x2, x3, x4
+ // uses: x0, x1, x2, x3, x4, x5
 _soc_core_rls_wait:
-    mov  x4, x30
+    mov  x5, x30
 
      // write 1 to SCRATCHRW7
     ldr  x2, =DCFG_BASE_ADDR
@@ -437,16 +441,19 @@ _soc_core_rls_wait:
 
      // x0 = core_mask_lsb
 
-    mov  x2, x0
+    mov  x4, x0
     ldr  x3, =CORE_RELEASE_CNT
 
-     // x2 = core_mask_lsb
      // x3 = retry count
+     // x4 = core_mask_lsb
 1:
     sev
     isb
-    mov  x0, x2
-    getCoreData x0 CORE_STATE_DATA
+    mov  x0, x4
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
+
+     // x0 = core state
 
      // see if the core has signaled that it is up
     cmp  x0, #CORE_RELEASED
@@ -461,7 +468,7 @@ _soc_core_rls_wait:
      // loop back and try again
     b    1b
 2:
-    mov  x30, x4
+    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -471,35 +478,35 @@ _soc_core_rls_wait:
  // in:  x0 = core mask lsb (of the target cpu)
  // out: x0 == 0, on success
  //      x0 != 0, on failure
- // uses x0, x1, x2, x3, x4, x5
+ // uses x0, x1, x2, x3, x4, x5, x6
 _soc_core_restart:
-    mov  x5, x30
+    mov  x6, x30
     mov  x4, x0
 
      // x4 = core mask lsb
 
      // pgm GICD_CTLR - enable secure grp0 
-    mov  x1, #GICD_BASE_ADDR
-    ldr  w2, [x1, #GICD_CTLR_OFFSET]
+    mov  x5, #GICD_BASE_ADDR
+    ldr  w2, [x5, #GICD_CTLR_OFFSET]
     orr  w2, w2, #GICD_CTLR_EN_GRP_0
-    str  w2, [x1, #GICD_CTLR_OFFSET]
+    str  w2, [x5, #GICD_CTLR_OFFSET]
     dsb sy
     isb
      // poll on RWP til write completes
 4:
-    ldr  w2, [x1, #GICD_CTLR_OFFSET]
+    ldr  w2, [x5, #GICD_CTLR_OFFSET]
     tst  w2, #GICD_CTLR_RWP_MASK
     b.ne 4b   
 
-     // x1 = gicd base addr
      // x4 = core mask lsb
+     // x5 = gicd base addr
 
     mov  x0, x4
     bl   get_mpidr_value
 
      // x0 = mpidr of target core
-     // x1 = gicd base addr
      // x4 = core mask lsb of target core
+     // x5 = gicd base addr
 
      // generate target list bit
     mov   x2, x4
@@ -514,14 +521,17 @@ _soc_core_restart:
     dsb  sy
     isb
 
-     // x1 = gicd base addr
      // x4 = core mask lsb
+     // x5 = gicd base addr
 
     ldr  x3, =RESTART_RETRY_CNT
 
 1:
     mov  x0, x4
-    getCoreData x0 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
+
+     // x0 = core state
 
     cmp  x0, #CORE_RELEASED
     b.eq 2f    
@@ -538,7 +548,7 @@ _soc_core_restart:
      // load '0' on success
     mov  x0, xzr
 3:
-    mov  x30, x5
+    mov  x30, x6
     ret
 
 //-----------------------------------------------------------------------------
@@ -752,25 +762,26 @@ _soc_core_phase2_off:
  // this function performs the final steps to shutdown the core
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1, x2, x3, x4, x5
+ // uses x0, x1, x2, x3, x4, x5, x6
 _soc_core_entr_off:
-    mov  x5, x30
-    mov  x3, x0
+    mov  x6, x30
+    mov  x5, x0
 
-     // x3 = core mask lsb
+     // x5 = core mask lsb
 
      // get redistributor sgi base addr for this core
-    mov  x0, x3
+    mov  x0, x5
     bl   get_gic_sgi_base
     mov  x4, x0
 
-     // x3 = core mask lsb
      // x4 = gicr sgi base addr
+     // x5 = core mask lsb
 
      // change state of core in data area
-    mov  x0, x3
-    mov  x1, #CORE_OFF
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x0, x5
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_OFF
+    bl   _setCoreData
 
      // disable EL3 icache by clearing SCTLR_EL3[12]
     mrs  x1, SCTLR_EL3
@@ -799,16 +810,22 @@ _soc_core_entr_off:
      // see if we got hit by SGI 15
     cmp  x2, #ICC_IAR0_EL1_SGI15
     b.ne 1b
+
+     // x5 = core mask lsb
     
      // check if core has been turned on
-    mov  x0, x3 
-    getCoreData x0 CORE_STATE_DATA
+    mov  x0, x5
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
+
+     // x0 = core state
+
     cmp  x0, #CORE_PENDING
     b.ne 1b
 
      // if we get here, then we have exited the wfi
 
-    mov  x30, x5
+    mov  x30, x6
     ret
 
 //-----------------------------------------------------------------------------
@@ -1124,15 +1141,15 @@ _ocram_init_lower:
  // this function releases a secondary core to init the upper half of OCRAM
  // in:  x0 = core mask lsb of the secondary core to put to work
  // out: none
- // uses x0, x1, x2, x3, x4
+ // uses x0, x1, x2, x3, x4, x5
 init_task_1:
-
-    mov  x3, x30
+    mov  x5, x30
     mov  x4, x0
 
      // set the core state to WORKING_INIT
-    mov  w1, #CORE_WORKING_INIT
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_WORKING_INIT
+    bl   _setCoreData
 
      // save the core mask
     mov  x0, x4
@@ -1146,7 +1163,7 @@ init_task_1:
     mov  x0, x4
     bl  _soc_core_release
 
-    mov  x30, x3
+    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -1155,15 +1172,15 @@ init_task_1:
  // this function releases a secondary core to init the lower half of OCRAM
  // in:  x0 = core mask lsb of the secondary core to put to work
  // out: none
- // uses x0, x1, x2, x3, x4
+ // uses x0, x1, x2, x3, x4, x5
 init_task_2:
-
-    mov  x3, x30
+    mov  x5, x30
     mov  x4, x0
 
      // set the core state to WORKING_INIT
-    mov  w1, #CORE_WORKING_INIT
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_WORKING_INIT
+    bl   _setCoreData
 
      // save the core mask
     mov  x0, x4
@@ -1177,7 +1194,7 @@ init_task_2:
     mov  x0, x4
     bl  _soc_core_release
 
-    mov  x30, x3
+    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -1508,6 +1525,87 @@ get_gic_sgi_base:
     sub  x2, x2, #1
     b    2b
 1:
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the specified data field value from the specified cpu
+ // core data area
+ // in:  x0 = core mask lsb
+ //      x1 = data field name/offset
+ // out: x0 = data value
+ // uses x0, x1, x2
+_getCoreData:
+     // x0 = core mask
+     // x1 = field offset
+
+     // generate a 0-based core number from the input mask
+    clz   x2, x0
+    mov   x0, #63
+    sub   x0, x0, x2
+
+     // x0 = core number (0-based)
+     // x1 = field offset
+
+     // calculate the offset to the start of the core data area
+    mov   x2, #CORE_DATA_OFFSET
+    mul   x2, x2, x0
+
+     // x1 = field offset
+     // x2 = offset to start of core data area
+
+     // get the base address of the core data area
+    adr   x0, _cpu0_data
+    add   x2, x2, x0
+
+     // x1 = field offset
+     // x2 = base address of core data area
+
+     // read the data
+    ldr   x0, [x2, x1]
+    ret
+    
+//-----------------------------------------------------------------------------
+
+ // this function writes the specified data value into the specified cpu
+ // core data area
+ // in:  x0 = core mask lsb
+ //      x1 = data field name/offset
+ //      x2 = data value to write/store
+ // out: none
+ // uses x0, x1, x2, x3
+_setCoreData:
+     // x0 = core mask
+     // x1 = field offset
+     // x2 = data value
+
+     // generate a 0-based core number from the input mask
+    clz   x3, x0
+    mov   x0, #63
+    sub   x0, x0, x3
+
+     // x0 = core number (0-based)
+     // x1 = field offset
+     // x2 = data value
+
+     // calculate the offset to the start of the core data area
+    mov   x3, #CORE_DATA_OFFSET
+    mul   x3, x3, x0
+
+     // x1 = field offset
+     // x2 = data value
+     // x3 = offset to start of core data area
+
+     // get the base address of the core data area
+    adr   x0, _cpu0_data
+    add   x3, x3, x0
+
+     // x1 = field offset
+     // x2 = data value
+     // x3 = base address of core data area
+
+     // write the data
+    str   x2, [x3, x1]
     ret
 
 //-----------------------------------------------------------------------------

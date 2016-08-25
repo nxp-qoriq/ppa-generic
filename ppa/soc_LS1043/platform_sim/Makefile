@@ -28,7 +28,7 @@ all:	bootmain.64.bin bootmain.64.elf bootmain.64.elf.rom.rmh0.rmh
 #------------------------------------------------
 
  # platform-specific build flags
-PLATFLAGS = -DSIMULATOR_BUILD=1
+PLATFLAGS = -Wl,-g -Wa,-g -DSIMULATOR_BUILD=1
 
 #------------------------------------------------
 

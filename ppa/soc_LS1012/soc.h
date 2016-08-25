@@ -35,6 +35,10 @@
 #define WDT3_BASE                 0x02A70000  
 #define WDT4_BASE                 0x02A80000
 #define WDT5_BASE                 0x02A90000
+#define CCI_400_BASE_ADDR         0x01180000
+
+ // retry count for cci400 status bit
+#define CCI400_PEND_CNT           0x800
 
  // register offsets
 #define SCFG_COREBCR_OFFSET       0x0680

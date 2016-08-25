@@ -25,9 +25,7 @@
 .global _smc32_std_svc
 .global _initialize_psci
 .global _find_core
-.global _save_core_sctlr
-.global _psci_processAbort
-.global _get_core_data
+.global _cpu0_data
 
 //-----------------------------------------------------------------------------
 
@@ -158,8 +156,9 @@ core_in_standby:
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
     mov  x8, x0
-    mov  x1, #CORE_STANDBY
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_STANDBY
+    bl   _setCoreData
 
      // w8 = core mask lsb
 
@@ -172,8 +171,9 @@ core_in_standby:
     bl   _soc_core_exit_stdby
 
     mov  x0, x8
-    mov  x1, #CORE_RELEASED
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_RELEASED
+    bl   _setCoreData
     b    psci_success
 
 core_in_powerdown:
@@ -187,27 +187,31 @@ core_in_powerdown:
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
     mov  x8, x0
-    mov  x1, x10
-    saveCoreData x0 x1 CNTXT_ID_DATA
+    mov  x1, #CNTXT_ID_DATA
+    mov  x2, x10
+    bl   _setCoreData
 
      // x8 = core mask lsb
      // x9  = entry point address
 
      // save entry point address
     mov  x0, x8
-    mov  x1, x9
-    saveCoreData x0 x1 START_ADDR_DATA
+    mov  x1, #START_ADDR_DATA
+    mov  x2, x9
+    bl   _setCoreData
 
      // x8 = core mask lsb
 
     mov  x0, x8
-    mov  x1, #CORE_PWR_DOWN
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_PWR_DOWN
+    bl   _setCoreData
 
      // save cpuectlr
-    mrs  x1, CPUECTLR_EL1
     mov  x0, x8
-    saveCoreData x0 x1 CPUECTLR_DATA
+    mov  x1, #CPUECTLR_DATA
+    mrs  x2, CPUECTLR_EL1
+    bl   _setCoreData
 
      // save the core mask and enter power-down
     mov  x9, x8
@@ -220,23 +224,27 @@ core_in_powerdown:
     bl   _soc_core_exit_pwrdn
 
     mov  x0, x9
-    mov  x1, #CORE_RELEASED
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_RELEASED
+    bl   _setCoreData
 
      // restore cpuectlr
     mov  x0, x9
-    getCoreData x0 CPUECTLR_DATA
+    mov  x1, #CPUECTLR_DATA
+    bl   _getCoreData
     msr  CPUECTLR_EL1, x0
 
      // x9 = core mask lsb
 
      // return to entry point address
     mov  x0, x9
-    getCoreData x0 START_ADDR_DATA
+    mov  x1, #START_ADDR_DATA
+    bl   _getCoreData
     msr  ELR_EL3, x0
 
     mov  x0, x9
-    getCoreData x0 CNTXT_ID_DATA
+    mov  x1, #CNTXT_ID_DATA
+    bl   _getCoreData
 
      // we have a context id in x0 - don't overwrite this
      // with a status return code
@@ -285,8 +293,9 @@ cluster_in_stdby:
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
     mov  x10, x0
-    mov  x1, #CORE_STANDBY
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_STANDBY
+    bl   _setCoreData
 
      // w10 = core mask lsb
 
@@ -298,8 +307,9 @@ cluster_in_stdby:
     bl   _soc_clstr_exit_stdby
 
     mov  x0, x10
-    mov  x1, #CORE_RELEASED
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_RELEASED
+    bl   _setCoreData
     b    psci_success
 
 cluster_in_pwrdn:
@@ -313,29 +323,33 @@ cluster_in_pwrdn:
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
     mov  x11, x0
-    mov  x1, x10
-    saveCoreData x0 x1 CNTXT_ID_DATA
+    mov  x1, #CNTXT_ID_DATA
+    mov  x2, x10
+    bl   _setCoreData
 
      // x9  = entry point address
      // x11 = core mask
 
      // save entry point address
     mov  x0, x11
-    mov  x1, x9
-    saveCoreData x0 x1 START_ADDR_DATA
+    mov  x1, #START_ADDR_DATA
+    mov  x2, x9
+    bl   _setCoreData
 
      // x11 = core mask
 
      // to put the cluster in power down, we also
      // have to power-down this core
     mov  x0, x11
-    mov  x1, #CORE_PWR_DOWN
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_PWR_DOWN
+    bl   _setCoreData
 
      // save cpuectlr
-    mrs  x1, CPUECTLR_EL1
     mov  x0, x11
-    saveCoreData x0 x1 CPUECTLR_DATA
+    mov  x1, #CPUECTLR_DATA
+    mrs  x2, CPUECTLR_EL1
+    bl   _setCoreData
 
     mov  x0, x11
     bl   _soc_clstr_entr_pwrdn
@@ -345,21 +359,25 @@ cluster_in_pwrdn:
     bl   _soc_clstr_exit_pwrdn
 
     mov  x0, x11
-    mov  x1, #CORE_RELEASED
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_RELEASED
+    bl   _setCoreData
 
      // restore cpuectlr
     mov  x0, x11
-    getCoreData x0 CPUECTLR_DATA
+    mov  x1, #CPUECTLR_DATA
+    bl   _getCoreData
     msr  CPUECTLR_EL1, x0
 
      // return to entry point address
     mov  x0, x11
-    getCoreData x0 START_ADDR_DATA
+    mov  x1, #START_ADDR_DATA
+    bl   _getCoreData
     msr  ELR_EL3, x0
 
-    mov  w0, w11
-    getCoreData x0 CNTXT_ID_DATA
+    mov  x0, x11
+    mov  x1, #CNTXT_ID_DATA
+    bl   _getCoreData
 
      // we have a context id in x0 - don't overwrite this
      // with a status return code
@@ -402,8 +420,9 @@ system_in_stdby:
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
     mov  x10, x0
-    mov  x1, #CORE_STANDBY
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_STANDBY
+    bl   _setCoreData
 
      // x10 = core mask lsb
 
@@ -415,8 +434,9 @@ system_in_stdby:
     bl   _soc_sys_exit_stdby
 
     mov  x0, x10
-    mov  x1, #CORE_RELEASED
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_RELEASED
+    bl   _setCoreData
     b    psci_success
 
 system_in_pwrdn:
@@ -430,27 +450,31 @@ system_in_pwrdn:
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
     mov  x11, x0
-    mov  x1, x10
-    saveCoreData x0 x1 CNTXT_ID_DATA
+    mov  x1, #CNTXT_ID_DATA
+    mov  x2, x10
+    bl   _setCoreData
 
      // x9  = entry point address
      // x11 = core mask
 
      // save entry point address
     mov  x0, x11
-    mov  x1, x9
-    saveCoreData x0 x1 START_ADDR_DATA
+    mov  x1, #START_ADDR_DATA
+    mov  x2, x9
+    bl   _setCoreData
 
      // x11 = core mask
 
     mov  x0, x11
-    mov  x1, #CORE_PWR_DOWN
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_PWR_DOWN
+    bl   _setCoreData
 
      // save cpuectlr
-    mrs  x1, CPUECTLR_EL1
     mov  x0, x11
-    saveCoreData x0 x1 CPUECTLR_DATA
+    mov  x1, #CPUECTLR_DATA
+    mrs  x2, CPUECTLR_EL1
+    bl   _setCoreData
 
     mov  x0, x11
     bl   _soc_sys_entr_pwrdn
@@ -464,12 +488,14 @@ system_in_pwrdn:
      // x11 = core mask lsb
 
     mov  x0, x11
-    mov  x1, #CORE_RELEASED
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_RELEASED
+    bl   _setCoreData
 
      // restore cpuectlr
     mov  x0, x11
-    getCoreData x0 CPUECTLR_DATA
+    mov  x1, #CPUECTLR_DATA
+    bl   _getCoreData
     msr  CPUECTLR_EL1, x0
 
      // if we have an error, return to the caller rather
@@ -480,11 +506,13 @@ system_in_pwrdn:
 1:
      // return to entry point address
     mov  x0, x11
-    getCoreData x0 START_ADDR_DATA
+    mov  x1, #START_ADDR_DATA
+    bl   _getCoreData
     msr  ELR_EL3, x0
 
     mov  x0, x11
-    getCoreData x0 CNTXT_ID_DATA
+    mov  x1, #CNTXT_ID_DATA
+    bl   _getCoreData
 
      // we have a context id in x0 - don't overwrite this
      // with a status return code
@@ -549,7 +577,8 @@ smc64_psci_cpu_on:
      // check core data area to see if core cannot be turned on
      // read the core state
     mov  x0, x6
-    getCoreData x0 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
 
     cmp  x0, #CORE_DISABLED
     b.eq psci_disabled
@@ -567,28 +596,32 @@ smc64_psci_cpu_on:
 
      // save spsr_el3 in data area
     mov  x0, x6
-    mov  x1, x4
-    saveCoreData x0 x1 SPSR_EL3_DATA
+    mov  x1, #SPSR_EL3_DATA
+    mov  x2, x4
+    bl   _setCoreData
 
+     // x4   = spsr_el3 of caller
      // x6   = core mask (lsb)
      // x7   = start address
      // x8   = context id
      // x9   = core state (from data area)
 
      // save +
-    and   x1, x4, #SPSR_EL_MASK
     mov   x0, x6
-    bl    _save_core_sctlr
+    and   x1, x4, #SPSR_EL_MASK
+    bl    save_core_sctlr
 
      // set start addr in data area
     mov  x0, x6
-    mov  x1, x7
-    saveCoreData x0 x1 START_ADDR_DATA
+    mov  x1, #START_ADDR_DATA
+    mov  x2, x7
+    bl   _setCoreData
 
      // set context id in data area
     mov  x0, x6
-    mov  x1, x8
-    saveCoreData x0 x1 CNTXT_ID_DATA
+    mov  x1, #CNTXT_ID_DATA
+    mov  x2, x8
+    bl   _setCoreData
 
      // x6   = core mask (lsb)
      // x9   = core state (from data area)
@@ -600,7 +633,8 @@ smc64_psci_cpu_on:
 
      // reread the state here
     mov  x0, x6
-    getCoreData x0 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
     mov  x9, x0
     
      // x6   = core mask (lsb)
@@ -613,14 +647,16 @@ smc64_psci_cpu_on:
     cmp  x0, #CORE_OFF_PENDING
      // if state == CORE_OFF_PENDING, set abort
     mov  x0, x6
-    ldr  x1, =CORE_ABORT_OP
-    saveCoreData x0 x1  ABORT_FLAG_DATA
+    mov  x1, #ABORT_FLAG_DATA
+    mov  x2, #CORE_ABORT_OP
+    bl   _setCoreData
 
     ldr  x3, =PSCI_ABORT_CNT
 7:
      // watch for abort to take effect
     mov  x0, x6
-    getCoreData x0 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
     cmp  x0, #CORE_OFF
     b.eq core_is_off
     cmp  x0, #CORE_PENDING
@@ -645,8 +681,9 @@ core_in_reset:
 
      // set core state in data area
     mov  x0, x6
-    mov  x1, #CORE_PENDING
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_PENDING
+    bl   _setCoreData
 
      // release the core from reset and wait til it's up (or timeout)
     mov   x0, x6
@@ -665,8 +702,9 @@ core_is_off:
 
      // set core state in data area
     mov  x0, x6
-    mov  x1, #CORE_PENDING
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_PENDING
+    bl   _setCoreData
 
      // put the core back into service
     mov  x0, x6
@@ -706,7 +744,8 @@ affinity_info_0:
      // x0 = core mask
 
      // process cores here
-    getCoreData x0 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
 
      // x0 = core state
 
@@ -791,7 +830,8 @@ smc32_psci_cpu_off:
     mrs  x0, MPIDR_EL1      
     bl   _get_core_mask_lsb 
     mov  x10, x0
-    getCoreData x0 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
 
      // x0  = core state
      // x10 = core mask lsb
@@ -804,9 +844,10 @@ smc32_psci_cpu_off:
      // x10 = core mask lsb
 
      // change state of core in data area
-    mov  x0, x10 
-    mov  x1, #CORE_OFF_PENDING
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x0, x10
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_OFF_PENDING
+    bl   _setCoreData
 
      // shutdown the core - phase 1
     mov  x0, x10 
@@ -819,12 +860,13 @@ smc32_psci_cpu_off:
      // we have received a request to power it up - this can happen
      // becasue of the extreme latency to shut a core down
     mov  x0, x10
-    getCoreData x0 ABORT_FLAG_DATA
+    mov  x1, #ABORT_FLAG_DATA
+    bl   _getCoreData
     cbz  x0, 4f
 
      // process the abort
     mov  x0, x10
-    bl   _psci_processAbort
+    bl   psci_processAbort
     b    2f
 
 4:
@@ -832,8 +874,9 @@ smc32_psci_cpu_off:
   
     // save link register in data area
     mov  x0, x10
-    mov  x1, x12
-    saveCoreData x0 x1 LINK_REG_DATA
+    mov  x1, #LINK_REG_DATA
+    mov  x2, x12
+    bl   _setCoreData
 
      // x10 = core mask (lsb)
 
@@ -848,12 +891,13 @@ smc32_psci_cpu_off:
      // we have received a request to power it up - this can happen
      // because of the extreme latency to shut a core down
     mov  x0, x10
-    getCoreData x0 ABORT_FLAG_DATA
+    mov  x1, #ABORT_FLAG_DATA
+    bl   _getCoreData
     cbz  x0, 5f
 
      // process the abort
     mov  x0, x10
-    bl   _psci_processAbort
+    bl   psci_processAbort
     b    3f
 
 5:
@@ -1025,7 +1069,7 @@ _initialize_psci:
      // x4 = loop counter
 
     mov   x0, x3
-    bl    _get_core_data
+    bl    get_core_data
 
      // x0 = core data area base address
 
@@ -1079,7 +1123,13 @@ get_cluster_state:
 3:
     mov   x0, x5
     bl    _get_core_mask_lsb
-    getCoreData x0 CORE_STATE_DATA
+
+     // x0 = core mask lsb
+
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+
+     // x0 = core state
 
     mov   x1, #CORE_RELEASED
     cmp   x0, x1
@@ -1111,11 +1161,11 @@ get_cluster_state:
  // in:  x0 = core mask lsb
  // out: x0 = base address to core data area
  // uses x0
-_get_core_data:
+get_core_data:
 
     cmp   x0, #CORE_0_MASK
     b.ne  1f
-    adr   x0, cpu0_data
+    adr   x0, _cpu0_data
     b     99f    
 1:
     cmp   x0, #CORE_1_MASK
@@ -1219,26 +1269,27 @@ _get_core_data:
  // this function stores the sctlr_elx value of the calling entity
  // in:   w0 = core mask (lsb)
  //       w1 = SPSR EL-level (must be one of: SPSR_EL1, SPSR_EL2)
- // uses: x0, x1, x2
-_save_core_sctlr:
-    mov   x2, x30
+ // uses: x0, x1, x2, x3, x4
+save_core_sctlr:
+    mov   x4, x30
 
      // x0 = core mask lsb
 
     cmp   w1, #SPSR_EL1
     b.eq  1f
-    mrs   x1, sctlr_el2
+    mrs   x2, sctlr_el2
     b     2f
 1:
-    mrs   x1, sctlr_el1
+    mrs   x2, sctlr_el1
 2:
 
      // x0 = core mask lsb
-     // x1 = sctlr value to save
+     // x2 = sctlr value to save
 
-    saveCoreData x0 x1 SCTLR_DATA
+    mov  x1, #SCTLR_DATA
+    bl   _setCoreData
 
-    mov   x30, x2 
+    mov   x30, x4 
     ret
 
 //-----------------------------------------------------------------------------
@@ -1247,19 +1298,25 @@ _save_core_sctlr:
  // occur if we are processing CPU_OFF, and a CPU_ON is issued for the same core
  // in:   w0 = core mask (lsb)
  // out:  none
- // uses: x0, x1, x2
-_psci_processAbort:
+ // uses: x0, x1, x2, x3, x4, x5
+psci_processAbort:
+    mov  x5, x30
 
-    mov   x2, x30
-    bl    _get_core_data
+     // x0 = core mask lsb
 
      // clear the abort flag
-    str   xzr, [x0, #ABORT_FLAG_DATA] 
+    mov   x4, x0
+    mov   x1, #ABORT_FLAG_DATA
+    mov   x2, xzr
+    bl    _setCoreData
 
      // set the core state to CORE_PENDING
-    ldr   x1, =CORE_PENDING
-    str   x1, [x0, #CORE_STATE_DATA]  
-    mov   x30, x2 
+    mov   x0, x4
+    mov   x1, #CORE_STATE_DATA
+    mov   x2, #CORE_PENDING
+    bl    _setCoreData
+
+    mov   x30, x5 
     ret
 
 //-----------------------------------------------------------------------------
@@ -1269,35 +1326,42 @@ _psci_processAbort:
  // in:  none
  // out: x0 = 0, no available core
  //      x0 = core mask lsb of available core
- // uses x0, x1, x2, x3, x4 
+ // uses x0, x1, x2, x3, x4
 _find_core:
 
-    mov  x2, x30
+    mov   x4, x30
 
      // start the search at core 1
-    mov  x4, #2
+    mov   x3, #2
 3:
      // see if core is disabled
-    mov  x0, x4
+    mov   x0, x3
     bl    _soc_ck_disabled
     cbnz  x0, 1f
 
-     // see if core is in reset - this is the state we want
-    mov  x0, x4
-    getCoreData x0 CORE_STATE_DATA
-    ldr  x3, =CORE_IN_RESET
-    cmp  x0, x3
-    mov  x0, x4
-    b.eq 2f 
-1:
-    cmp  x4, #CORE_MASK_MAX
-    mov  x0, xzr
-    b.eq 2f
+     // x3 = core mask lsb
 
-    lsl  x4, x4, #1
-    b    3b
+     // get the state of the core
+    mov   x0, x3
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+     
+     // x0 = core state
+
+     // see if core is in reset - this is the state we want
+    mov   x1, #CORE_IN_RESET
+    cmp   x0, x1
+    mov   x0, x3
+    b.eq  2f 
+1:
+    cmp   x3, #CORE_MASK_MAX
+    mov   x0, xzr
+    b.eq  2f
+
+    lsl   x3, x3, #1
+    b     3b
 2:
-    mov  x30, x2
+    mov   x30, x4
     ret
 
 //-----------------------------------------------------------------------------
@@ -1309,18 +1373,21 @@ _find_core:
  // out:  x0 = number of cores that are ON
  // uses: x0, x1, x2, x3, x4, x5
 coreOnCount:
-    mov x3, x30    
+    mov x5, x30
+   
     ldr x4, =CPU_MAX_COUNT 
     mov x2, xzr
-    mov x5, #1
+    mov x3, #1
 
      // x2 = number of cores on
-     // x3 = LR
+     // x3 = core mask lsb
      // x4 = loop count
-     // x5 = core mask lsb
 1:  
-    mov  x0, x5
-    getCoreData x0 CORE_STATE_DATA
+    mov  x0, x3
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
+
+     // x0 = core state
 
      // if core state <= CORE_OFF_MAX, core is OFF
     cmp  x0, #CORE_OFF_MAX
@@ -1333,13 +1400,13 @@ coreOnCount:
     sub  x4, x4, #1
     cbz  x4, 3f
      // shift mask bit to select next core
-    lsl  x5, x5, #1
+    lsl  x3, x3, #1
     b    1b
 
 3:
      // put result in R0, and restore link register
     mov  x0, x2     
-    mov  x30, x3     
+    mov  x30, x5     
     ret
 
 //-----------------------------------------------------------------------------
@@ -1385,6 +1452,7 @@ is_mpidr_valid:
  // uses x0, x1, x2, x3, x4, x5, x6
 core_on_cnt_clstr:
     mov  x6, x30
+
     and  x4, x0, #MPIDR_CLUSTER_MASK
     ldr  x3, =CPU_PER_CLUSTER
     mov  x5, xzr
@@ -1399,9 +1467,12 @@ core_on_cnt_clstr:
     bl   _get_core_mask_lsb
 
      // x0 = core mask lsb
-    getCoreData x0 CORE_STATE_DATA
+
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
 
      // x0 = core state
+
     cmp  x0, #CORE_OFF_MAX
     b.le 1f
     add  x5, x5, #1
@@ -1439,9 +1510,11 @@ core_on_cnt_sys:
 
 3:
     mov  x0, x4
-    getCoreData x0 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
 
      // x0 = core state
+
     cmp  x0, #CORE_OFF_MAX
     b.le 1f
     add  x5, x5, #1

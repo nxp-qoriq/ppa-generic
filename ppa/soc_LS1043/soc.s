@@ -80,6 +80,8 @@
 
 .global _get_current_mask
 .global _get_core_mask_lsb
+.global _getCoreData
+.global _setCoreData
 
 .global _soc_init_start
 .global _soc_init_finish
@@ -373,13 +375,18 @@ _soc_sys_entr_pwrdn:
 
      // x0 = core mask lsb
 
-     // save DAIF and mask ints
-    mrs  x1, DAIF
-    mov  x3, x1
-    saveCoreData x0 x1 DAIF_DATA
+     // save DAIF
+    mrs  x2, DAIF
+    mov  x6, x2
+    mov  x1, #DAIF_DATA
+    bl   _setCoreData
+
+     // x6 = DAIF
+
+     // mask interrupts at the core
     ldr  x0, =DAIF_SET_MASK
-    orr  x3, x3, x0
-    msr  DAIF, x3
+    orr  x6, x6, x0
+    msr  DAIF, x6
 
      // disable icache, dcache, mmu @ EL1
     mov  x1, #SCTLR_I_C_M_MASK
@@ -855,23 +862,24 @@ _soc_core_release:
  //       x0 != 0, failure
  // uses: x0, x1, x2, x3, x4, x5
 _soc_core_rls_wait:
-    mov  x4, x30
-    mov  x5, x0
+    mov  x5, x30
+    mov  x4, x0
 
      // release the core from reset
     bl   _soc_core_release
 
-     // x5 = core_mask_lsb
+     // x4 = core_mask_lsb
 
     ldr  x3, =CORE_RELEASE_CNT
 
      // x3 = retry count
-     // x5 = core_mask_lsb
+     // x4 = core_mask_lsb
 1:
     sev
     isb
-    mov  x0, x5
-    getCoreData x0 CORE_STATE_DATA
+    mov  x0, x4
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
 
      // see if the core has signaled that it is up
     cmp  x0, #CORE_RELEASED
@@ -886,7 +894,7 @@ _soc_core_rls_wait:
      // loop back and try again
     b    1b
 2:
-    mov  x30, x4
+    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -1020,16 +1028,17 @@ _soc_core_phase2_off:
  // this function performs the final steps to shutdown the core
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1, x2, x3, x4, x5
+ // uses x0, x1, x2, x3, x4, x5, x6
 _soc_core_entr_off:
-    mov  x5, x30
-    mov  x3, x0
+    mov  x6, x30
+    mov  x5, x0
 
      // x0 = core mask lsb
 
      // change state of core in data area
-    mov  x1, #CORE_OFF
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_OFF
+    bl   _setCoreData
 
      // disable EL3 icache by clearing SCTLR_EL3[12]
     mrs x1, SCTLR_EL3
@@ -1048,15 +1057,15 @@ _soc_core_entr_off:
     add   x0, x4, #GICD_CPENDSGIR3_OFFSET
     str   w2, [x0]
 
-     // x3 = core mask (lsb)
      // x4 = GICD_BASE_ADDR
+     // x5 = core mask (lsb)
 
 3:
      // enter low-power state by executing wfi
     wfi
 
-     // x3 = core mask (lsb)
      // x4 = GICD_BASE_ADDR
+     // x5 = core mask (lsb)
 
      // see if we got hit by SGI 15
     add   x0, x4, #GICD_SPENDSGIR3_OFFSET
@@ -1070,14 +1079,18 @@ _soc_core_entr_off:
     str   w2, [x0]
 4:
      // check if core has been turned on
-    mov  x0, x3 
-    getCoreData x0 CORE_STATE_DATA
+    mov  x0, x5 
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
+
+     // x0 = core state
+
     cmp  x0, #CORE_PENDING
     b.ne 3b
 
      // if we get here, then we have exited the wfi
 
-    mov  x30, x5
+    mov  x30, x6
     ret
 
 //-----------------------------------------------------------------------------
@@ -1204,7 +1217,10 @@ _soc_core_restart:
 
 1:
     mov  x0, x4
-    getCoreData x0 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
+
+     // x0 =  core state
 
     cmp  x0, #CORE_RELEASED
     b.eq 2f    
@@ -1453,15 +1469,17 @@ _soc_init_finish:
     bl   get_task1_core
     cbz  x0, 5f
      // x0 = core mask lsb of the task 1 core
-    mov  w1, #CORE_IN_RESET
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_IN_RESET
+    bl   _setCoreData
 5:
      // set the task 2 core state to IN_RESET
     bl   get_task2_core
     cbz  x0, 4f
      // x0 = core mask lsb of the task 2 core
-    mov  w1, #CORE_IN_RESET
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_IN_RESET
+    bl   _setCoreData
 4:
      // restore bootlocptr
     adr  x1, saved_bootlocptr
@@ -1842,15 +1860,15 @@ _ocram_init_lower:
  // this function releases a secondary core to init the upper half of OCRAM
  // in:  x0 = core mask lsb of the secondary core to put to work
  // out: none
- // uses x0, x1, x2, x3, x4
+ // uses x0, x1, x2, x3, x4, x5
 init_task_1:
-
-    mov  x3, x30
+    mov  x5, x30
     mov  x4, x0
 
      // set the core state to WORKING_INIT
-    mov  w1, #CORE_WORKING_INIT
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_WORKING_INIT
+    bl   _setCoreData
 
      // save the core mask
     mov  x0, x4
@@ -1864,7 +1882,7 @@ init_task_1:
     mov  x0, x4
     bl  _soc_core_release
 
-    mov  x30, x3
+    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -1873,15 +1891,15 @@ init_task_1:
  // this function releases a secondary core to init the lower half of OCRAM
  // in:  x0 = core mask lsb of the secondary core to put to work
  // out: none
- // uses x0, x1, x2, x3, x4
+ // uses x0, x1, x2, x3, x4, x5
 init_task_2:
-
-    mov  x3, x30
+    mov  x5, x30
     mov  x4, x0
 
      // set the core state to WORKING_INIT
-    mov  w1, #CORE_WORKING_INIT
-    saveCoreData x0 x1 CORE_STATE_DATA
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_WORKING_INIT
+    bl   _setCoreData
 
      // save the core mask
     mov  x0, x4
@@ -1895,7 +1913,7 @@ init_task_2:
     mov  x0, x4
     bl  _soc_core_release
 
-    mov  x30, x3
+    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -2018,6 +2036,83 @@ set_task2_core:
     ret
 
 //-----------------------------------------------------------------------------
+
+ // this function returns the specified data field value from the specified cpu
+ // core data area
+ // in:  x0 = core mask lsb
+ //      x1 = data field name/offset
+ // out: x0 = data value
+ // uses x0, x1, x2
+_getCoreData:
+     // x0 = core mask
+     // x1 = field offset
+
+     // generate a 0-based core number from the input mask
+    clz   x2, x0
+    mov   x0, #63
+    sub   x0, x0, x2
+
+     // x0 = core number (0-based)
+     // x1 = field offset
+
+    mov   x2, #CORE_DATA_OFFSET
+    mul   x2, x2, x0
+    add   x1, x1, x2
+
+     // x1 = cumulative offset to data field
+
+    adr   x2, _cpu0_data
+
+     // a53 errata
+    add   x2, x2, x1
+    dc    ivac, x2
+    dsb   sy
+    isb 
+ 
+     // read data
+    ldr   x0, [x2]
+    ret
+    
+//-----------------------------------------------------------------------------
+
+ // this function writes the specified data value into the specified cpu
+ // core data area
+ // in:  x0 = core mask lsb
+ //      x1 = data field name/offset
+ //      x2 = data value to write/store
+ // out: none
+ // uses x0, x1, x2, x3
+_setCoreData:
+     // x0 = core mask
+     // x1 = field offset
+     // x2 = data value
+
+    clz   x3, x0
+    mov   x0, #63
+    sub   x0, x0, x3
+
+     // x0 = core number (0-based)
+     // x1 = field offset
+     // x2 = data value
+
+    mov   x3, #CORE_DATA_OFFSET
+    mul   x3, x3, x0
+    add   x1, x1, x3
+
+     // x1 = cumulative offset to data field
+     // x2 = data value
+
+    adr   x3, _cpu0_data
+    str   x2, [x3, x1]
+
+     // a53 errata
+    add   x3, x3, x1
+    dc    cvac, x3
+    dsb   sy
+    isb  
+    ret
+    
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
@@ -2068,7 +2163,11 @@ prep_init_ocram_hi:
 1:
      // see if our state has changed to CORE_PENDING
     mov   x0, x5
-    getCoreData x0 CORE_STATE_DATA
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+
+     // x0 = core state
+
     cmp   x0, #CORE_PENDING
     b.eq  2f
      // if not core_pending, then wfe
@@ -2133,7 +2232,11 @@ prep_init_ocram_lo:
 1:
      // see if our state has changed to CORE_PENDING
     mov   x0, x5
-    getCoreData x0 CORE_STATE_DATA
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+
+     // x0 = core state
+
     cmp   x0, #CORE_PENDING
     b.eq  2f
      // if not core_pending, then wfe

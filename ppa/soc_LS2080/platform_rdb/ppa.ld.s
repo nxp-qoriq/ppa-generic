@@ -18,7 +18,7 @@ ENTRY(_start_monitor_el3)
 
 SECTIONS
 {
-    ro . : {
+    .text . : {
         __PPA_PROG_START__ = .;
         *monitor.o(.text*)
         *(.text*)

@@ -33,6 +33,10 @@
 #define WDT5_BASE                 0x02A90000
 #define TZASC_BASE_ADDR           0x01500000
 #define CSU_BASE_ADDR             0x01510000
+#define CCI_400_BASE_ADDR         0x01180000
+
+ // retry count for cci400 status bit
+#define CCI400_PEND_CNT           0x800
 
  // register offsets
 #define SCFG_COREBCR_OFFSET       0x0680
@@ -88,10 +92,10 @@
  //   value == 0x0  the soc code does not support this feature
  //   value != 0x0  the soc code supports this feature
 #define SOC_CORE_RELEASE       0x1
-#define SOC_CORE_RESTART       0x0
-#define SOC_CORE_OFF           0x0
-#define SOC_CORE_STANDBY       0x1
-#define SOC_CORE_PWR_DWN       0x1
+#define SOC_CORE_RESTART       0x1
+#define SOC_CORE_OFF           0x1
+#define SOC_CORE_STANDBY       0x0
+#define SOC_CORE_PWR_DWN       0x0  
 #define SOC_CLUSTER_STANDBY    0x0
 #define SOC_CLUSTER_PWR_DWN    0x0  
 #define SOC_SYSTEM_STANDBY     0x0

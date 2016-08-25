@@ -12,38 +12,8 @@
 
 //-----------------------------------------------------------------------------
 
- // get data from the specified core area field
- //   arg: field_name = field name define
- //   in:  x0 = core mask (lsb)
- //   out: x0 = value read from core field
- //   uses x0, x30
-.macro getCoreData x0 $field_name
-	bl    _get_core_data
-    add   x0, x0, #\$field_name
-    dc    ivac, x0
-    dsb   sy
-    isb  
-	ldr x0, [x0]
-.endm
-
- //-------------------------------
-
- // save data in the specified core area field
- //   arg: field_name = field name define
- //   arg: p1 = data to write to field
- //   in:  x0 = core mask (lsb)
- //   out: none
- //   uses x0, x30, $p1
-.macro saveCoreData x0 $p1 $field_name
-	bl    _get_core_data
-    add   x0, x0, #\$field_name
-	str  \$p1, [x0]
-    dc    cvac, x0
-    dsb   sy
-    isb  
-.endm
-
-//-----------------------------------------------------------------------------
+ // Note: this macro will only work correctly if the registers used are
+ //       32-bit (w-form)
 
  // generate a core mask msb
 .macro CoreMaskMsb $p1, $p2
