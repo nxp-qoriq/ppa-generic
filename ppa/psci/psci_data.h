@@ -6,11 +6,12 @@
 //
 
 // This file includes:
-// cpu data areas
+// per-cpu data areas
 
 //-----------------------------------------------------------------------------
 
- // these fields MUST be 64-bit width
+ // these fields MUST be 64-bit width - the access macros depend on it!
+ // if you add/subtract a field, you must adjust CORE_DATA_OFFSET in psci.h
 .macro CoreDataStruc
     .8byte  0x0  // core state
     .8byte  0x0  // spsr_el3
@@ -28,13 +29,12 @@
     .8byte  0x0  // AUX_05
     .8byte  0x0  // AUX_06
     .8byte  0x0  // AUX_07
-    .8byte  0x0  // AUX_08
 .endm
 
 //-----------------------------------------------------------------------------
 
 .align 3
-cpu0_data:
+_cpu0_data:
     CoreDataStruc
 
 cpu1_data:

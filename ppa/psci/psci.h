@@ -147,7 +147,10 @@
 .equ AUX_05_DATA,       0x68  // usage defined per SoC
 .equ AUX_06_DATA,       0x70  // usage defined per SoC
 .equ AUX_07_DATA,       0x78  // usage defined per SoC
-.equ AUX_08_DATA,       0x80  // usage defined per SoC
+
+ // width of a core data area - must be in synch
+ //  w/CoreDataStruc in psci_data.h
+.equ CORE_DATA_OFFSET,  0x80
 
 //-----------------------------------------------------------------------------
 
