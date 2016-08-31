@@ -88,8 +88,24 @@
  // this function puts the calling core into standby state
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, 
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x10
 _soc_core_entr_stdby:
+    mov  x10, x30
+
+     // clean the L1 dcache
+    mov  x0, xzr
+    bl   _cln_inv_L1_dcache
+
+     // IRQ taken to EL3, set SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    orr  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+    dsb  sy
+    isb
+    wfi
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
@@ -101,6 +117,14 @@ _soc_core_entr_stdby:
  // out: none
  // uses x0,
 _soc_core_exit_stdby:
+     // X0 = core mask lsb
+
+     // clear SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    bic  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+    isb
     ret
 
 //-----------------------------------------------------------------------------
@@ -110,8 +134,73 @@ _soc_core_exit_stdby:
  // ph20 is defeatured for this device, so pw15 is the lowest core pwr state
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, 
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x9, x10
 _soc_core_entr_pwrdn:
+    mov  x10, x30
+
+     // X0 = core mask lsb
+    mov  x9, x0
+
+     // mask interrupts by setting DAIF[7:4] to 'b1111
+    mrs  x1, DAIF
+    ldr  x0, =DAIF_SET_MASK
+    orr  x1, x1, x0
+    msr  DAIF, x1
+
+     // cln/inv L1 dcache
+    mov  x0, #1
+    bl   _cln_inv_L1_dcache
+
+     // IRQ taken to EL3, set SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    orr  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+     // disable icache, dcache, mmu @ EL2 & EL1
+    mov  x1, #SCTLR_I_C_M_MASK
+    mrs  x0, sctlr_el1
+    bic  x0, x0, x1
+    msr  sctlr_el1, x0
+
+     // disable dcache @ EL3
+    mrs  x0, sctlr_el3
+    bic  x0, x0, #SCTLR_C_MASK
+    msr  sctlr_el3, x0
+
+     // enable CPU retention
+    mrs  x6, CPUECTLR_EL1
+    orr  x0, x6, #0x1
+    msr  CPUECTLR_EL1, x0
+
+     // enable SMPEN
+    mrs  x0, CPUECTLR_EL1
+    orr  x0, x0, #0x40
+    msr  CPUECTLR_EL1, x0
+
+     // Set the RETREQn bit in SCFG_RETREQCR
+    mov  x0, x9
+    mov  x1, #1
+    lsl  x1, x1, x0
+     // reverse bit order
+    rbit w1, w1
+    ldr  x0, =SCFG_RETREQCR_OFFSET
+    bl   write_reg_scfg
+
+     // Set the PC_PH20_REQ bit in RCPM_PCPH20SETR
+    mov  x0, x9
+    mov  x1, #1
+    lsl  x1, x1, x0
+    mov  x0, #RCPM_PCPH20SETR_OFFSET
+    bl   write_reg_rcpm
+
+    dsb  sy
+    isb
+    wfi
+
+     // restore CPUECTLR_EL1
+    msr CPUECTLR_EL1, x6
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
@@ -122,6 +211,16 @@ _soc_core_entr_pwrdn:
  // out: none
  // uses x0, 
 _soc_core_exit_pwrdn:
+     // X0 = core mask lsb
+
+     // clear SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    bic  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+     // invalidate icache
+    ic  iallu
+    isb
     ret
 
 //-----------------------------------------------------------------------------
@@ -413,19 +512,17 @@ _soc_core_phase1_off:
      // save timer control current value
     mov   x6, #SYS_COUNTER_BASE
     ldr   w4, [x6, #SYS_COUNTER_CNTCR_OFFSET]
-    rev   w2, w4
+    mov   w2, w4
     mov   x0, x5
     mov   x1, #TIMER_CNTRL_DATA
     bl    _setCoreData
 
-     // w4 = counter ctl in BE
+     // w4 = counter ctl
      // x5 = core mask lsb
      // x6 = sys counter base addr
 
      // enable the timer
-    rev   w2, w4
-    orr   w2, w2, #CNTCR_EN_MASK
-    rev   w4, w2
+    orr   w4, w4, #CNTCR_EN_MASK
     str   w4, [x6, #SYS_COUNTER_CNTCR_OFFSET]
 
      // mask interrupts by setting DAIF[7:4] to 'b1111
@@ -693,10 +790,11 @@ _soc_core_phase1_clnup:
     mov   x0, x3
     mov   x1, #TIMER_CNTRL_DATA
     bl    _getCoreData
-    rev   x1, x0
+
+     // w0 = timer ctrl saved value
 
     mov   x2, #SYS_COUNTER_BASE
-    str   x1, [x2, #SYS_COUNTER_CNTCR_OFFSET]
+    str   w0, [x2, #SYS_COUNTER_CNTCR_OFFSET]
 
     isb
     mov  x30, x4

@@ -1054,40 +1054,45 @@ psci_completed:
  // only executed by the boot core
  // in:   none
  // out:  none
- // uses: x0, x1, x2, x3, x4, x5
+ // uses: x0, x1, x2, x3, x4, x5, x6
 _initialize_psci:
-     // save link reg
-    mov   x5, x30
+    mov   x6, x30
 
-     // init bootcore data
-    mov   x3, #1
     mov   x2, #CORE_RELEASED
+    mov   x3, #1
     mov   x4, #CPU_MAX_COUNT
+    adr   x5, _cpu0_data
+
 1:
      // x2 = core state
-     // x3 = core mask bit
+     // x3 = core mask lsb
      // x4 = loop counter
+     // x5 = core data area base address
 
-    mov   x0, x3
-    bl    get_core_data
-
-     // x0 = core data area base address
-
-    str   x2,  [x0, #CORE_STATE_DATA]
-    str   xzr, [x0, #SPSR_EL3_DATA]
-    str   xzr, [x0, #CNTXT_ID_DATA]
-    str   xzr, [x0, #START_ADDR_DATA]
-    str   xzr, [x0, #LINK_REG_DATA]
-    str   xzr, [x0, #GICC_CTLR_DATA]
-    str   xzr, [x0, #ABORT_FLAG_DATA]
-    str   xzr, [x0, #SCTLR_DATA]
-    str   xzr, [x0, #CPUECTLR_DATA]
+    str   x2,  [x5, #CORE_STATE_DATA]
+    str   xzr, [x5, #SPSR_EL3_DATA]
+    str   xzr, [x5, #CNTXT_ID_DATA]
+    str   xzr, [x5, #START_ADDR_DATA]
+    str   xzr, [x5, #LINK_REG_DATA]
+    str   xzr, [x5, #GICC_CTLR_DATA]
+    str   xzr, [x5, #ABORT_FLAG_DATA]
+    str   xzr, [x5, #SCTLR_DATA]
+    str   xzr, [x5, #CPUECTLR_DATA]
+    str   xzr, [x5, #AUX_01_DATA]
+    str   xzr, [x5, #AUX_02_DATA]
+    str   xzr, [x5, #AUX_03_DATA]
+    str   xzr, [x5, #AUX_04_DATA]
+    str   xzr, [x5, #AUX_05_DATA]
+    str   xzr, [x5, #AUX_06_DATA]
+    str   xzr, [x5, #AUX_07_DATA]
 
      // loop control
     sub  x4, x4, #1
     cbz  x4, 3f
 
-     // generate the next core mask bit
+     // increment to next data area
+    add  x5, x5, #CORE_DATA_OFFSET
+     // generate next core mask
     lsl  x3, x3, #1
 
      // set core state in x2
@@ -1097,8 +1102,9 @@ _initialize_psci:
     cbz  x0, 1b
     mov  x2, #CORE_DISABLED
     b    1b
+
 3:
-    mov   x30, x5
+    mov   x30, x6
     ret
 
 //-----------------------------------------------------------------------------

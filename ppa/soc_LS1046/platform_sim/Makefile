@@ -22,13 +22,39 @@
 # build targets:
 
  # builds a ppa bound in with the bootrom code, suitable for execution on the sim ONLY
-all:	TEST_VAL:=1
 all:	bootmain.64.bin bootmain.64.elf bootmain.64.elf.rom.rmh0.rmh
 
 #------------------------------------------------
 
+TEST_PSCI=0
+
+ifeq ($(TEST), none)
+    $(info testing nothing...........)
+	TEST_PSCI=0
+endif
+ifeq ($(TEST), smp_boot)
+    $(info testing smp boot...........)
+	TEST_PSCI=1
+    TEST_FILE=test_cpu_on_1cluster.s
+endif
+ifeq ($(TEST), hotplug)
+    $(info testing cpu hotplug...........)
+	TEST_PSCI=1
+    TEST_FILE=test_cpu_hotplug.s
+endif
+ifeq ($(TEST), off_abort)
+    $(info testing cpu hotplug abort...........)
+	TEST_PSCI=1
+    TEST_FILE=test_cpu_hotplug_abort.s
+endif
+ifeq ($(TEST), suspend)
+    $(info testing cpu suspend...........)
+	TEST_PSCI=1
+    TEST_FILE=test_cpu_suspend_1cluster.s
+endif
+
  # platform-specific build flags
-PLATFLAGS = -Wl,-g -Wa,-g -DSIMULATOR_BUILD=1
+PLATFLAGS = -Wl,-g -Wa,-g -DSIMULATOR_BUILD=1 -DPSCI_TEST=$(TEST_PSCI)
 
 #------------------------------------------------
 
@@ -56,7 +82,7 @@ HDRS_PLAT  =policy.h
 PLAT_ASM =
 
  # add platform-test-specific asm sources here
-TEST_ASM =test_psci.s
+TEST_ASM =$(TEST_FILE)
 
 # -----------------------------------------------------------------------------
 

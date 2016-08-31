@@ -12,7 +12,7 @@ PSCI_SRC    = ../../psci
 CMN_SRC     = ../../common
 SOC_SRC     = ../
 PLAT_SRC    = ./
-TEST_SRC    = ./
+TEST_SRC    = ../../test
 SRC_DIR     = build/src
 OBJ_DIR     = build/obj
 
@@ -117,7 +117,7 @@ $(PLAT_ASM): src
 	@cp $(PLAT_SRC)/$@ $(SRC_DIR)/$@
 
 $(TEST_ASM): src
-	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+	@cp $(TEST_SRC)/$@ $(SRC_DIR)/$@
 
 $(COMMON_C) $(COMMON_ASM) $(COMMON_HDRS): src
 	@cp $(CMMN_SRC)/$@ $(SRC_DIR)/$@

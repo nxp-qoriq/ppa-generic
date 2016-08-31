@@ -148,7 +148,7 @@ monitor_exit_EL3:
      // make sure that the soc initialization tasks completed
     bl   _soc_init_finish
 
-#if (TEST)
+#if (PSCI_TEST)
      // set the exit address to be our test code entry point
     adr  x0, _test_psci
     bl   _soc_set_start_addr
