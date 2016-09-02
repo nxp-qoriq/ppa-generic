@@ -291,8 +291,72 @@ _soc_sys_exit_stdby:
  // in:  x0 = core mask lsb
  // out: x0 = 0, success
  //      x0 < 0, failure
- // uses x0, 
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _soc_sys_entr_pwrdn:
+    mov  x10, x30
+
+     // x0 = core mask lsb
+
+     // save DAIF and mask ints
+    mrs  x2, DAIF
+    mov  x6, x2
+    mov  x1, #DAIF_DATA
+    bl   _setCoreData
+    mov  x0, #DAIF_SET_MASK
+    orr  x6, x6, x0
+    msr  DAIF, x6
+
+     // disable icache, dcache, mmu @ EL1
+    mov  x1, #SCTLR_I_C_M_MASK
+    mrs  x0, sctlr_el1
+    bic  x0, x0, x1
+    msr  sctlr_el1, x0
+
+     // disable dcache for EL3
+    mrs x1, SCTLR_EL3
+    bic x1, x1, #SCTLR_C_MASK
+     // make sure icache is enabled
+    orr x1, x1, #SCTLR_I_MASK
+    msr SCTLR_EL3, x1
+    isb
+
+     // clean/invalidate the dcache
+    mov x0, #1
+    bl  _cln_inv_all_dcache
+
+     // IRQ taken to EL3, set SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    orr  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+     // enable dynamic retention control, CPUECTLR[2:0]
+    mrs  x0, CPUECTLR_EL1
+    orr  x0, x0, #0x2
+    msr  CPUECTLR_EL1, x0
+
+     // set SMPEN, CPUECTLR[6]
+    mrs  x0, CPUECTLR_EL1
+    orr  x0, x0, #0x20
+    msr  CPUECTLR_EL1, x0
+
+     // set WFIL2EN in SCFG_CLUSTERPMCR
+    ldr  x0, =SCFG_COREPMCR_OFFSET
+    ldr  x1, =COREPMCR_WFIL2EN
+    bl   write_reg_scfg
+
+     // request LPM20
+    mov  x0, #RCPM_POWMGTCSR_OFFSET
+    bl   read_reg_rcpm
+    orr  x1, x0, #RCPM_POWMGTCSR_LPM20_REQ
+    mov  x0, #RCPM_POWMGTCSR_OFFSET
+    bl   write_reg_rcpm
+
+    dsb  sy
+    isb
+    wfi
+
+    mov  x0, #0
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
@@ -304,6 +368,14 @@ _soc_sys_entr_pwrdn:
  // out: none
  // uses x0, 
 _soc_sys_exit_pwrdn:
+    mov  x10, x30
+
+     // clear SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    bic  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
