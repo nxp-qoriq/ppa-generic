@@ -54,7 +54,7 @@ ifeq ($(TEST), suspend)
 endif
 
  # platform-specific build flags
-PLATFLAGS = -Wl,-g -Wa,-g -DSIMULATOR_BUILD=1
+PLATFLAGS = -Wl,-g -Wa,-g -DSIMULATOR_BUILD=1 -DPSCI_TEST=$(TEST_PSCI)
 
 #------------------------------------------------
 

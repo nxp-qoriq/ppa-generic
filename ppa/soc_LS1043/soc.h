@@ -41,6 +41,7 @@
 #define SCFG_COREBCR_OFFSET       0x0680
 #define SCFG_RETREQCR_OFFSET      0x0424
 #define SCFG_COREPMCR_OFFSET      0x042C
+#define SCFG_GIC400_ADDR_ALIGN_OFFSET  0x188
 
 #define SYS_COUNTER_CNTCR_OFFSET  0x0
 
@@ -52,6 +53,7 @@
 #define BOOTLOCPTRL_OFFSET        0x604
 #define BOOTLOCPTRH_OFFSET        0x600
 
+#define DCFG_SVR_OFFSET           0x0A4
 #define DCFG_BRR_OFFSET           0x00E4
 #define DCFG_RSTCR_OFFSET         0x00B0
 #define DCFG_COREDISR_OFFSET      0x0094
@@ -83,6 +85,16 @@
 #define RSTRQSR1_SWRR             0x100000
 #define COREPMCR_WFIL2            0x1
 #define POWMGTDCR_OVRD_EN         0x80000000
+
+#define SVR_MINOR_REV_MASK        0x0F
+#define SVR_MINOR_REV_0           0x00
+#define SVR_MINOR_REV_1           0x01
+#define SVR_MAJOR_REV_MASK        0xF0
+#define SVR_MAJOR_REV_1           0x10
+
+#define GIC400_ADDR_ALIGN_4KMODE_MASK  0x80000000
+#define GIC400_ADDR_ALIGN_4KMODE_EN    0x80000000
+#define GIC400_ADDR_ALIGN_4KMODE_DIS   0x0
 
 #define IPPDEXPCR_MAC1_1          0x80000000    // DEVDISR2_FMAN1_MAC1
 #define IPPDEXPCR_MAC1_2          0x40000000    // DEVDISR2_FMAN1_MAC2
@@ -198,8 +210,10 @@
  //----------------------------------------------------------------------------
 
  // base addresses
-#define GICD_BASE_ADDR  0x01401000
-#define GICC_BASE_ADDR  0x01402000
+#define GICD_BASE_ADDR_4K  0x01401000
+#define GICC_BASE_ADDR_4K  0x01402000
+#define GICD_BASE_ADDR_64K 0x01410000
+#define GICC_BASE_ADDR_64K 0x01420000
 
  // bitfield masks
 #define GICC_CTLR_EN_GRP0           0x1

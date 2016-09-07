@@ -29,4 +29,20 @@
 
 //-----------------------------------------------------------------------------
 
+ // Note: $p1 must be a 64-bit register
+ // GICD base address returned in $p1
+.macro Get_GICD_Base_Addr $p1
+    ldr   \$p1, =GICD_BASE_ADDR
+.endm
+
+//-----------------------------------------------------------------------------
+
+ // Note: $p1 must be a 64-bit register
+ // GICC base address returned in $p1
+.macro Get_GICC_Base_Addr $p1
+    ldr   \$p1, =GICC_BASE_ADDR
+.endm
+
+//-----------------------------------------------------------------------------
+
 #endif // _SOC_MAC

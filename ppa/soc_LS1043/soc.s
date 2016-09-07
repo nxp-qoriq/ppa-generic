@@ -87,6 +87,8 @@
 .global _soc_init_finish
 .global _set_platform_security
 
+.global _gic_base_addr
+
 //-----------------------------------------------------------------------------
 
 .equ  RESTART_RETRY_CNT,  3000
@@ -964,7 +966,8 @@ _soc_core_phase2_off:
      // configure the cpu interface
 
      // disable signaling of ints
-    ldr  x5, =GICC_BASE_ADDR
+    Get_GICC_Base_Addr x5
+
     ldr  w3, [x5, #GICC_CTLR_OFFSET]
     bic  w3, w3, #GICC_CTLR_EN_GRP0
     bic  w3, w3, #GICC_CTLR_EN_GRP1
@@ -992,7 +995,7 @@ _soc_core_phase2_off:
      // x4 = core mask lsb
 
      // setup the banked-per-core GICD registers
-    ldr  x5, =GICD_BASE_ADDR
+    Get_GICD_Base_Addr x5
 
      // define SGI15 as Grp0
     ldr  w2, [x5, #GICD_IGROUPR0_OFFSET]
@@ -1013,7 +1016,7 @@ _soc_core_phase2_off:
 
      // enable the cpu interface
 
-    ldr  x5, =GICC_BASE_ADDR
+    Get_GICC_Base_Addr x5
     orr  w3, w3, #GICC_CTLR_EN_GRP0
     str  w3, [x5, #GICC_CTLR_OFFSET]
     dsb  sy
@@ -1053,7 +1056,8 @@ _soc_core_entr_off:
 
      // clear any pending SGIs
     ldr   x2, =GICD_CPENDSGIR_CLR_MASK
-    ldr   x4, =GICD_BASE_ADDR
+    Get_GICD_Base_Addr x4
+
     add   x0, x4, #GICD_CPENDSGIR3_OFFSET
     str   w2, [x0]
 
@@ -1102,7 +1106,7 @@ _soc_core_entr_off:
  // uses x0, x1
 _soc_core_exit_off:
 
-    ldr  x1, =GICC_BASE_ADDR
+    Get_GICC_Base_Addr x1
 
      // read GICC_IAR
     ldr  w0, [x1, #GICC_IAR_OFFSET]
@@ -1156,7 +1160,7 @@ _soc_core_phase2_clnup:
      // x0 = core mask lsb
 
      // disable signaling of grp0 ints
-    ldr  x2, =GICC_BASE_ADDR
+    Get_GICC_Base_Addr x2
     ldr  w3, [x2, #GICC_CTLR_OFFSET]
     bic  w3, w3, #GICC_CTLR_EN_GRP0
     str  w3, [x2, #GICC_CTLR_OFFSET]
@@ -1179,7 +1183,7 @@ _soc_core_restart:
 
      // x0 = core mask lsb
 
-    ldr  x4, =GICD_BASE_ADDR
+    Get_GICD_Base_Addr x4
 
      // x0 = core mask lsb
      // x4 = GICD_BASE_ADDR
@@ -1291,7 +1295,7 @@ _soc_get_start_addr:
 enableSGI:
 
      // set interrupt ID 15 to group 0 by setting GICD_IGROUP0[15] to 0 
-    ldr  w2, =GICD_BASE_ADDR
+    Get_GICD_Base_Addr x2
     ldr  w0, [x2, #GICD_IGROUPR0_OFFSET]
     ldr  w1, =GICD_IGROUP0_SGI15
     bic  w0, w0, w1
@@ -1306,7 +1310,7 @@ enableSGI:
     str  w0, [x2, #GICD_CTLR_OFFSET]
 
      // enable signaling of group 0 by setting GICC_CTLR[1:0] to 0b01 
-    ldr    w2, =GICC_BASE_ADDR
+    Get_GICC_Base_Addr x2
     ldr    w0, [x2, #GICC_CTLR_OFFSET]
     ldr    w1, =GICC_CTLR_EN_GRP0
     bfxil  w0, w1, #0, #2
@@ -1345,7 +1349,8 @@ retention_ctrl:
  // out: none
  // uses x0, x1
 clearSGI:
-    ldr  w1, =GICD_BASE_ADDR
+    Get_GICD_Base_Addr x1
+
     ldr  w0, =GICD_CPENDSGIR_CLR_MASK
     str  w0, [x1, #GICD_CPENDSGIR3_OFFSET]
     ret
@@ -1388,6 +1393,57 @@ _get_current_mask:
  // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _soc_init_start:
     mov   x10, x30
+
+     //---------------------------
+
+     // get the address of the gic base address area
+    adr   x5, _gic_base_addr
+
+     // read SVR and get the SoC version
+    mov   x0, #DCFG_SVR_OFFSET
+    bl    read_reg_dcfg
+
+     // x0 =  svr
+     // x5 = _gic_base_addr
+
+    and   w0, w0, #SVR_MINOR_REV_MASK
+    cmp   w0, #SVR_MINOR_REV_0
+    b.ne  8f
+
+     // load the gic base addresses for rev 1.0 parts
+    ldr   x2, =GICD_BASE_ADDR_4K
+    ldr   x3, =GICC_BASE_ADDR_4K
+    b     10f    
+8:
+     // for rev 1.1 and later parts, the GIC base addresses
+     // can be at 4k or 64k offsets
+
+     // read the scfg reg GIC400_ADDR_ALIGN
+    mov   x0, #SCFG_GIC400_ADDR_ALIGN_OFFSET
+    bl    read_reg_scfg
+
+     // x0 = GIC400_ADDR_ALIGN value
+    and   x0, x0, #GIC400_ADDR_ALIGN_4KMODE_MASK
+    mov   x1, #GIC400_ADDR_ALIGN_4KMODE_EN
+    cmp   x0, x1
+    b.ne  9f
+    
+     // load the base addresses for 4k offsets
+    ldr   x2, =GICD_BASE_ADDR_4K
+    ldr   x3, =GICC_BASE_ADDR_4K
+    b     10f
+9:
+     // load the base address for 64k offsets
+    ldr   x2, =GICD_BASE_ADDR_64K
+    ldr   x3, =GICC_BASE_ADDR_64K
+10:
+     // x5 = _gic_base_addr
+
+     // store the base addresses
+    str   x2, [x5]
+    str   x3, [x5, #8]
+
+     //---------------------------
 
      // init the task flags
     bl  init_task_flags   // 0-1
@@ -1669,7 +1725,7 @@ read_reg_sys_counter:
  // in:  w1 = value to write
  // uses x0, x1, x2, x3
 write_reg_gicd:
-    ldr  x2, =GICD_BASE_ADDR
+    Get_GICD_Base_Addr x2
     str  w1, [x2, x0]
     ret
 
@@ -1680,7 +1736,7 @@ write_reg_gicd:
  // out: w0 = value read
  // uses x0, x1, x2
 read_reg_gicd:
-    ldr  x2, =GICD_BASE_ADDR
+    Get_GICD_Base_Addr x2
     ldr  w0, [x2, x0]
     ret
 
@@ -1691,7 +1747,7 @@ read_reg_gicd:
  // in:  w1 = value to write
  // uses x0, x1, x2, x3
 write_reg_gicc:
-    ldr  x2, =GICC_BASE_ADDR
+    Get_GICC_Base_Addr x2
     str  w1, [x2, x0]
     ret
 
@@ -1702,7 +1758,7 @@ write_reg_gicc:
  // out: w0 = value read
  // uses x0, x1, x2
 read_reg_gicc:
-    ldr  x2, =GICC_BASE_ADDR
+    Get_GICC_Base_Addr x2
     ldr  w0, [x2, x0]
     ret
 
@@ -2399,6 +2455,11 @@ soc_data_area:
     .4byte  0x0  // soc storage 6, offset 0x14
     .4byte  0x0  // soc storage 7, offset 0x18
     .4byte  0x0  // soc storage 8, offset 0x1C
+
+.align 3
+_gic_base_addr:
+    .8byte  0x0  // gicd base address
+    .8byte  0x0  // gicc base address
 
 .align 3
 saved_bootlocptr:
