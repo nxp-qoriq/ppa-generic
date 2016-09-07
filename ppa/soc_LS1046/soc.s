@@ -329,14 +329,10 @@ _soc_sys_entr_pwrdn:
     orr  x0, x0, #SCR_IRQ_MASK
     msr  SCR_EL3, x0
 
-     // enable dynamic retention control, CPUECTLR[2:0]
+     // enable dynamic retention control (CPUECTLR[2:0]) and SMP (CPUECTLR[6])
     mrs  x0, CPUECTLR_EL1
-    orr  x0, x0, #0x2
-    msr  CPUECTLR_EL1, x0
-
-     // set SMPEN, CPUECTLR[6]
-    mrs  x0, CPUECTLR_EL1
-    orr  x0, x0, #0x20
+    orr  x0, x0, #CPUECTLR_TIMER_8TICKS
+    orr  x0, x0, #CPUECTLR_SMPEN_EN
     msr  CPUECTLR_EL1, x0
 
      // set WFIL2EN in SCFG_CLUSTERPMCR
