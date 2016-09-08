@@ -31,7 +31,7 @@
 #define SOC_SYSTEM_STANDBY    0x0
 #define SOC_SYSTEM_PWR_DWN    0x0 
 #define SOC_SYSTEM_OFF        0x0 
-#define SOC_SYSTEM_RESET      0x0 
+#define SOC_SYSTEM_RESET      0x1 
 
 #define RESET_SUCCESS         0x0
 #define RESET_FAILURE         0x1
@@ -41,9 +41,12 @@
 #define TIMER_BASE_ADDR    0x023E0000
 #define RESET_BASE_ADDR    0x01E60000
 
-#define GICR_RD_BASE_ADDR  0x06100000
-#define GICR_SGI_BASE_ADDR 0x06110000
-#define GICD_BASE_ADDR     0x06000000
+#define GICR_RD_BASE_ADDR   0x06100000
+#define GICR_SGI_BASE_ADDR  0x06110000
+#define GICD_BASE_ADDR      0x06000000
+#define GIC_RD_OFFSET       0x00020000  // offset between redistributors
+#define GIC_SGI_OFFSET      0x00020000  // offset between SGI's
+#define GIC_RD_2_SGI_OFFSET 0x00010000  // offset from rd base to sgi base
 
  // gic register offsets
 #define GICD_CTLR_OFFSET        0x0
@@ -54,6 +57,8 @@
 #define GICR_IPRIORITYR3_OFFSET 0x40C
 #define GICR_ICPENDR0_OFFSET    0x280
 #define GICR_ISENABLER0_OFFSET  0x100
+#define GICR_TYPER_OFFSET       0x8
+#define GICR_WAKER_OFFSET       0x14
 
  // gic bitfields
 #define GICD_CTLR_EN_GRP_MASK  0x7
@@ -99,6 +104,9 @@
 #define  ICC_EOIR0_EL1   S3_0_C12_C8_1
 #define  ICC_SRE_EL3     S3_6_C12_C12_5
 #define  ICC_CTLR_EL3    S3_6_C12_C12_4
+#define  ICC_SRE_EL2     S3_4_C12_C9_5
+#define  ICC_IGRPEN1_EL3 S3_6_C12_C12_7
+#define  ICC_CTLR_EL1    S3_0_C12_C12_4
 
 //-----------------------------------------------------------------------------
 

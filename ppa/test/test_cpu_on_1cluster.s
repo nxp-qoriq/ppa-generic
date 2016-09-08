@@ -1,7 +1,7 @@
 // 
-// ARM v8 AArch64 Bootrom 
+// ARM v8 AArch64 PSCI test code
 //
-// Copyright (c) 2013-2014, Freescale Semiconductor, Inc. All rights reserved.
+// Copyright (c) 2013-2016, Freescale Semiconductor, Inc. All rights reserved.
 //
 
 // This romcode includes:
@@ -57,7 +57,7 @@ _test_psci:
     nop
     ldr  x0, =PSCI_CPU_ON_ID
     ldr  x1, =MPIDR_CORE_1
-    adr  x2, core_1_pass
+    adr  x2, core_1a_entry
     ldr  x3, =CONTEXT_CORE_1
     smc  0x0
     nop
@@ -80,7 +80,8 @@ _test_psci:
     cmp  x0, x1
     b.ne 1b
 
- //------------------------------------
+.if (CPU_MAX_COUNT > 2)
+
      // test PSCI_CPU_ON (core 2)
      // x0 = function id = 0xC4000003
      // x1 = mpidr       = 0x0002
@@ -144,13 +145,20 @@ _test_psci:
     cmp  x0, x1
     b.ne 3b
 
+.endif
+
 core_0_stop:
     b  core_0_stop
 
  //------------------------------------
 
+core_1a_entry:
+    ldr  w9, =CONTEXT_CORE_1
+    bl context_id_chk
 core_1_pass:
-    b   core_1_pass
+    b core_1_pass
+
+.if (CPU_MAX_COUNT > 2)
 
 core_2a_entry:
     ldr  w9, =CONTEXT_CORE_2
@@ -163,6 +171,8 @@ core_3a_entry:
     bl context_id_chk
 core_3_pass:
     b core_3_pass
+
+.endif
 
  //------------------------------------
 

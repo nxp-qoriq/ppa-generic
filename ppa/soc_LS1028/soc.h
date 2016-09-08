@@ -11,9 +11,9 @@
 #define	_SOC_H
 
  // number of cpu's, clusters in this SoC
-#define CPU_MAX_COUNT            0x8
-#define CLUSTER_COUNT            0x2
-#define CPU_PER_CLUSTER          0x4   
+#define CPU_MAX_COUNT            0x2
+#define CLUSTER_COUNT            0x1
+#define CPU_PER_CLUSTER          0x2   
 
  // set this if the device has L3 cache on a CCN-504
 #define L3_VIA_CCN504 0
@@ -41,13 +41,13 @@
 #define TIMER_BASE_ADDR    0x023E0000
 #define RESET_BASE_ADDR    0x01E60000
 #define SCFG_BASE_ADDR     0x01E88000
+#define CCI_400_BASE_ADDR  0x04090000
 #define TZASC_BASE_ADDR    0x01100000
 #define TZPC_BASE_ADDR     0x02200000
-#define CCI_400_BASE_ADDR  0x04090000
 
-#define GICR_RD_BASE_ADDR  0x06100000
-#define GICR_SGI_BASE_ADDR 0x06110000
-#define GICD_BASE_ADDR     0x06000000
+#define GICR_RD_BASE_ADDR   0x06040000
+#define GICR_SGI_BASE_ADDR  0x06050000
+#define GICD_BASE_ADDR      0x06000000
 #define GIC_RD_OFFSET       0x00020000  // offset between redistributors
 #define GIC_SGI_OFFSET      0x00020000  // offset between SGI's
 #define GIC_RD_2_SGI_OFFSET 0x00010000  // offset from rd base to sgi base
