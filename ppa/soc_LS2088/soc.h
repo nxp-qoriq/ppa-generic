@@ -24,8 +24,8 @@
 #define SOC_CORE_RELEASE      0x1
 #define SOC_CORE_RESTART      0x0
 #define SOC_CORE_OFF          0x0
-#define SOC_CORE_STANDBY      0x0
-#define SOC_CORE_PWR_DWN      0x0  
+#define SOC_CORE_STANDBY      0x1
+#define SOC_CORE_PWR_DWN      0x1
 #define SOC_CLUSTER_STANDBY   0x0
 #define SOC_CLUSTER_PWR_DWN   0x0  
 #define SOC_SYSTEM_STANDBY    0x0
@@ -86,6 +86,10 @@
  // dcfg block register offsets
 #define DCFG_SCRATCHRW7_OFFSET  0x218
 #define COREDISABLEDSR_OFFSET   0x990
+
+ // System Counter Offset and Bit Mask
+#define SYS_COUNTER_CNTCR_OFFSET	0x0
+#define SYS_COUNTER_CNTCR_EN		0x00000001
 
  // timer frequency - 25mhz
 #define  COUNTER_FRQ_EL0 0x017D7840
