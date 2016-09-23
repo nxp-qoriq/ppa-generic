@@ -130,7 +130,7 @@ _secondary_core_init:
      // set CNTVOFF to 0
     msr cntvoff_el2, xzr
 
-     // soc-specific init on the secondaries
+     // soc-specific init on secondary core
     bl   _soc_init_percpu
 
      // perform any secondary-core platform security setup here

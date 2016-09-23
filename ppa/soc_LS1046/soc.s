@@ -88,16 +88,15 @@
  // this function performs soc-specific initialization needed on a per-core basis
  // in:  none
  // out: none
- // uses none
+ // uses x0
 _soc_init_percpu:
 
      // bit[22]: set Force in-order load
     mrs  x0, CPUACTLR_EL1
-    mov	 x1, #CPUACTLR_FRC_INORDER_MASK
-    bic	 x0, x0, x1
     orr  x0, x0, #CPUACTLR_FRC_INORDER_EN
     msr	 CPUACTLR_EL1, x0
 
+    isb
     ret
 
 //-----------------------------------------------------------------------------
