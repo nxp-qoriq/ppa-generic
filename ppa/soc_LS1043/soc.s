@@ -85,6 +85,7 @@
 
 .global _soc_init_start
 .global _soc_init_finish
+.global _soc_init_percpu
 .global _set_platform_security
 
 .global _gic_base_addr
@@ -95,6 +96,17 @@
 
  // retry count for releasing cores from reset - should be > 0
 .equ  CORE_RELEASE_CNT,   800 
+
+//-----------------------------------------------------------------------------
+
+ // this function performs any soc-specific initialization that is needed on 
+ // a per-core basis
+ // in:  none
+ // out: none
+ // uses none
+_soc_init_percpu:
+
+    ret
 
 //-----------------------------------------------------------------------------
 

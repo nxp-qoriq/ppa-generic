@@ -64,6 +64,7 @@ _start_monitor_el3:
     bl   _set_EL3_vectors
 
      // start initializing the soc
+    bl   _soc_init_percpu
     bl   _soc_init_start
 
      // perform EL3 init on the core
@@ -128,6 +129,9 @@ _secondary_core_init:
 2:
      // set CNTVOFF to 0
     msr cntvoff_el2, xzr
+
+     // soc-specific init on the secondaries
+    bl   _soc_init_percpu
 
      // perform any secondary-core platform security setup here
      //   configure secure mmu

@@ -73,6 +73,7 @@
 
 .global _soc_init_start
 .global _soc_init_finish
+.global _soc_init_percpu
 .global _set_platform_security
 
 //-----------------------------------------------------------------------------
@@ -81,6 +82,23 @@
 
  // retry count for releasing cores from reset - should be > 0
 .equ  CORE_RELEASE_CNT,   800 
+
+//-----------------------------------------------------------------------------
+
+ // this function performs soc-specific initialization needed on a per-core basis
+ // in:  none
+ // out: none
+ // uses none
+_soc_init_percpu:
+
+     // bit[22]: set Force in-order load
+    mrs  x0, CPUACTLR_EL1
+    mov	 x1, #CPUACTLR_FRC_INORDER_MASK
+    bic	 x0, x0, x1
+    orr  x0, x0, #CPUACTLR_FRC_INORDER_EN
+    msr	 CPUACTLR_EL1, x0
+
+    ret
 
 //-----------------------------------------------------------------------------
 

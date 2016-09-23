@@ -35,6 +35,7 @@
 
 .global _soc_init_start
 .global _soc_init_finish
+.global _soc_init_percpu
 .global _is_mpidr_valid
 .global _set_platform_security
 .global _soc_core_restart
@@ -90,6 +91,17 @@
 
  // retry count for core restart
 .equ  RESTART_RETRY_CNT,  3000
+
+//-----------------------------------------------------------------------------
+
+ // this function performs any soc-specific initialization that is needed on 
+ // a per-core basis
+ // in:  none
+ // out: none
+ // uses none
+_soc_init_percpu:
+
+    ret
 
 //-----------------------------------------------------------------------------
 
