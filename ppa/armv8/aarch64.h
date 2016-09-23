@@ -50,6 +50,9 @@
 .equ  CPUECTLR_TIMER_MASK,    0x7
 .equ  CPUECTLR_TIMER_8TICKS,  0x2
 
+.equ  CPUACTLR_FRC_INORDER_MASK, 0x400000
+.equ  CPUACTLR_FRC_INORDER_EN,   0x400000
+
 .equ  HCR_EL2_RW_AARCH64,       0x80000000
 
 .equ  ID_AA64PFR0_MASK_EL2,   0xF00
@@ -131,6 +134,7 @@
 //-----------------------------------------------------------------------------
 
 #define CPUECTLR_EL1  S3_1_C15_C2_1
+#define CPUACTLR_EL1  S3_1_C15_C2_0
 
 //-----------------------------------------------------------------------------
 
