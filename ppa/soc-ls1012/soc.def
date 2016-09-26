@@ -1,0 +1,28 @@
+#
+# make include file - build AArch64 PPA
+#
+# Copyright (C) 2015, 2016 Freescale Semiconductor, Inc. All rights reserved.
+#
+# -----------------------------------------------------------------------------
+#
+# This file contains the basic architecture definitions that drive the build
+#
+# -----------------------------------------------------------------------------
+
+ # set the basic SoC architecture
+NUMBER_OF_CLUSTERS=1
+NUMBER_OF_CORES=1
+CORES_PER_CLUSTER=1
+
+ # set to 1 if all clusters contain the same number of cores,
+ # else set to 0
+CLUSTER_SYMMETRY=1
+
+ # set to GIC400 or GIC500
+GIC=GIC400
+
+ # set to CCI400 or CCN504
+INTERCONNECT=CCI400
+
+# -----------------------------------------------------------------------------
+

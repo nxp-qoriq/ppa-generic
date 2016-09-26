@@ -277,7 +277,7 @@ power_state_cluster:
      // x0 = cluster number in mpidr format
 
      // see if this is the last active core of the cluster
-    bl   core_on_cnt_clstr
+    bl   _core_on_cnt_clstr
 
      // if this is not the last active core of the cluster, return with error
     cmp  x0, #1
@@ -824,7 +824,7 @@ affinity_info_1:
 
      // x2 = cluster number
 
-    bl    get_cluster_state
+    bl    _get_cluster_state
     b     psci_success
 
 //-----------------------------------------------------------------------------
@@ -1147,60 +1147,6 @@ _initialize_psci:
 
 //-----------------------------------------------------------------------------
 
- // this function returns the state of a cluster
- // in:  x0 = 0-based cluster number
- // out: x0 = AFFINITY_LEVEL_ON (at least one core of the cluster is ON)
- //      x0 = AFFINITY_LEVEL_OFF (all cores of the cluster are [OFF | DISABLED | RESET])
- //      x0 = AFFINITY_LEVEL_PEND (at least one core is ON_PENDING and no cores are ON)
- // uses: x0, x1, x2, x3, x4, x5, x6
-get_cluster_state:
-     // save link register
-    mov   x6, x30
-
-    mov   x3, #CPU_PER_CLUSTER
-    mov   x4, #AFFINITY_LEVEL_OFF
-    orr   x5, xzr, x0, LSL #8
-
-     // x3 = loop count
-     // x4 = cluster state
-     // x5 = mpidr of core
-3:
-    mov   x0, x5
-    bl    _get_core_mask_lsb
-
-     // x0 = core mask lsb
-
-    mov   x1, #CORE_STATE_DATA
-    bl    _getCoreData
-
-     // x0 = core state
-
-    mov   x1, #CORE_RELEASED
-    cmp   x0, x1
-    b.eq  1f
-
-    mov   x1, #CORE_PENDING
-
-    b.ne  4f
-    mov   x4, #AFFINITY_LEVEL_PEND
-4:
-     // increment to next core
-    add   x5, x5, #1
-     // decrement loop counter
-    sub   x3, x3, #1
-     // exit if done
-    cbz   x3, 2f
-    b     3b
-
-1:
-    mov   x4, #AFFINITY_LEVEL_ON
-2:
-    mov   x0, x4
-    mov   x30, x6
-    ret
-
-//-----------------------------------------------------------------------------
-
  // this function selects the base address to a cpu data area
  // in:  x0 = core mask lsb
  // out: x0 = base address to core data area
@@ -1454,88 +1400,6 @@ coreOnCount:
     ret
 
 //-----------------------------------------------------------------------------
-
- // this function determines if a given mpidr value is valid for this SoC
- // in:  x0 = mpidr[15:0]
- // out: x0 == 0, mpidr not valid
- //      x0 != 0, mpidr is valid
- // uses x0, x1, x2
-is_mpidr_valid:
-
-     // compare the 0-based affinity 1 field (cluster #) with the number
-     // of clusters in this SoC
-    and  x1, x0, #MPIDR_AFFINITY1_MASK
-    lsr  x1, x1, #MPIDR_AFFINITY1_OFFSET
-     // compare to the cluster count of this SoC
-    ldr  x2, =CLUSTER_COUNT
-    cmp  x2, x1
-    b.le 2f
-
-     // compare the 0-based affinity 0 field (core number) with the
-     // number of cores per cluster in this SoC
-    and  x1, x0, #MPIDR_AFFINITY0_MASK
-    ldr  x2, =CPU_PER_CLUSTER
-    cmp  x2, x1
-    b.le 2f
-
-1:
-     // the mpidr is valid
-    mov  x0, #1
-    b    3f
-2:
-     // the mpidr is not valid
-    mov  x0, #0
-3:
-    ret
-
- //----------------------------------------------------------------------------
-
- // this function returns the number of active cores in the given cluster
- // in:  x0 = cluster number (mpidr format)
- // out: x0 = count of cores running
- // uses x0, x1, x2, x3, x4, x5, x6
-core_on_cnt_clstr:
-    mov  x6, x30
-
-    and  x4, x0, #MPIDR_CLUSTER_MASK
-    ldr  x3, =CPU_PER_CLUSTER
-    mov  x5, xzr
-
-     // x3 = loop count
-     // x4 = core mpidr
-     // x5 = accumulated count of running cores
-     // x6 = saved link reg
-
-3:
-    mov  x0, x4
-    bl   _get_core_mask_lsb
-
-     // x0 = core mask lsb
-
-    mov  x1, #CORE_STATE_DATA
-    bl   _getCoreData
-
-     // x0 = core state
-
-    cmp  x0, #CORE_OFF_MAX
-    b.le 1f
-    add  x5, x5, #1
-1:
-     // decrement the loop count and exit if finished
-    sub  x3, x3, #1
-    cbz  x3, 2f
-
-     // increment to the next core
-    add  x4, x4, #1
-    b    3b
-
-2:
-     // xfer the count to the output reg
-    mov  x0, x5
-    mov  x30, x6
-    ret
-
- //----------------------------------------------------------------------------
 
  // this function returns the number of active cores in the system
  // in:  none

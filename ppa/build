@@ -1,0 +1,182 @@
+#!/bin/bash          
+echo Multi-Device build
+echo 
+
+# initialize device and target lists --
+device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 all"
+device_all=" all"
+target_list="clean rdb rdb-fit sim"
+option_list="DBG=on DBG=off TEST=smp_boot TEST=hotplug TEST=suspend TEST=off_abort"
+#--------------------------------------
+
+# output some friendly help -----------
+if [ "$1" = "help" ]; then
+    echo "usage: >build target [option] [option] device_list"
+    echo
+    echo "        target (required):"
+    echo "          rdb     - binary image build"
+    echo "          rdb-fit - fit image build"
+    echo "          sim     - simulator build with bootrom code"
+    echo "          clean   - clean the build folders"
+    echo "          help    - print this help text"
+    echo
+    echo "        option(s):"
+    echo "          DBG=on      - build with debug options"
+    echo "          DBG=off     - build w/o debug options (default)"
+    echo "          TEST=<test> - specify test to be included in build,"
+    echo "                        choices are:"
+    echo "                        'smp_boot'"
+    echo "                        'hotplug'"
+    echo "                        'off_abort'"
+    echo "                        'suspend'"
+    echo "          CROSS_COMPILE=<path/prefix>"
+    echo
+    echo "        device_list (required):"
+    echo "          ls1012  - build for the LS1012 device"
+    echo "          ls1028  - build for the LS1028 device"
+    echo "          ls1043  - build for the LS1043 device"
+    echo "          ls1046  - build for the LS1046 device"
+    echo "          ls1088  - build for the LS1088 device"
+    echo "          ls2080  - build for the LS2080 device"
+    echo "          ls2088  - build for the LS2088 device"
+    echo "          all     - build for ALL of the above devices"
+    echo
+    echo "examples:"
+    echo "  >build rdb DBG=on ls1012 ls1088"
+    echo "  >build sim DBG=on TEST=smp_boot ls2080 ls2088"
+    echo "  >build rdb-fit all"
+    echo "  >build clean all"
+    echo 
+    exit 0
+fi
+
+#--------------------------------------
+
+# set the default action
+action=building
+
+# check for a proper target -----------
+target=none
+for temp in $target_list ; do
+    if [ "$1" = "$temp" ]; then
+        target=$temp
+        shift 1
+        break
+    fi
+done
+if [ "$target" = "clean" ]; then
+    action=cleaning
+else
+    if [ "$target" = "none" ]; then
+        echo Error: no target specified
+        exit 1
+    fi
+fi
+
+#--------------------------------------
+
+# check for make options --------------
+#  do this by finding the start of the device list - anything
+#  that precedes the device list is considered a make option,
+#  and will be passed thru to the make command (limit 4 options)
+options_done="false"
+option1=""
+option2=""
+option3=""
+option4=""
+option_cnt=0
+
+until [ "options_done" = "true" ]; do
+for device in $device_list ; do
+    if [ "$1" = "$device" ]; then
+        options_done=true
+        break
+    fi
+done
+
+if [ "$options_done" = "false" ]; then
+    if [ "$option_cnt" = "0" ]; then
+        option1=$1
+        option_cnt=1
+    else
+        if [ "$option_cnt" = "1" ]; then
+            option2=$1
+            option_cnt=2
+        else
+            if [ "$option_cnt" = "2" ]; then
+                option3=$1
+                option_cnt=3
+            else
+                if [ "$option_cnt" = "3" ]; then
+                    option4=$1
+                    option_cnt=4
+                else
+                    # exit the until-loop
+                     break
+                fi
+            fi
+        fi
+    fi
+    shift 1
+else
+    # exit the until-loop
+    break
+fi
+done
+
+#--------------------------------------
+
+# see if device list specified --------
+if [ "$1" = "" ]; then
+    echo Error: no devices specified
+    exit 1
+else
+    rm -f bldlog.txt
+fi
+
+#--------------------------------------
+
+# process the device list -------------
+if [ "$1" = "all" ]; then
+    # remove "all" from the device list
+    device_list=${device_list%$device_all}
+
+    for device in $device_list ; do
+        if [ "$target" = "clean" ]; then
+            echo $action soc-$device
+        else
+            echo $action $target $option1 $option2 $option3 $option4 for soc-$device
+            echo >> bldlog.txt
+            echo $action $target $option1 $option2 $option3 $option4 for soc-$device >> bldlog.txt
+        fi
+        cd soc-$device
+        make $target $option1 $option2 $option3 $option4 >> ../bldlog.txt
+        cd ..
+    done
+else
+    until [ "$1" = "" ]; do
+        for device in $device_list ; do
+            if [ "$1" = "$device" ]; then
+                if [ "$target" = "clean" ]; then
+                    echo $action soc-$device
+                else
+                    echo $action $target $option1 $option2 $option3 $option4 for soc-$device
+                    echo >> bldlog.txt
+                    echo $action $target $option1 $option2 $option3 $option4 for soc-$device >> bldlog.txt
+                fi
+                cd soc-$device
+                make $target $option1 $option2 $option3 $option4 >> ../bldlog.txt
+                cd ..
+                break
+            fi
+        done
+        shift 1
+    done
+fi
+#--------------------------------------
+
+
+    
+
+
+

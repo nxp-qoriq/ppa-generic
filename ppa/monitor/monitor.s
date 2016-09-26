@@ -33,6 +33,11 @@ _start_monitor_el3:
      // save the LR
     mov   x12, x30
 
+#if (!SIMULATOR_BUILD) && (DEBUG_BUILD)
+debug_stop:
+    b  debug_stop
+#endif
+
      // clean/invalidate the dcache
     mov x0, #0
     bl  _cln_inv_all_dcache
