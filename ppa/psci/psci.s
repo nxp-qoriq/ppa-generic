@@ -155,25 +155,38 @@ core_in_standby:
 
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
-    mov  x8, x0
+    mov  x11, x0
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_STANDBY
     bl   _setCoreData
 
-     // w8 = core mask lsb
+     // save cpuectlr
+    mov  x0, x11
+    mov  x1, #CPUECTLR_DATA
+    mrs  x2, CPUECTLR_EL1
+    bl   _setCoreData
+
+     // x11 = core mask lsb
 
      // put the core into standby
-    mov  x0, x8
+    mov  x0, x11
     bl   _soc_core_entr_stdby
 
      // cleanup after the core exits standby
-    mov  x0, x8
+    mov  x0, x11
     bl   _soc_core_exit_stdby
 
-    mov  x0, x8
+    mov  x0, x11
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_RELEASED
     bl   _setCoreData
+
+     // restore cpuectlr
+    mov  x0, x11
+    mov  x1, #CPUECTLR_DATA
+    bl   _getCoreData
+    msr  CPUECTLR_EL1, x0
+
     b    psci_success
 
 core_in_powerdown:
@@ -186,63 +199,62 @@ core_in_powerdown:
 
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
-    mov  x8, x0
+    mov  x11, x0
     mov  x1, #CNTXT_ID_DATA
     mov  x2, x10
     bl   _setCoreData
 
-     // x8 = core mask lsb
      // x9  = entry point address
+     // x11 = core mask lsb
 
      // save entry point address
-    mov  x0, x8
+    mov  x0, x11
     mov  x1, #START_ADDR_DATA
     mov  x2, x9
     bl   _setCoreData
 
-     // x8 = core mask lsb
+     // x11 = core mask lsb
 
-    mov  x0, x8
+    mov  x0, x11
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_PWR_DOWN
     bl   _setCoreData
 
      // save cpuectlr
-    mov  x0, x8
+    mov  x0, x11
     mov  x1, #CPUECTLR_DATA
     mrs  x2, CPUECTLR_EL1
     bl   _setCoreData
 
-     // save the core mask and enter power-down
-    mov  x9, x8
-    mov  x0, x9
+     // enter power-down
+    mov  x0, x11
     bl   _soc_core_entr_pwrdn
 
-     // x9 = core mask lsb
+     // x11 = core mask lsb
 
-    mov  x0, x9
+    mov  x0, x11
     bl   _soc_core_exit_pwrdn
 
-    mov  x0, x9
+    mov  x0, x11
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_RELEASED
     bl   _setCoreData
 
      // restore cpuectlr
-    mov  x0, x9
+    mov  x0, x11
     mov  x1, #CPUECTLR_DATA
     bl   _getCoreData
     msr  CPUECTLR_EL1, x0
 
-     // x9 = core mask lsb
+     // x11 = core mask lsb
 
      // return to entry point address
-    mov  x0, x9
+    mov  x0, x11
     mov  x1, #START_ADDR_DATA
     bl   _getCoreData
     msr  ELR_EL3, x0
 
-    mov  x0, x9
+    mov  x0, x11
     mov  x1, #CNTXT_ID_DATA
     bl   _getCoreData
 
@@ -292,24 +304,37 @@ cluster_in_stdby:
      // put this core in stdby
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
-    mov  x10, x0
+    mov  x11, x0
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_STANDBY
     bl   _setCoreData
 
-     // w10 = core mask lsb
+     // save cpuectlr
+    mov  x0, x11
+    mov  x1, #CPUECTLR_DATA
+    mrs  x2, CPUECTLR_EL1
+    bl   _setCoreData
 
-    mov  x0, x10
+     // x11 = core mask lsb
+
+    mov  x0, x11
     bl   _soc_clstr_entr_stdby
 
      // cleanup after the cluster exits standby
-    mov  x0, x10
+    mov  x0, x11
     bl   _soc_clstr_exit_stdby
 
-    mov  x0, x10
+    mov  x0, x11
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_RELEASED
     bl   _setCoreData
+
+     // restore cpuectlr
+    mov  x0, x11
+    mov  x1, #CPUECTLR_DATA
+    bl   _getCoreData
+    msr  CPUECTLR_EL1, x0
+
     b    psci_success
 
 cluster_in_pwrdn:
@@ -419,24 +444,37 @@ system_in_stdby:
      // put this core in stdby
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
-    mov  x10, x0
+    mov  x11, x0
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_STANDBY
     bl   _setCoreData
 
-     // x10 = core mask lsb
+     // save cpuectlr
+    mov  x0, x11
+    mov  x1, #CPUECTLR_DATA
+    mrs  x2, CPUECTLR_EL1
+    bl   _setCoreData
 
-    mov  x0, x10
+     // x11 = core mask lsb
+
+    mov  x0, x11
     bl   _soc_sys_entr_stdby
 
      // cleanup after the system exits standby
-    mov  x0, x10
+    mov  x0, x11
     bl   _soc_sys_exit_stdby
 
-    mov  x0, x10
+    mov  x0, x11
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_RELEASED
     bl   _setCoreData
+
+     // restore cpuectlr
+    mov  x0, x11
+    mov  x1, #CPUECTLR_DATA
+    bl   _getCoreData
+    msr  CPUECTLR_EL1, x0
+
     b    psci_success
 
 system_in_pwrdn:
