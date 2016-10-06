@@ -38,6 +38,7 @@
 #define WDT3_BASE                 0x02A70000
 #define WDT4_BASE                 0x02A80000
 #define WDT5_BASE                 0x02A90000
+#define TIMER_BASE_ADDR           0x02B00000
 #define TZASC_BASE_ADDR           0x01500000
 #define CSU_BASE_ADDR             0x01510000
 #define CCI_400_BASE_ADDR         0x01180000
