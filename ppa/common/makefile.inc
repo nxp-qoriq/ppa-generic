@@ -27,6 +27,8 @@ LD64		= $(CROSS_COMPILE)ld
 OBJ64		= $(CROSS_COMPILE)objcopy
 MKIMAGE		= mkimage
 
+GIT_VERSION     := $(shell git describe --dirty --always)
+CFLAGS		= -fno-builtin -ggdb -mstrict-align -DVERSION=\"$(GIT_VERSION)\"
 CFLAGS64		= $(CFLAGS) -Wa,-march=armv8-a -Wa,-EL -c
 LDFLAGS64		= --oformat=elf64-littleaarch64
 ASFLAGS64		= -Wa,-march=armv8-a -Wa,-EL -x assembler-with-cpp -c
