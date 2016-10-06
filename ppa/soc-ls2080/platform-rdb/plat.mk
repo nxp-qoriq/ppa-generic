@@ -37,6 +37,10 @@ HDRS_PSCI  =psci.h psci_data.h
 SRC_SOC    =soc.s vector.s
 HDRS_SOC   =soc.h soc.mac
 
+# add soc-specific C source and headers here
+CSRC_SOC   =errata.c
+CHDRS_SOC  =
+
 # add arm-specific source and headers here
 SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
 HDRS_ARMV8 =aarch64.h
@@ -47,7 +51,7 @@ HDRS_MNTR  =smc.h
 
 # add platform-specific source and headers here
 SRC_PLAT   =ddr_init.c
-HDRS_PLAT  =policy.h
+HDRS_PLAT  =policy.h config.h ls2080ardb.h
 
 # add platform-specific asm here
 PLAT_ASM =
@@ -55,5 +59,10 @@ PLAT_ASM =
 # add platform-test-specific asm files here
 TEST_ASM =$(TEST_FILE)
 
+DRIVER_C = utility.c regs.c ddr.c ddrc.c dimm.c opts.c debug.c crc32.c spd.c \
+	   addr.c uart.c i2c.c timer.c
+DRIVER_HDRS = utility.h lsch3.h immap.h ddr.h dimm.h opts.h regs.h debug.h \
+	      errno.h io.h i2c.h lib.h timer.h uart.h
 # -----------------------------------------------------------------------------
 
+MSCRIPT = -Ttext=0x30100000
