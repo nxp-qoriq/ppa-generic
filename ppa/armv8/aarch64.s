@@ -23,17 +23,18 @@
 .global _set_tcr
 .global _is_EL2_supported
 .global _set_spsr_4_exit
-.global _set_endian_4_exit
-.global _insert_endian_el2
-.global _insert_endian_el1
-.global _get_caller_EL
+.global _set_spsr_4_startup
 .global _init_core_EL3
 .global _init_core_EL2
 .global _init_core_EL1
+.global _init_secondary_EL3
+.global _init_secondary_EL2
+.global _init_secondary_EL1
 .global _set_EL3_vectors
 .global _cln_inv_L1_dcache
 .global _cln_inv_all_dcache
 .global _cln_inv_L3_dcache
+.global _getCallerEL
 
 //-----------------------------------------------------------------------------
 
@@ -301,8 +302,60 @@ _set_tcr:
  // in:  none
  // out: x0 = #CORE_EL2, if core going to EL2, else
  //      x0 = #CORE_EL1, if core going to EL1
- // uses x0, x1
+ // uses x0, x1, x2
 _set_spsr_4_exit:
+
+     // determine if we have hw support for EL2
+    ldr  x1, =ID_AA64PFR0_MASK_EL2
+    mrs  x0, id_aa64pfr0_el1
+    and  x0, x0, x1
+
+     // x0 = hw support for EL2 (0 means no support)
+    cbz  x0, 3f
+
+     // prepare for exit to EL2
+    mov  x2, #CORE_EL2
+
+     // aarch32 or aarch64?
+    mov  x0, #POLICY_EL2_WIDTH
+    cbz  x0, 1f
+
+     // EL2 @ aarch64
+    mov  x1, #SPSR_FOR_EL2H
+    b    5f
+
+1:   // EL2 @ aarch32
+    mov  x1, #SPSR32_EL2_LE
+    mov  x0, #POLICY_EL2_EE
+    cbz  x0, 5f
+    mov  x1, #SPSR32_EL2_BE
+    b    5f
+
+3:   // prepare for exit to EL1
+    mov  x2, #CORE_EL1
+
+     // aarch32 or aarch64?
+    mov  x0, #POLICY_EL1_WIDTH
+    cbz  x0, 4f
+
+     // EL1 @ aarch64
+    mov  x1, #SPSR_FOR_EL1H
+    b    5f
+
+4:   // EL1 @ aarch32
+    mov  x1, #SPSR32_EL1_LE
+    mov  x0, #POLICY_EL1_EE
+    cbz  x0, 5f
+    mov  x1, #SPSR32_EL1_BE
+
+5:
+     // set SPSR_EL3
+    msr  spsr_el3, x1
+    mov  x0, x2
+    isb
+    ret
+
+//--------------------------------
 
      // determine if we have hw support for EL2
     ldr  x1, =ID_AA64PFR0_MASK_EL2
@@ -327,6 +380,74 @@ _set_spsr_4_exit:
 
 //-----------------------------------------------------------------------------
 
+ // this function sets the spsr value for a core exiting
+ // from EL3 - if the hw supports EL2, then the core is
+ // delivered to EL2, else it is delivered to EL1
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5
+_set_spsr_4_startup:
+    mov   x5, x30
+
+     // x0 = core mask lsb
+
+     // get saved spsr
+    mov  x1, #SPSR_EL3_DATA
+    bl   _getCoreData
+    mov  x4, x0
+
+     // x4 = saved spsr
+
+    bl    _is_EL2_supported
+    mov   x3, x0
+
+     // x3 = el2 support (0=el1)
+     // x4 = saved spsr
+
+     // determine if aarch32 or aarch64
+    tst   x4, #SPSR_EL3_M4
+    b.eq  3f
+
+     // process aarch32
+    cbnz  x3, 1f
+
+     // supv mode
+    mov   x0, #SPSR32_EL1_LE
+    b     2f
+
+1:   // hyp mode
+    mov   x0, #SPSR32_EL2_LE
+
+2:   // determine BE/LE for Aarch32
+    tst   x4, #SPSR32_E_MASK
+    b.eq  5f
+
+     // BE
+    orr   x0, x0, #SPSR32_E_BE
+    b     5f
+
+3:   // process aarch64
+    cbnz   x3, 4f
+
+     // x3 = el2 support (0=el1)
+     // x4 = saved spsr
+
+     // EL1
+    mov   x0, #SPSR_FOR_EL1H
+    b     5f
+
+4:   // EL2
+    mov   x0, #SPSR_FOR_EL2H
+
+5:  // set SPSR_EL3
+    msr  spsr_el3, x0
+
+    isb
+    mov  x30, x5
+    ret
+
+//-----------------------------------------------------------------------------
+
  // this function determines if there is hw support for EL2
  // in:  none
  // out: x0 == 0, no EL2 support in hw
@@ -342,122 +463,6 @@ _is_EL2_supported:
     ret
 
 //-----------------------------------------------------------------------------
-
- // this function determines the endianness needed for a bootcore exit from el3,
- // and sets it in the appropriate sctlr_el2/sctlr_el1
- // in:  x0 = CORE_EL2, or CORE_EL1
- // out: none
- // uses x0, x1
-_set_endian_4_exit:
-
-    mov  x1, #CORE_EL2
-    cmp  x0, x1
-    b.ne 3f
-
-     // set endianness for el2
-    ldr  x1, =POLICY_EL2_EE
-    cmp  x1, xzr
-    b.ne 1f
-
-     // set el2 EE = LE
-    mrs  x0, sctlr_el2
-    mov  x1, #SCTLR_EE_MASK
-    bic  x0, x0, x1
-    b    2f
-1:
-     // set el2 EE = BE
-    mrs  x0, sctlr_el2
-    mov  x1, #SCTLR_EE_MASK
-    orr  x0, x0, x1
-2:
-     // writeback sctlr_el2
-    msr  sctlr_el2, x0
-    b    6f
-3:
-     // set endianness for el1
-    ldr  x1, =POLICY_EL1_EE
-    cmp  x1, xzr
-    b.ne 4f
-
-     // set el1 EE = LE
-    mrs  x0, sctlr_el1
-    mov  x1, #SCTLR_EE_MASK
-    bic  x0, x0, x1
-    b    5f
-4:
-     // set el1 EE = BE
-    mrs  x0, sctlr_el1
-    mov  x1, #SCTLR_EE_MASK
-    orr  x0, x0, x1
-5:
-     // writeback sctlr_el1
-    msr  sctlr_el1, x0
-6:
-    ret
-
- //----------------------------------------------------------------------------
-
- // this function extracts the endian bit from a saved SCTLR_ELx register,
- // and transfers it to sctlr_el2
- // in:  x0 = sctlr value with endianness to preserve
- // out: none
- // uses x0, x1, x2
-_insert_endian_el2:
-
-    mov  x1, #SCTLR_EE_MASK
-    mrs  x2, sctlr_el2
-
-     // extract endian bit from saved sctlr
-    and  x0, x0, x1
-     // clear endian bit in target sctlr
-    bic  x2, x2, x1
-    
-     // insert endian bit into target sctlr
-    orr  x2, x2, x0
-     // writeback sctlr_el2
-    msr  sctlr_el2, x2
-    ret
-
- //----------------------------------------------------------------------------
-
- // this function extracts the endian bit from a saved SCTLR_ELx register,
- // and transfers it to sctlr_el1
- // in:  x0 = sctlr value with endianness to preserve
- // out: none
- // uses x0, x1, x2
-_insert_endian_el1:
-
-    mov  x1, #SCTLR_EE_MASK
-    mrs  x2, sctlr_el1
-
-     // extract endian bit from saved sctlr
-    and  x0, x0, x1
-     // clear endian bit in target sctlr
-    bic  x2, x2, x1
-    
-     // insert endian bit into target sctlr
-    orr  x2, x2, x0
-     // writeback sctlr_el1
-    msr  sctlr_el1, x2
-    ret
-
- //----------------------------------------------------------------------------
-
- // this function returns the EL-level of the caller
- // in:  none
- // out: x0=0, caller is EL0
- //      x0=1, caller is EL1
- //      x0=2, caller is EL2
- //      x0=3, caller is EL3
- // uses: x0, x1
-_get_caller_EL:
-     // get the caller's EL from SPSR_EL3
-    mrs   x1, spsr_el3
-    mov   x0, xzr
-    bfxil x0, x1, #2, #2
-    ret
-
- //----------------------------------------------------------------------------
 
  // in:   none
  // uses: x0, x1, x2
@@ -484,10 +489,10 @@ _init_core_EL3:
 1:
 
      // initialize CPUECTLR
+    mrs  x1, CPUECTLR_EL1
      // SMP, bit [6] = 1
-    mrs  x1, S3_1_c15_c2_1
-    orr  x1, x1, #0x40
-    msr S3_1_c15_c2_1, x1
+    orr  x1, x1, #CPUECTLR_SMPEN_EN
+    msr CPUECTLR_EL1, x1
 
      // initialize CPTR_EL3
     msr  CPTR_EL3, xzr
@@ -498,35 +503,22 @@ _init_core_EL3:
      // x0 = EL2 support (0=none)
 
      // initialize SCR_EL3
-     // NS,   bit[0]  = 1
-     // IRQ,  bit[1]  = 0
-     // FIQ,  bit[2]  = ?
-     // EA,   bit[3]  = 0
-     // Res1, bit[4]  = 1
-     // Res1, bit[5]  = 1
-     // SMD,  bit[7]  = 0
-     // HCE,  bit[8]  = ?
-     // SIF,  bit[9]  = ?
-     // RW,   bit[10] = ?
-     // ST,   bit[11] = 0
-     // TWI,  bit[12] = 0
-     // TWE,  bit[13] = 0
-    mov  x1, #0x31
+    mov  x1, #SCR_EL3_4_EL1_AARCH32
     cbz  x0, 2f
      // set HCE if el2 supported in hw
-    orr  x1, x1, #0x100
+    orr  x1, x1, #SCR_EL3_HCE_EN
 2:
     ldr  x0, =POLICY_EL2_WIDTH
     cbz  x0, 3f
-    orr  x1, x1, #0x400
+    orr  x1, x1, #SCR_RW_AARCH64
 3:
     ldr  x0, =POLICY_SIF_NS
     cbz  x0, 4f
-    orr  x1, x1, #0x200
+    orr  x1, x1, #SCR_EL3_SIF_DIS
 4:
     ldr  x0, =POLICY_FIQ_EL3
     cbz  x0, 5f
-    orr  x1, x1, #0x4
+    orr  x1, x1, #SCR_EL3_FIQ_EN
 5:
     msr  SCR_EL3, x1
 
@@ -550,7 +542,7 @@ _init_core_EL3:
 
  //----------------------------------------------------------------------------
 
- // this function provides some basic core initialization at the EL2 level
+ // this function provides boot core initialization at the EL2 level
  // in:  none
  // out: none
  // uses x0, x1
@@ -558,31 +550,21 @@ _init_core_EL2:
 
      // initialize hcr_el2
     mov  x1, xzr
-    ldr  x0, =POLICY_EL1_WIDTH
+    mov  x0, #POLICY_EL1_WIDTH
     cbz  x0, 1f
     orr  x1, x1, #HCR_EL2_RW_AARCH64
 1:
     msr  hcr_el2, x1
 
      // initialize sctlr_el2
-    mrs  x0, sctlr_el2
 
-     // clear C, A, M bits
-    bic  x1, x0, #SCTLR_C_A_M_MASK
-     // set SA
-    orr  x1, x1, #SCTLR_SA_MASK
-     // clear WXN bit
-    bic  x1, x1, #SCTLR_WXN_MASK
-     // disable icache
-    bic  x1, x1, #SCTLR_I_MASK
-     // clear EE
-    bic  x1, x1, #SCTLR_EE_MASK
-     // writeback new value if changed
-    cmp  x1, x0
-    b.eq 2f
+    ldr  x1, =SCTLR_EL2_RES1
+    mov  x0, #POLICY_EL2_EE
+    cbz  x0, 2f
+    orr  x1, x1, #SCTLR_EE_BE
+2:
     msr  sctlr_el2, x1
 
-2:
      // initialize cptr_el2
     ldr  x0, =CPTR_EL2_RES1_MASK
     msr  cptr_el2, x0
@@ -598,31 +580,20 @@ _init_core_EL2:
 
  //----------------------------------------------------------------------------
 
- // this function provides some basic core initialization at the EL1 level
+ // this function provides boot core initialization at the EL1 level
  // in:  none
  // out: none
  // uses x0, x1
 _init_core_EL1:
 
      // initialize sctlr_el1
-    mrs  x0, sctlr_el1
-
-     // clear C, A, M bits
-    bic  x1, x0, #SCTLR_C_A_M_MASK
-     // set SA
-    orr  x1, x1, #SCTLR_SA_MASK
-     // clear WXN bit
-    bic  x1, x1, #SCTLR_WXN_MASK
-     // disable icache
-    bic  x1, x1, #SCTLR_I_MASK
-     // clear EE
-    bic  x1, x1, #SCTLR_EE_MASK
-     // writeback new value if changed
-    cmp  x1, x0
-    b.eq 2f
+    ldr   x1, =SCTLR_EL1_RES1
+    mov   x0, #POLICY_EL1_EE
+    cbz   x0, 2f
+    orr   x1, x1, #SCTLR_EE_BE
+2:
     msr  sctlr_el1, x1
 
-2:
      // synchronize the system register writes
     isb
 
@@ -630,6 +601,158 @@ _init_core_EL1:
     tlbi alle3
     dsb  sy
     isb    
+    ret
+
+ //----------------------------------------------------------------------------
+
+ // this function initializes the EL3 registers on a secondary core out of
+ // reset, or any core out of sleep/suspend
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3
+_init_secondary_EL3:
+    mov  x3, x30
+
+     // x0 = core mask lsb
+
+     // initialize SCTLR_EL3
+    ldr   x1, =SCTLR_EL3_RES1
+     // make sure icache is enabled
+    orr  x1, x1, #SCTLR_I_MASK
+     // make sure SA is enabled
+    orr  x1, x1, #SCTLR_SA_MASK
+    msr  SCTLR_EL3, x1
+
+     // initialize CPUECTLR
+    mrs  x1, CPUECTLR_EL1
+     // SMP, bit [6] = 1
+    orr  x1, x1, #CPUECTLR_SMPEN_EN
+    msr CPUECTLR_EL1, x1
+
+     // initialize CPTR_EL3
+    msr  CPTR_EL3, xzr
+
+     // x0 = core mask lsb
+
+     // get saved scr_el3
+    mov  x1, #SCR_EL3_DATA
+    bl   _getCoreData
+
+     // x0 = saved scr_el3
+
+     // initialize SCR_EL3
+    msr  SCR_EL3, x0
+
+     // initialize the value of ESR_EL3 to 0x0
+    msr ESR_EL3, xzr
+
+     // set the counter frequency
+    ldr  x0, =COUNTER_FRQ_EL0
+    msr  cntfrq_el0, x0
+
+     // synchronize the system register writes
+    isb
+
+     // some of these bits are potentially cached in the tlb
+    tlbi alle3
+    dsb  sy
+    isb
+ 
+    mov  x30, x3
+    ret
+
+ //----------------------------------------------------------------------------
+
+ // this function provides some basic core initialization on a secondary
+ // core, at the EL2 level
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5
+_init_secondary_EL2:
+    mov  x5, x30
+
+    mov  x4, x0
+
+     // x4 = core mask lsb
+
+     // load hcr_el2 from saved hcr_el2
+    mov  x0, x4
+    mov  x1, #HCR_EL2_DATA
+    bl   _getCoreData
+
+     // x0 = saved hcr_el2
+    msr  hcr_el2, x0
+
+     // get saved sctlr_el2
+    mov  x0, x4
+    mov  x1, #SCTLR_DATA
+    bl   _getCoreData
+
+     // x0 = saved sctlr_el2
+
+     // extract the endianness bit
+    and  x0, x0, #SCTLR_EE_MASK
+
+     // insert the RES1 bits
+    ldr  x1, =SCTLR_EL2_RES1
+    orr  x0, x0, x1
+
+     // initialize sctlr_el2
+    msr  sctlr_el2, x0
+
+     // initialize cptr_el2
+    ldr  x0, =CPTR_EL2_RES1_MASK
+    msr  cptr_el2, x0
+
+     // synchronize the system register writes
+    isb
+
+     // some of these bits are potentially cached in the tlb
+    tlbi alle3
+    dsb  sy
+    isb 
+
+    mov  x30, x5   
+    ret
+
+ //----------------------------------------------------------------------------
+
+ // this function provides some basic core initialization on a secondary
+ // core, at the EL1 level
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3
+
+_init_secondary_EL1:
+    mov  x3, x30
+
+     // x0 = core mask lsb
+
+     // get saved sctlr_el1
+    mov  x1, #SCTLR_DATA
+    bl   _getCoreData
+
+     // x0 = saved sctlr_el1
+
+     // extract the endianness bit
+    and  x0, x0, #SCTLR_EE_MASK
+
+     // insert the RES1 bits
+    ldr  x1, =SCTLR_EL1_RES1
+    orr  x0, x0, x1
+
+     // initialize sctlr_el1
+    msr  sctlr_el1, x0
+
+     // synchronize the system register writes
+    isb
+
+     // some of these bits are potentially cached in the tlb
+    tlbi alle3
+    dsb  sy
+    isb 
+
+    mov  x30, x3   
     ret
 
  //----------------------------------------------------------------------------
@@ -644,6 +767,56 @@ _set_EL3_vectors:
     ret
 
  //----------------------------------------------------------------------------
+
+ // this function returns the execution level of the caller by
+ // reading & decoding spsr_el3
+ // in:  x0 = spsr_el3 of caller
+ // out: x0 = SPSR_EL1, if caller is EL1
+ //      x0 = SPSR_EL2, if caller is EL2
+ //      x0 = 0, if caller not EL1 or EL2
+ // uses x0, x1
+_getCallerEL:
+     // x0 = spsr_el3    
+
+     // test spsr_el3 [4] to determine if caller is Aarch64 or Aarch32
+    tst   x0, #SPSR_EL3_M4
+    b.eq  1f
+
+     // if we are here then the caller is aarch32
+
+     // see if caller is hypervisor
+    and   x1, x0, #SPSR32_MODE_MASK
+    cmp   x1, SPSR32_MODE_HYP
+    b.eq  2f
+    cmp   x1, SPSR32_MODE_SUPV
+    b.eq  3f
+
+     // must be called from hyp or supv mode
+    mov   x0, #0
+    b     4f
+
+1:   // caller_is_aarch64
+    and   x1, x0, #SPSR_EL_MASK
+    cmp   x1, #SPSR_EL2
+    b.eq  2f
+
+    cmp   x1, #SPSR_EL1
+    b.eq  3f
+
+     // must be called from hyp or supv mode
+    mov   x0, #0
+    b     4f
+
+2:   // hypervisor mode handled here
+    mov   x0, #SPSR_EL2
+    b     4f
+
+3:   // supervisor mode handled here
+    mov   x0, #SPSR_EL1
+
+4:
+    ret
+
  //----------------------------------------------------------------------------
  //----------------------------------------------------------------------------
  //----------------------------------------------------------------------------

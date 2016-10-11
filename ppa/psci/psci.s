@@ -36,22 +36,25 @@ _smc64_std_svc:
      // psci smc64 interface lives here
 
      // is this CPU_SUSPEND
-    mov  w10, #0x0001
+    ldr  x10, =PSCI64_CPU_SUSPEND_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc64_psci_cpu_suspend
 
      // is this CPU_ON
-    mov  w10, #0x0003
+    ldr  x10, =PSCI64_CPU_ON_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc64_psci_cpu_on
 
      // is this AFFINITY_INFO
-    mov  w10, #0x0004
+    ldr  x10, =PSCI32_AFFINITY_INFO_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc64_psci_affinity_info
 
      // if we are here then we have an unimplemented/unrecognized function
-    b smc_func_unimplemented
+    b _smc_unimplemented
 
 //-----------------------------------------------------------------------------
 
@@ -61,42 +64,55 @@ _smc32_std_svc:
      // psci smc32 interface lives here
 
      // is this PSCI_VERSION
-    mov  w10, #0x0000
+    ldr  x10, =PSCI_VERSION_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc32_psci_version
 
      // is this CPU_SUSPEND
-    mov  w10, #0x0001
+    ldr  x10, =PSCI32_CPU_SUSPEND_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc64_psci_cpu_suspend
 
      // is this CPU_OFF
-    mov  w10, #0x0002
+    ldr  x10, =PSCI_CPU_OFF_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc32_psci_cpu_off
 
      // is this CPU_ON
-    mov  w10, #0x0003
+    ldr  x10, =PSCI32_CPU_ON_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc64_psci_cpu_on
 
      // is this SYSTEM_OFF
-    mov  w10, #0x0008
+    ldr  x10, =PSCI_SYSTEM_OFF
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc32_psci_system_off
 
      // is this SYSTEM_RESET
-    mov  w10, #0x0009
+    ldr  x10, =PSCI_SYSTEM_RESET_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc32_psci_system_reset
 
      // is this PSCI_FEATURES
-    mov  w10, #0x000A
+    ldr  x10, =PSCI_FEATURES_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc32_psci_features
 
+     // is this AFFINITY_INFO
+    ldr  x10, =PSCI32_AFFINITY_INFO_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
+    cmp  w10, w11
+    b.eq smc64_psci_affinity_info
+
      // if we are here then we have an unimplemented/unrecognized function
-    b smc_func_unimplemented
+    b _smc_unimplemented
 
 //-----------------------------------------------------------------------------
 
@@ -573,15 +589,11 @@ smc64_psci_cpu_on:
     mov  x8, x3
 
      // get EL level of caller
-    bl   _get_caller_EL
-    cmp   x0, #CORE_EL1
-    b.eq  1f
-    cmp   x0, #CORE_EL2
-    b.eq  1f
-    b     psci_denied 
-1:
-     // get spsr_el3 in x4
-    mrs   x4, spsr_el3
+     // error return if not EL1 or EL2
+    mrs   x0, spsr_el3
+    mov   x4, x0
+    bl   _getCallerEL
+    cbz  x0, psci_denied
 
      // x4   = spsr_el3 of caller
      // x6   = target cpu (mpidr)
@@ -638,16 +650,16 @@ smc64_psci_cpu_on:
     mov  x2, x4
     bl   _setCoreData
 
-     // x4   = spsr_el3 of caller
+     // save scr_el3 in data area
+    mov  x0, x6
+    mov  x1, #SCR_EL3_DATA
+    mrs   x2, scr_el3
+    bl   _setCoreData
+
      // x6   = core mask (lsb)
      // x7   = start address
      // x8   = context id
      // x9   = core state (from data area)
-
-     // save +
-    mov   x0, x6
-    and   x1, x4, #SPSR_EL_MASK
-    bl    save_core_sctlr
 
      // set start addr in data area
     mov  x0, x6
@@ -664,6 +676,35 @@ smc64_psci_cpu_on:
      // x6   = core mask (lsb)
      // x9   = core state (from data area)
 
+    bl   _is_EL2_supported
+    cbz  x0, 6f
+
+     // core will be released to EL2
+
+     // save sctlr_el2
+    mov   x0, x6
+    mov   x1, #SCTLR_DATA
+    mrs   x2, sctlr_el2
+    bl   _setCoreData
+
+     // save hcr_el2    
+    mov   x0, x6
+    mov   x1, #HCR_EL2_DATA
+    mrs   x2, hcr_el2
+    bl   _setCoreData
+    b    8f
+
+6:   // core will be released to EL1
+
+     // save sctlr_el1
+    mov   x0, x6
+    mov   x1, #SCTLR_DATA
+    mrs   x2, sctlr_el1
+    bl   _setCoreData
+
+     // x6   = core mask (lsb)
+     // x9   = core state (from data area)
+8:
      // load the soc with the address for the secondary core to jump to
      // when it completes execution in the bootrom
     adr  x0, _secondary_core_init
@@ -847,17 +888,10 @@ smc32_psci_cpu_off:
     cbz  x7, psci_unimplemented
 
      // get EL level of core
-     //  - err return if 0 or 3
-    bl    _get_caller_EL
-     // see if core is EL0
-    mov   x1, #CORE_EL0
-    cmp   x0, x1
-    b.eq  psci_denied
-
-     // see if core is EL3
-    mov   x1, #CORE_EL3
-    cmp   x0, x1
-    b.eq  psci_denied
+     //  - err return if not EL1 or EL2
+    mrs   x0, spsr_el3
+    bl    _getCallerEL
+    cbz   x0, psci_denied
 
      // check if this is the last core on
      // cpu_off cannot be used to power-down the final core
@@ -1067,6 +1101,18 @@ psci_success:
     mov  x0, #PSCI_SUCCESS
 
 psci_completed:
+     // x0 = status code
+    mov  x5, x0
+
+     // called from aarch32 or aarch64?
+    bl   _get_aarch_flag
+    cbnz  x0, 1f
+
+     // called from aarch64
+
+     // restore the return code
+    mov  x0, x5
+
      // restore the LR
     mov  x30, x12
      // zero-out the scratch registers
@@ -1082,6 +1128,21 @@ psci_completed:
     mov  x10, #0
     mov  x11, #0
     mov  x12, #0
+
+    b    2f
+
+1:   // called from aarch32
+    mov  x0, x5
+
+     // restore the aarch32 non-volatile registers
+    bl   _restore_aarch32_nvolatile    
+
+     // zero-out the scratch registers
+    mov  x1,  #0
+    mov  x2,  #0
+    mov  x3,  #0
+
+2:
      // return from exception
     eret
 
@@ -1121,8 +1182,8 @@ _initialize_psci:
     str   xzr, [x5, #AUX_03_DATA]
     str   xzr, [x5, #AUX_04_DATA]
     str   xzr, [x5, #AUX_05_DATA]
-    str   xzr, [x5, #AUX_06_DATA]
-    str   xzr, [x5, #AUX_07_DATA]
+    str   xzr, [x5, #SCR_EL3_DATA]
+    str   xzr, [x5, #HCR_EL2_DATA]
 
      // loop control
     sub  x4, x4, #1

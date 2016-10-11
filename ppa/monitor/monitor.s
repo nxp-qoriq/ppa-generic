@@ -55,15 +55,8 @@ debug_stop:
     dsb   sy
     isb
 
-     // configure the c-runtime
-    bl set_runtime_env
-
      // initialize the psci data structures
     bl   _initialize_psci
-
-// save the link register to a data area here
-
-    bl  _ppa_main
 
      // setup the EL3 vectors
     bl   _set_EL3_vectors
@@ -97,6 +90,11 @@ debug_stop:
     bl   _gic_init_common
     bl   _gic_init_percpu
 
+     // configure the c-runtime
+    bl set_runtime_env
+
+    bl  _ppa_main
+
      // setup i2c and initialize ddr
     bl   _init_i2c 
     bl   _init_ddr
@@ -111,14 +109,18 @@ _secondary_core_init:
      // save the LR
     mov   x12, x30
 
-     // configure c-runtime support for this core
-    bl set_runtime_env
-
      // setup the EL3 vectors
     bl  _set_EL3_vectors
 
+     // get this cores bit mask
+    bl   _get_current_mask
+    mov  x6, x0
+
+     // x0 = core mask lsb
+     // x6 = core mask lsb
+
      // perform EL3 init on secondary core
-    bl  _init_core_EL3
+    bl   _init_secondary_EL3
 
      // determine if hw supports el2
     bl   _is_EL2_supported
@@ -126,14 +128,16 @@ _secondary_core_init:
      // x0 = EL2 support (0=none)
     cbz  x0, 1f
      // perform EL2 init on secondary core
-    bl  _init_core_EL2
-    b   2f
+    mov  x0, x6
+    bl   _init_secondary_EL2
+    b    2f
 1:
      // perform EL1 init on secondary core
-    bl  _init_core_EL1
+    mov  x0, x6
+    bl   _init_secondary_EL1
 2:
      // set CNTVOFF to 0
-    msr cntvoff_el2, xzr
+    msr  cntvoff_el2, xzr
 
      // soc-specific init on secondary core
     bl   _soc_init_percpu
@@ -143,8 +147,11 @@ _secondary_core_init:
      //   configure gic
     bl   _gic_init_percpu
 
+     // configure c-runtime support for this core
+    bl set_runtime_env
+
      // exit the EL3 area
-    b    _secondary_core_exit
+    b    _secondary_exit
 
 //-----------------------------------------------------------------------------
 
@@ -173,11 +180,6 @@ monitor_exit_EL3:
 
      // set the spsr value for exit
     bl   _set_spsr_4_exit
-
-     // x0 = CORE_EL2 or CORE_EL1
-
-     // set endianness for next level
-    bl   _set_endian_4_exit
 
      // flush dcache
     mov x0, #1
@@ -228,65 +230,46 @@ monitor_exit_EL3:
 
 //-----------------------------------------------------------------------------
 
- // this function exits the secondary core from EL3
-_secondary_core_exit:
+ // this is the exit from the monitor for secondary cores coming out of reset
+_secondary_exit:
 
      // get this cores bit mask
     bl   _get_current_mask
-    mov  x4, x0
+    mov  x6, x0
 
-     // x0 = core_mask_lsb
-     // x4 = core_mask_lsb
+     // x0 = core mask (lsb)
+     // x6 = core mask (lsb)
 
-     // get the start addr and load in ELR_EL3
-    mov   x1, #START_ADDR_DATA
-    bl    _getCoreData
+     // get the start addr
+    mov  x1, #START_ADDR_DATA
+    bl   _getCoreData
 
      // x0 = start address
+     // x6 = core mask (lsb)
 
      // load start addr in ELR_EL3
     msr  elr_el3, x0
 
-     // x4 = core_mask_lsb
-
      // set the core state to released
-    mov  x0, x4
+    mov  x0, x6
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_RELEASED
     bl   _setCoreData
 
-     // x4 = core_mask_lsb
+     // x6 = core mask (lsb)
 
-     // set the spsr value for exit
-    bl   _set_spsr_4_exit
-    mov  x6, x0
+     // setup the spsr
+    mov  x0, x6
+    bl   _set_spsr_4_startup
 
-     // set the target endianness
-
-     // get the saved sctlr 
-    mov  x0, x4
-    mov  x1, #SCTLR_DATA
-    bl   _getCoreData
-
-     // x0 = saved sctlr
-     // x4 = core mask lsb
-     // x6 = target EL-level
-
-    cmp  x6, #CORE_EL2
-    b.ne 1f
-     // insert saved endianness to sctlr_el2
-    bl   _insert_endian_el2
-    b    2f
-1:
-     // insert saved endianness to sctlr_el1
-    bl   _insert_endian_el1
-2:
-     // x4 = core_mask_lsb
+     // x6 = core mask lsb
 
      // get the context id into x0
-    mov  x0, x4
+    mov  x0, x6
     mov  x1, #CNTXT_ID_DATA
     bl   _getCoreData
+
+     // x0 = context id
 
      // invalidate the icache
     ic  iallu
@@ -297,6 +280,8 @@ _secondary_core_exit:
     dsb   sy
     isb
 
+     // x0 = context id
+
      // exit EL3
     mov  x1,  #0
     mov  x2,  #0
@@ -305,67 +290,90 @@ _secondary_core_exit:
     mov  x5,  #0
     mov  x6,  #0
 
-     // restore the LR
-    mov  x30, x12
-
-     // clear the exclusive monitor
+     // clear the exclusive monitor and return from exception
     clrex
     isb
     eret
 
 //-----------------------------------------------------------------------------
 
- // this function finishes the init on a restarted core, and
- // exits it from the monitor
+ // this is the exit from the monitor for cores coming out of sleep/suspend
 _mon_core_restart:
 
      // get this cores bit mask
     bl   _get_current_mask
-    mov  x4, x0
+    mov  x6, x0
 
      // x0 = core mask (lsb)
-     // x4 = core mask (lsb)
+     // x6 = core mask (lsb)
 
+     // perform EL3 init on secondary core
+    bl   _init_secondary_EL3
+
+     // determine if hw supports el2
+    bl   _is_EL2_supported
+
+     // x0 = EL2 support (0=none)
+    cbz  x0, 1f
+     // perform EL2 init on core
+    mov  x0, x6
+    bl   _init_secondary_EL2
+    b    2f
+1:
+     // perform EL1 init on core
+    mov  x0, x6
+    bl   _init_secondary_EL1
+2:
      // get the start addr
     mov  x1, #START_ADDR_DATA
     bl   _getCoreData
 
      // x0 = start address
+     // x6 = core mask (lsb)
 
      // load start addr in ELR_EL3
     msr  elr_el3, x0
 
-     // x4 = core mask (lsb)
-
      // set the core state to released
-    mov  x0, x4
+    mov  x0, x6
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_RELEASED
     bl   _setCoreData
 
-     // set the spsr value for exit
-    bl   _set_spsr_4_exit
-    mov  x6, x0
+     // x6 = core mask (lsb)
 
-     // x4 = core mask (lsb)
+     // setup the spsr
+    mov  x0, x6
+    bl   _set_spsr_4_startup
 
-     // restore the link register
-    mov  x0, x4
+     // x6 = core mask lsb
+
+     // get the saved link reg
+    mov  x0, x6
     mov  x1, #LINK_REG_DATA
     bl   _getCoreData
     mov  x12, x0
 
-     // x4  = core mask (lsb)
+     // x6  = core mask (lsb)
      // x12 = saved link reg
 
      // get the context id into x0
-    mov  x0, x4
+    mov  x0, x6
     mov  x1, #CNTXT_ID_DATA
     bl   _getCoreData
 
-     // invalidate icache
-    ic iallu
+     // x0 = context id
+
+     // invalidate the icache
+    ic  iallu
     isb
+
+     // invalidate tlb
+    tlbi  alle3
+    dsb   sy
+    isb
+
+     // x0 = context id
 
      // exit EL3
     mov  x1,  #0
@@ -378,6 +386,7 @@ _mon_core_restart:
      // restore the LR
     mov  x30, x12
 
+     // clear the exclusive monitor and return from exception
     clrex
     isb
     eret
@@ -387,7 +396,7 @@ _mon_core_restart:
  // this function sets up c runtime env
 set_runtime_env:
 
-     // BSS Section need not be zeroized - linker Will padd with zero
+     // BSS Section need not be zeroized - linker will pad with zero
 
      // set Core Stack - SPSel - EL3
     mov x0, #1

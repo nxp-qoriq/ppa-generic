@@ -19,8 +19,8 @@
 //-----------------------------------------------------------------------------
 
 .global smc64_handler
-.global _EL2_width
-.global _EL2_endian
+.global _initialize_smc
+.global _getEL2Width
 
 //-----------------------------------------------------------------------------
 
@@ -32,6 +32,9 @@
 .equ  SMC64_STD_SVC,    0xC4
 .equ  SMC64_TRSTD_APP,  0xF0
 .equ  SMC64_TRSTD_APP2, 0xF1
+
+.equ  SIP64_FUNCTION_COUNT,  0x3
+.equ  ARCH64_FUNCTION_COUNT, 0x2
 
 //-----------------------------------------------------------------------------
 
@@ -67,7 +70,7 @@ smc64_handler:
 
      // is it SMC64: ARM Architecture Call?
     cmp  x9, #SMC64_ARM_ARCH
-    b.eq smc64_no_services
+    b.eq smc64_arch_svc
      // is it SMC64: CPU Service Call?
     cmp  x9, #SMC64_CPU_SVC
     b.eq smc64_no_services
@@ -82,17 +85,35 @@ smc64_handler:
     b.eq _smc64_std_svc
      // is it SMC64: Trusted App Call?
     cmp  x9, #SMC64_TRSTD_APP
-    b.eq smc_func_unimplemented
+    b.eq _smc_unimplemented
      // is it SMC64: Trusted App Call?
     cmp  x9, #SMC64_TRSTD_APP2
-    b.eq smc_func_unimplemented
+    b.eq _smc_unimplemented
      // is it SMC64: Trusted OS Call? (multiple ranges)
     lsr  x10, x9, #4
     cmp  x10, #0xF
     b.eq smc64_no_services
 
      // if we are here then we have an unimplemented/unrecognized function
-    b smc_func_unimplemented
+    b _smc_unimplemented
+
+     //------------------------------------------
+
+     // Note: x11 contains the function number
+
+smc64_arch_svc:
+         // ARCH64 service call COUNT function is 0xFF00
+    ldr  x10, =ARCH_COUNT_ID
+    and  w10, w10, #SMC_FUNCTION_MASK
+    cmp  w10, w11
+    b.eq smc64_arch_count
+
+    ldr  x10, =ARCH_EL2_2_AARCH32_ID
+    and  w10, w10, #SMC_FUNCTION_MASK
+    cmp  w10, w11
+    b.eq smc64_arch_el2_2_aarch32
+
+    b    _smc_unimplemented 
 
      //------------------------------------------
 
@@ -100,78 +121,103 @@ smc64_handler:
 
 smc64_sip_svc:
      // SIP64 service call COUNT function is 0xFF00
-    mov  w10, #SIP_COUNT_ID
+    ldr  x10, =SIP_COUNT_ID
+    and  w10, w10, #SMC_FUNCTION_MASK
     cmp  w10, w11
     b.eq smc64_sip_count
 
-    mov  w10, #SIP_EL2_2_AARCH32_ID
-    cmp  w10, w11
-    b.eq smc64_sip_el2_2_aarch32
-
-    b    smc_func_unimplemented 
+    b    _smc_unimplemented 
 
      //------------------------------------------
 
  // this function returns the number of smc64 SIP functions implemented
  // the count includes *this* function
 smc64_sip_count:
-    adr  x4, SIP64_FUNCTION_COUNT
-    ldr  x0, [x4]
+    mov  x0, #SIP64_FUNCTION_COUNT
     mov  x4,  #0
-    b    smc64_func_completed
+    mov  x3,  #0
+    mov  x2,  #0
+    mov  x1,  #0
+    b    _smc_success
+
+     //------------------------------------------
+
+ // this function returns the number of smc64 SIP functions implemented
+ // the count includes *this* function
+smc64_arch_count:
+    mov  x0, #ARCH64_FUNCTION_COUNT
+    mov  x4,  #0
+    mov  x3,  #0
+    mov  x2,  #0
+    mov  x1,  #0
+    b    _smc_success
 
      //------------------------------------------
 
  // this function allows changing the execution width of EL2 to Aarch32
- // in:  x0 = start address for EL2 @ aarch32 execution
- //      x1 = 0, EL2 is LE
- //      x1 = 1, EL2 is BE
- // out: none
- // uses x0, x1, x2
-smc64_sip_el2_2_aarch32:
-    
-     // set ELR_EL3 = x0
-    msr  elr_el3, x0
+ // Note: MUST be called from EL2 Aarch64
+ // in:  x1 = start address for EL2 @ Aarch32
+ //      x2 = first parameter to pass to EL2 @ Aarch32
+ //      x3 = second parameter to pass to EL2 @ Aarch32
+ //      x4 = 0, EL2 @ Aarch32 in LE (little-endian)
+ //      x4 = 1, EL2 @ Aarch32 in BE (big-endian)
+ // uses x0, x1, x2, x3, x4. x5, x12
+smc64_arch_el2_2_aarch32:
+    mov   x12, x30
 
-     // set SCR_EL3.RW = Aarch32
-    mrs  x2, scr_el3
-    bic  x2, x2, #SCR_RW_MASK
-    msr  scr_el3, x2
+     // x1 = start address
+     // x2 = parm 1
+     // x3 = parm2
+     // x4 = endianness
 
-     // set SPSR_EL3
-    ldr  x0, =SPSR32_DEFAULT
-    cbz  x1, 1f
-    orr  x0, x0, #SPSR32_E_MASK
+     // check that we were called from EL2 @ Aarch64 - return "invalid" if not
+    mrs  x0, spsr_el3
+     // see if we were called from Aarch32
+    tbnz  x0, #SPSR_EL3_M4, _smc_invalid
+     // see if we were called from EL2
+    and   x0, x0, SPSR_EL_MASK
+    cmp   x0, SPSR_EL2
+    b.ne  _smc_invalid_el
+
+     // set ELR_EL3
+    msr  elr_el3, x1
+
+     // set scr_el3
+    mov  x0, #SCR_EL3_4_EL2_AARCH32
+    msr  scr_el3, x0
+
+     // set sctlr_el2
+    ldr   x1, =SCTLR_EL2_RES1
+    cbz   x4, 1f
+    orr   x1, x1, #SCTLR_EE_BE
 1:
-    msr  scr_el3, x3
+    msr  sctlr_el2, x1
 
-     // set sctlr_el2.ee
-    mrs  x2, sctlr_el2
-    bic  x2, x2, #SCTLR_EE_MASK
-    cbz  x1, 2f
-    orr  x2, x2, #SCTLR_EE_MASK
+     // set spsr_el3
+    ldr  x0, =SPSR32_EL2_LE
+    cbz   x4, 2f
+    orr   x0, x0, #SPSR32_E_BE
 2:
-    msr  sctlr_el2, x2
+    msr  spsr_el3, x0
 
-     // set EL2 width data (mem area)
-    adr  x0, _EL2_width
-    mov  x2, #1
-    str  x2, [x0]
+     // x2 = parm 1
+     // x3 = parm2
 
-     // set EL2 endian data (mem area)
-    adr  x0, _EL2_endian
-    mov  x2, x1
-    cbz  x1, 3f
-    mov  x2, #1
-3:
-    str  x2, [x0]
+     // set the parameters to be passed-thru to EL2 @ Aarch32
+    mov  x1, x2
+    mov  x2, x3
+
+     // x1 = parm 1
+     // x2 = parm2
 
      // invalidate the icache
     ic iallu
     dsb sy
     isb
 
-    b    smc64_func_completed
+     // finish
+    mov  x30, x12
+    b    _smc_success
 
      //------------------------------------------
 
@@ -180,55 +226,23 @@ smc64_no_services:
      // w10 contains the call count function id
     mov   w10, #0xFF00
     cmp   w10, w11
-    b.ne  smc_func_unimplemented
+    b.ne  _smc_unimplemented
      // call count is zero
     mov   w0, #0
-     // b     smc64_func_completed
-     // Note: fall-thru condition, if you insert code after this line,
-     //       then uncomment the branch above
+    b     _smc_completed
 
-smc64_func_completed:
-     // zero-out the scratch registers
-    mov  x1,  #0
-    mov  x2,  #0
-    mov  x3,  #0
-    mov  x4,  #0
-    mov  x5,  #0
-    mov  x6,  #0
-    mov  x7,  #0
-    mov  x8,  #0
-    mov  x9,  #0
-    mov  x10, #0
-    mov  x11, #0
-     // return from exception
-    eret
+//-----------------------------------------------------------------------------
+
+ // this function initializes any smc data
+ // in:  none
+ // out: none
+ // uses 
+_initialize_smc:
+
+    ret
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-
- // return values
-SIP64_SUCCESS:
-    .long 0x0           // 0
-
- // for error codes used in both smc32 & smc64 sip calls, see secmon32.s
-
- // error codes used in smc64 calls
-SIP64_INVALID_EL:
-    .long 0xFFFFFFFE    // -2
-
-SIP64_FUNCTION_COUNT:
-     // include A64 psci functions also
-    .long 0x3
-
-//-----------------------------------------------------------------------------
-
-.align 3
-_EL2_width:
-    .8byte  0x0  // 0 = EL2 @ Aarch64, 1 = EL2 @ Aarch32
- // Note: this field is valid only if EL2 = Aarch32
-_EL2_endian:
-    .8byte  0x0  // 0 = LE EL2, 1 = BE EL2
-
 //-----------------------------------------------------------------------------
 

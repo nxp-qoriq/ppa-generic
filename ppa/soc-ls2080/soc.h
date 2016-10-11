@@ -30,7 +30,7 @@
 
  // base addresses
 #define DCFG_BASE_ADDR     0x01E00000
-#define TIMER_BASE_ADDR    0x023E0000
+#define TIMER_BASE_ADDR    0x023D0000
 #define RESET_BASE_ADDR    0x01E60000
 
 #define GICR_RD_BASE_ADDR   0x06100000

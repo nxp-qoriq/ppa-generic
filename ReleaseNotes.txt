@@ -20,6 +20,27 @@ Devices Supported:
     LS2080A/2085A
     LS2088A
 
+Date: 10/11/2016 --------------------------------------------------------------
+
+1) New function for Aarch32 support
+   Shift from EL2 @ Aarch64 to EL2 @ Aarch32 via smc64 function.
+     input parameters:
+       x0 = 0xC000_FF04 (smc function id)
+       x1 = start address for EL2 @ Aarch32 (assumes kernel start)
+       x2 = first parameter to pass to EL2 @ Aarch32
+       x3 = second parameter to pass to EL2 @ Aarch32
+       x4 = 0, EL2 @ Aarch32 in LE (little-endian)
+       x4 = 1, EL2 @ Aarch32 in BE (big-endian)
+     return values:
+       x0 = 0, success
+       x0 = -3, bad input parm
+       x0 = -4, called from invalid execution level (not EL2)
+
+   This function shifts execution from EL2 @ Aarch64 to EL2 @ Aarch32.
+
+//- end 10/11/2016 update -----------------------------------------------------
+
+
 Date: 09/26/2016 --------------------------------------------------------------
 
 New Multi-Level build system

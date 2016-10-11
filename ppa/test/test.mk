@@ -34,8 +34,18 @@ ifeq ($(TEST), suspend)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_suspend_1cluster.s
 else
+ifeq ($(TEST), aarch32)
+	TEST_PSCI=1
+    TEST_FILE=test_aarch32_2core.s
+else
+ifeq  ($(TEST), aarch32BE)
+	TEST_PSCI=1
+    TEST_FILE=test_aarch32_2coreBE.s
+else
 	TEST_PSCI=0
     TEST_FILE=
+endif
+endif
 endif
 endif
 endif

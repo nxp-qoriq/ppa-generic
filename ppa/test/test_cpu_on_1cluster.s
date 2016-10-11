@@ -55,7 +55,7 @@ _test_psci:
     dsb sy
     isb
     nop
-    ldr  x0, =PSCI_CPU_ON_ID
+    ldr  x0, =PSCI64_CPU_ON_ID
     ldr  x1, =MPIDR_CORE_1
     adr  x2, core_1a_entry
     ldr  x3, =CONTEXT_CORE_1
@@ -68,7 +68,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0001
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_1
     mov  x2, #0
     smc  0x0
@@ -88,7 +88,7 @@ _test_psci:
      // x2 = start addr  = core_2a_entry
      // x3 = context id  = CONTEXT_CORE_2
     nop
-    ldr  x0, =PSCI_CPU_ON_ID
+    ldr  x0, =PSCI64_CPU_ON_ID
     ldr  x1, =MPIDR_CORE_2
     adr  x2, core_2a_entry
     ldr  x3, =CONTEXT_CORE_2
@@ -101,7 +101,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0002
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_2
     mov  x2, #0
     smc  0x0
@@ -120,7 +120,7 @@ _test_psci:
      // x2 = start addr  = core_3a_entry
      // x3 = context id  = CONTEXT_CORE_3
     nop
-    ldr  x0, =PSCI_CPU_ON_ID
+    ldr  x0, =PSCI64_CPU_ON_ID
     ldr  x1, =MPIDR_CORE_3
     adr  x2, core_3a_entry
     ldr  x3, =CONTEXT_CORE_3
@@ -133,7 +133,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0003
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_3
     mov  x2, #0
     smc  0x0

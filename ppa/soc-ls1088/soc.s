@@ -1349,11 +1349,11 @@ psci_features_table:
     .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
     .4byte  PSCI_CPU_OFF_ID         // cpu_off
     .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
-    .4byte  PSCI_CPU_ON_ID          // cpu_on
+    .4byte  PSCI64_CPU_ON_ID        // cpu_on
     .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
     .4byte  PSCI_FEATURES_ID        // psci_features
     .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
-    .4byte  PSCI_AFFINITY_INFO_ID   // psci_affinity_info
+    .4byte  PSCI64_AFFINITY_INFO_ID // psci_affinity_info
     .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
     .4byte  FEATURES_TABLE_END      // table terminating value - must always be last entry in table
 

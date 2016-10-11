@@ -114,21 +114,33 @@
 .equ STATE_TYPE_MASK,		0x00010000
 .equ POWER_STATE_MASK,		(POWER_LEVEL_MASK | STATE_TYPE_MASK)
 
- // psci function id's
-.align 3
-.equ PSCI_VERSION_ID,       0x84000000
-.equ CPU_SUSPEND_ID,        0xC4000001
-.equ PSCI_CPU_OFF_ID,       0x84000002
-.equ PSCI_CPU_ON_ID,        0xC4000003
-.equ PSCI_FEATURES_ID,      0x8400000A
-.equ PSCI_AFFINITY_INFO_ID, 0xC4000004
-.equ PSCI_SYSTEM_RESET_ID,  0x84000009
+ // psci function id's for smc64 interface
+ // these functions are callable only from Aarch64
+.equ PSCI64_CPU_SUSPEND_ID,   0xC4000001
+.equ PSCI64_CPU_ON_ID,        0xC4000003
+.equ PSCI64_AFFINITY_INFO_ID, 0xC4000004
+
+ // psci function id's for smc32 interface
+ // these functions are callable from Aarch64 and Aarch32
+.equ PSCI_VERSION_ID,         0x84000000
+.equ PSCI32_CPU_SUSPEND_ID,   0x84000001
+.equ PSCI_CPU_OFF_ID,         0x84000002
+.equ PSCI32_CPU_ON_ID,        0x84000003
+.equ PSCI32_AFFINITY_INFO_ID, 0x84000004
+.equ PSCI_SYSTEM_OFF,         0x84000008
+.equ PSCI_SYSTEM_RESET_ID,    0x84000009
+.equ PSCI_FEATURES_ID,        0x8400000A
+
+.equ PSCI_FUNCTION_MASK,    0xFFFF
 
 .equ FEATURES_TABLE_END,    0x0FF00000
 .equ PSCI_FUNC_IMPLEMENTED, 0x0
 
 .equ RESET_RETRY_CNT,       800
 .equ PSCI_ABORT_CNT,        100
+
+.equ AARCH32_MODE,    0x1
+.equ AARCH64_MODE,    0x0
 
  // data area offsets - must be in synch with CoreDataStruc in psci_data.h
 .equ CORE_STATE_DATA,   0x0
@@ -143,10 +155,10 @@
 .equ AUX_01_DATA,       0x48  // usage defined per SoC
 .equ AUX_02_DATA,       0x50  // usage defined per SoC
 .equ AUX_03_DATA,       0x58  // usage defined per SoC
-.equ AUX_04_DATA,       0x60  // usage defined per SoC
-.equ AUX_05_DATA,       0x68  // usage defined per SoC
-.equ AUX_06_DATA,       0x70  // usage defined per SoC
-.equ AUX_07_DATA,       0x78  // usage defined per SoC
+.equ AUX_04_DATA,       0x60  // expansion
+.equ AUX_05_DATA,       0x68  // expansion
+.equ SCR_EL3_DATA,      0x70
+.equ HCR_EL2_DATA,      0x78
 
  // width of a core data area - must be in synch
  //  w/CoreDataStruc in psci_data.h

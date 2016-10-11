@@ -20,13 +20,23 @@
 .equ  SPSR_EL1,        0x4
 .equ  SPSR_EL2,        0x8
 .equ  SPSR_EL3,        0xC
+.equ  SPSR_EL3_M4,     0x10
 
 .equ  SPSR32_E_MASK,          0x200
+.equ  SPSR32_E_BE,            0x200
 .equ  SPSR32_DEFAULT,         0x1DA
+.equ  SPSR32_EL2_LE,          0x1DA
+.equ  SPSR32_EL2_BE,          0x3DA
+.equ  SPSR32_EL1_LE,          0x1D3
+.equ  SPSR32_EL1_BE,          0x3D3
+.equ  SPSR32_MODE_HYP,        0xA
+.equ  SPSR32_MODE_SUPV,       0x3
+.equ  SPSR32_MODE_MASK,       0xF
 
 .equ  SCTLR_EE_WXN_SA_A_MASK, 0x0208000A
 .equ  SCTLR_EE_WXN_MASK,      0x02080000
 .equ  SCTLR_EE_MASK,          0x02000000
+.equ  SCTLR_EE_BE,            0x02000000
 .equ  SCTLR_WXN_MASK,         0x00080000
 .equ  SCTLR_I_C_M_MASK,       0x00001005
 .equ  SCTLR_I_MASK,           0x00001000
@@ -38,6 +48,9 @@
 .equ  SCTLR_C_MASK,           0x00000004
 .equ  SCTLR_A_MASK,           0x00000002
 .equ  SCTLR_M_MASK,           0x00000001
+.equ  SCTLR_EL3_RES1,         0x30C50830       
+.equ  SCTLR_EL2_RES1,         0x30C50830       
+.equ  SCTLR_EL1_RES1,         0x30D00800       
 
 .equ  CPTR_EL2_RES1_MASK,     0x33FF
 
@@ -69,6 +82,12 @@
 .equ  SCR_FIQ_MASK,           0x4
 .equ  SCR_IRQ_MASK,           0x2
 .equ  SCR_RW_MASK,            0x400
+.equ  SCR_RW_AARCH64,         0x400
+.equ  SCR_EL3_4_EL2_AARCH32,  0x131
+.equ  SCR_EL3_4_EL1_AARCH32,  0x031
+.equ  SCR_EL3_HCE_EN,         0x100
+.equ  SCR_EL3_SIF_DIS,        0x200
+.equ  SCR_EL3_FIQ_EN,         0x4
 
 .equ  SPSEL_SP,               0x1
 

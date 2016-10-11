@@ -51,7 +51,7 @@ _test_psci:
     ldr  w1, =MPIDR_CORE_1
     adr  x2, cpu_1_pass
     ldr  w3, =CONTEXT_CORE_1
-    ldr  w0, =PSCI_CPU_ON_ID
+    ldr  w0, =PSCI64_CPU_ON_ID
     smc  0x0
     nop
     nop
@@ -63,7 +63,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0001
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_1
     mov  x2, #0
     smc  0x0
@@ -77,7 +77,7 @@ _test_psci:
 
     //-------
     // (Core 2)
-    ldr  w0, =PSCI_CPU_ON_ID
+    ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_2
     adr  x2, cpu_2_start
     ldr  w3, =CONTEXT_CORE_2
@@ -92,7 +92,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0001
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_2
     mov  x2, #0
     smc  0x0
@@ -106,7 +106,7 @@ _test_psci:
 
     //-------
     // (Core 3)
-    ldr  w0, =PSCI_CPU_ON_ID
+    ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_3
     adr  x2, cpu_3_start
     ldr  w3, =CONTEXT_CORE_3
@@ -121,7 +121,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0001
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_3
     mov  x2, #0
     smc  0x0
@@ -135,7 +135,7 @@ _test_psci:
 
     //-------
     // (Core 4)
-    ldr  w0, =PSCI_CPU_ON_ID
+    ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_4
     adr  x2, cpu_4_start
     ldr  w3, =CONTEXT_CORE_4
@@ -150,7 +150,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0001
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_4
     mov  x2, #0
     smc  0x0
@@ -164,7 +164,7 @@ _test_psci:
 
     //-------
     // (Core 7)
-    ldr  w0, =PSCI_CPU_ON_ID
+    ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_7
     adr  x2, cpu_7_start
     ldr  w3, =CONTEXT_CORE_7
@@ -177,7 +177,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0001
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_7
     mov  x2, #0
     smc  0x0
@@ -191,7 +191,7 @@ _test_psci:
 
     //-------
     // (Core 5)
-    ldr  w0, =PSCI_CPU_ON_ID
+    ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_5
     adr  x2, cpu_5_start
     ldr  w3, =CONTEXT_CORE_5
@@ -204,7 +204,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0001
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_5
     mov  x2, #0
     smc  0x0
@@ -218,7 +218,7 @@ _test_psci:
 
     //-------
     // (Core 6)
-    ldr  w0, =PSCI_CPU_ON_ID
+    ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_6
     adr  x2, cpu_6_start
     ldr  w3, =CONTEXT_CORE_6
@@ -231,7 +231,7 @@ _test_psci:
      // x0 = function id = 0xC4000004
      // x1 = mpidr       = 0x0001
      // x2 = level       = 0x0
-    ldr  x0, =PSCI_AFFINITY_INFO_ID
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
     ldr  x1, =MPIDR_CORE_6
     mov  x2, #0
     smc  0x0

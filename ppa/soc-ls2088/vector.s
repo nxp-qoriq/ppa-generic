@@ -11,6 +11,12 @@
 
   .section .text, "ax"
 
+//-----------------------------------------------------------------------------
+
+#include "smc.h"
+
+//-----------------------------------------------------------------------------
+
   .global _el3_vector_base
   .global __el3_dead_loop
  
@@ -25,7 +31,6 @@ _el3_vector_base:
    // current EL using SP0 ----------------------
 
      // synchronous exceptions
-    mov  x11, #0x00 //x11 contains debugging codes
     b    synch_handler
 
      // IRQ interrupts
@@ -50,7 +55,6 @@ _el3_vector_base:
   
      // synchronous exceptions
   .align 7
-    mov  x11, #0x200
     b  synch_handler
 
      // IRQ interrupts
@@ -60,7 +64,6 @@ _el3_vector_base:
 
      // FIQ interrupts
   .align 7
-    mov  x11, #0x300
     b  synch_handler
 
      // serror exceptions
@@ -72,7 +75,6 @@ _el3_vector_base:
 
      // synchronous exceptions
   .align 7
-    mov  x11, #0x400
     b  synch_handler
 
      // IRQ interrupts
@@ -94,7 +96,6 @@ _el3_vector_base:
 
      // synchronous exceptions
   .align 7
-    mov  x11, #0x600
     b  synch_handler
 
      // IRQ interrupts
@@ -116,18 +117,26 @@ _el3_vector_base:
 
   .align 2
 synch_handler:
+     // save the volatile registers
+    str   x0,  [sp, #0x8]
+    str   x1,  [sp, #0x10]
+    str   x2,  [sp, #0x18]
+    str   x3,  [sp, #0x20]
+    dsb   sy
+    isb
+
      // read the ESR_EL3 register to get exception type
-    mrs   x9, ESR_EL3
+    mrs   x1, ESR_EL3
      // extract the exception type
-    mov   x10, xzr
-    bfxil w10, w9, #26, #6
+    mov   x2, xzr
+    bfxil w2, w1, #26, #6
 
      // test if this is a A64 SMC exception
-    cmp   w10, #0x17
+    cmp   w2, #0x17
     b.eq  a64smc_router
 
      // test if this is a A32 SMC exception
-    cmp   w10, #0x13
+    cmp   w2, #0x13
     b.eq  a32smc_router
 
      // unhandled exception
@@ -136,40 +145,92 @@ synch_handler:
      //------------------------------------------
 
 a64smc_router:
+     // mask interrupts
+    msr  DAIFset, #0xF
+
      // isolate and test bit [31] - must be '1' for "fast-calls"
-    lsr   x10, x0, #31
-    cbz   x10, smc_func_unimplemented
+    lsr   x2, x0, #31
+    cbz   x2, _smc_unimplemented
 
      // extract bits [23:16] - must be 0x00 for "fast-calls"
-    mov   x9, xzr
-    bfxil x9, x0, #16, #8
-    cbnz  x9, smc_func_unimplemented
+    mov   x1, xzr
+    bfxil x1, x0, #16, #8
+    cbnz  x1, _smc_unimplemented
+
+     // restore the volatile registers
+    ldr   x0,  [sp, #0x8]
+    ldr   x1,  [sp, #0x10]
+    ldr   x2,  [sp, #0x18]
+    ldr   x3,  [sp, #0x20]
+    str   xzr, [sp, #0x8]
+    str   xzr, [sp, #0x10]
+    str   xzr, [sp, #0x18]
+    str   xzr, [sp, #0x20]
+    dsb   sy
+    isb
 
      // test for smc32 or smc64 interface
-    mov   x10, xzr
-    bfxil x10, x0, #30, #1
-    cbz   x10, smc32_handler
+    mov   x9, xzr
+    bfxil x9, x0, #30, #1
+    cbz   x9, smc32_handler
     b     smc64_handler
 
      //------------------------------------------
 
 a32smc_router:
      // isolate and test bit [31] - must be '1' for "fast-calls"
-    lsr   w10, w0, #31
-    cbz   w10, smc_func_unimplemented
+    lsr   w2, w0, #31
+    cbz   w2, _smc_unimplemented
 
      // extract bits [23:16] - must be 0x00 for "fast-calls"
-    mov   w9, wzr
-    bfxil w9, w0, #16, #8
-    cbnz  w9, smc_func_unimplemented
+    mov   w1, wzr
+    bfxil w1, w0, #16, #8
+    cbnz  w1, _smc_unimplemented
 
      // test for smc32 or smc64 interface
-    mov   w10, wzr
-    bfxil w10, w0, #30, #1
-    cbz   w10, smc32_handler
+    mov   w2, wzr
+    bfxil w2, w0, #30, #1
+    cbz   w2, 1f
 
      // smc64 interface is not valid for a32 clients
-    b     smc_func_unimplemented
+    b     _smc_unimplemented
+
+1:   // smc32 interface called from aarch32
+     // mask interrupts
+    msr  DAIFset, #0xF
+
+     // save the non-volatile aarch32 registers
+    str   x4,  [sp, #0x28]
+    str   x5,  [sp, #0x30]
+    str   x6,  [sp, #0x38]
+    str   x7,  [sp, #0x40]
+    str   x8,  [sp, #0x48]
+    str   x9,  [sp, #0x50]
+    str   x10, [sp, #0x58]
+    str   x11, [sp, #0x60]
+    str   x12, [sp, #0x68]
+    str   x13, [sp, #0x70]
+    str   x14, [sp, #0x78]
+
+     // set the aarch32 flag
+    mov   x5, #SMC_AARCH32_MODE
+    str   x5,  [sp, #0x0]
+
+     // restore the volatile registers
+    ldr   x0,  [sp, #0x8]
+    ldr   x1,  [sp, #0x10]
+    ldr   x2,  [sp, #0x18]
+    ldr   x3,  [sp, #0x20]
+
+     // clear the data area
+    str   xzr, [sp, #0x8]
+    str   xzr, [sp, #0x10]
+    str   xzr, [sp, #0x18]
+    str   xzr, [sp, #0x20]
+
+    dsb  sy
+    isb
+    b    smc32_handler
 
      //------------------------------------------
 

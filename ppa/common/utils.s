@@ -20,6 +20,7 @@
 .global _is_mpidr_valid
 
 //-----------------------------------------------------------------------------
+
  // This function returns the bit mask corresponding to the mpidr_el1 value.
  // the mask is returned in w0.
  // this bit mask references the core in SoC registers such as
