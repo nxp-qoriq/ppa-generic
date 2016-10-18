@@ -181,6 +181,10 @@ monitor_exit_EL3:
      // set the spsr value for exit
     bl   _set_spsr_4_exit
 
+     // setup sp_el3
+    bl   _get_current_mask
+    bl   _init_smc_percpu
+
      // flush dcache
     mov x0, #1
     bl  _cln_inv_all_dcache
@@ -261,6 +265,10 @@ _secondary_exit:
      // setup the spsr
     mov  x0, x6
     bl   _set_spsr_4_startup
+
+     // setup sp_el3
+    mov  x0, x6
+    bl   _init_smc_percpu
 
      // x6 = core mask lsb
 
@@ -345,6 +353,10 @@ _mon_core_restart:
      // setup the spsr
     mov  x0, x6
     bl   _set_spsr_4_startup
+
+     // setup the smc data structures, and sp_el3
+    mov  x0, x6
+    bl   _init_smc_percpu
 
      // x6 = core mask lsb
 

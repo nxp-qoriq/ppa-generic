@@ -33,6 +33,8 @@
 #define TIMER_BASE_ADDR    0x023E0000
 #define RESET_BASE_ADDR    0x01E60000
 
+#define TIMER_CNTCR_OFFSET 0x0
+
 #define GICR_RD_BASE_ADDR   0x06100000
 #define GICR_SGI_BASE_ADDR  0x06110000
 #define GICD_BASE_ADDR      0x06000000
@@ -65,6 +67,9 @@
 #define GICR_IGRPMODR0_SGI15   0x00008000
 #define GICR_ISENABLER0_SGI15  0x00008000
 #define GICR_IPRIORITYR3_SGI15_MASK  0xFF000000
+#define GICR_WAKER_PROCSLEEP   0x2
+#define GICR_WAKER_CHILDSLEEP  0x4
+#define GICR_ICPENDR0_SGI15    0x8000
 
 #define ICC_SRE_EL3_SRE          0x1
 #define ICC_IGRPEN0_EL1_EN       0x1
@@ -74,6 +79,11 @@
 #define ICC_PMR_EL1_P_FILTER     0xFF
 #define ICC_IAR0_EL1_SGI15       0xF
 #define ICC_SGI0R_EL1_INTID      0x0F000000
+
+ // timer control bitfields
+#define CNTCR_EN_MASK   0x1
+#define CNTCR_EN        0x1
+#define CNTCR_DIS       0x0
 
  // dcfg block register offsets
 #define DCFG_SCRATCHRW7_OFFSET  0x218

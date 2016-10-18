@@ -25,6 +25,7 @@
 .global _smc_invalid_el
 .global _smc_completed
 
+.global _init_smc_percpu
 .global _save_smc_volatile
 .global _restore_smc_volatile
 .global _save_aarch32_nvolatile
@@ -220,6 +221,59 @@ __dead_loop:
 
 //-----------------------------------------------------------------------------
 
+ // this function initializes the per-core smc data area, and sets SP_EL3 to
+ // point to the start of this area
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1
+_init_smc_percpu:
+
+     // x0 = core mask
+
+     // generate a 0-based core number from the input mask
+    clz   x1, x0
+    mov   x0, #63
+    sub   x0, x0, x1
+
+     // x0 = core number (0-based)
+
+     // calculate the offset to the start of the core data area
+    mov   x1, #SMC_DATA_OFFSET
+    mul   x1, x1, x0
+
+     // x1 = offset to start of core data area
+
+     // get the base address of the data areas
+    adr   x0, _smc0_data
+
+     // add offset to this core's data area
+    add   x1, x1, x0
+
+     // set the stack pointer
+    mov  sp, x1
+
+     // initialize the data area
+    str   xzr, [sp, #0x0]
+    str   xzr, [sp, #0x8]
+    str   xzr, [sp, #0x10]
+    str   xzr, [sp, #0x18]
+    str   xzr, [sp, #0x20]
+    str   xzr, [sp, #0x28]
+    str   xzr, [sp, #0x30]
+    str   xzr, [sp, #0x38]
+    str   xzr, [sp, #0x40]
+    str   xzr, [sp, #0x48]
+    str   xzr, [sp, #0x50]
+    str   xzr, [sp, #0x58]
+    str   xzr, [sp, #0x60]
+    str   xzr, [sp, #0x68]
+    str   xzr, [sp, #0x70]
+    str   xzr, [sp, #0x78]
+
+    ret
+
+//-----------------------------------------------------------------------------
+
  // this function saves registers (0-3) for the smc32/64 interface
  // Note: this function is not valid until _init_smc_percpu() has been run
  //       on this core
@@ -349,6 +403,12 @@ _get_aarch_flag:
     ret
 
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+ // include the data areas
+#include "smc_data.h"
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
