@@ -333,6 +333,7 @@ _mon_core_restart:
     bl   _init_secondary_EL1
 2:
      // get the start addr
+    mov  x0, x6
     mov  x1, #START_ADDR_DATA
     bl   _getCoreData
 
