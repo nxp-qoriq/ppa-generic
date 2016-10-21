@@ -966,20 +966,13 @@ _soc_core_phase2_off:
     tst  w4, #GICR_CTLR_RWP_MASK
     b.ne 3b
 
-     // program the cpu interface
-
-     // set int priority filter - ICC_PMR_EL1
-//    mrs  x4, ICC_PMR_EL1
-//    orr  w4, w4, #ICC_PMR_EL1_P_FILTER
-//    msr  ICC_PMR_EL1, x4
-//
-//     // enable GRP0 ints - ICC_IGRPEN0_EL1
-//    mov  x3, #ICC_IGRPEN0_EL1_EN
-//    msr  ICC_IGRPEN0_EL1, x3
+     // quiesce the debug interfaces
+    mrs  x3, osdlr_el1
+    orr  x3, x3, #OSDLR_EL1_DLK_LOCK
+    msr  osdlr_el1, x3
+    isb
 
      // x6 = gicr rd  base addr
-
-     //----------------------
 
      // set ProcessorSleep
     ldr  w3, [x6, #GICR_WAKER_OFFSET]
@@ -991,13 +984,6 @@ _soc_core_phase2_off:
     ldr  w3, [x6, #GICR_WAKER_OFFSET]
     tst  w3, #GICR_WAKER_CHILDSLEEP
     b.eq 1b
-
-     //----------------------
-
-     // quiesce the debug interfaces
-    mrs  x3, osdlr_el1
-    orr  x3, x3, #OSDLR_EL1_DLK_LOCK
-    msr  osdlr_el1, x3
 
     mov  x30, x8
     ret
@@ -1064,31 +1050,16 @@ _soc_core_entr_off:
      // enter low-power state by executing wfi
     wfi
 
-
-//     // read iar to get the interrupt id
-//    mrs  x2, ICC_IAR0_EL1
-//
-//     // clear the interrupt
-//    msr  ICC_EOIR0_EL1, x2 
-//
-//     // see if we got hit by SGI 15
-//    cmp  x2, #ICC_IAR0_EL1_SGI15
-//    b.ne 1b
-
      // x5 = core mask lsb
 
-     //----------------------
-
-//     // see if the wakeup int is pending
-//    ldr  w3, [x4, #GICR_ICPENDR0_OFFSET]
-//
-//     // if yes, clear it, if not, branch back to wfi
-//    tst  w3, #GICR_ICPENDR0_SGI15
-//    b.eq 1b
-//    mov  w3, #GICR_ICPENDR0_SGI15
-//    str  w3, [x4, #GICR_ICPENDR0_OFFSET]
-
-     //----------------------
+     // see if the wakeup int is pending
+    ldr  w3, [x4, #GICR_ICPENDR0_OFFSET]
+      
+     // if yes, clear it, if not, branch back to wfi
+    tst  w3, #GICR_ICPENDR0_SGI15
+    b.eq 1b
+    mov  w3, #GICR_ICPENDR0_SGI15
+    str  w3, [x4, #GICR_ICPENDR0_OFFSET]
 
      // x5 = core mask lsb
     
@@ -1116,24 +1087,6 @@ _soc_core_entr_off:
  // uses x0, x1, x2, x3, x4, x5
 _soc_core_exit_off:
     mov  x5, x30
-    mov  x3, x0
-
-     // x3 = core mask lsb
-
-//     // disable forwarding of GRP0 ints at cpu interface
-//    msr  ICC_IGRPEN0_EL1, xzr
-
-//     // get redistributor sgi base addr for this core
-//    mov  x0, x3
-//    bl   get_gic_sgi_base
-//    mov  x4, x0
-//
-//     // x3 = core mask lsb
-//     // x4 = gicr sgi base addr
-//
-//     // clear pending SGIs
-//    mvn  w1, wzr
-//    str  w1, [x4, #GICR_ICPENDR0_OFFSET]
 
      // enable icache in SCTLR_EL3
     mrs  x1, SCTLR_EL3
@@ -1208,7 +1161,11 @@ _soc_core_phase2_clnup:
 
      // x4 = gicr rd  base addr
 
-     //----------------------
+     // unlock the debug interfaces
+    mrs  x3, osdlr_el1
+    bic  x3, x3, #OSDLR_EL1_DLK_LOCK
+    msr  osdlr_el1, x3
+    isb
 
      // clear ProcessorSleep
     ldr  w3, [x4, #GICR_WAKER_OFFSET]
@@ -1220,8 +1177,6 @@ _soc_core_phase2_clnup:
     ldr  w3, [x4, #GICR_WAKER_OFFSET]
     tst  w3, #GICR_WAKER_CHILDSLEEP
     b.ne 1b
-
-     //----------------------
 
     dsb sy
     isb
@@ -1871,8 +1826,9 @@ prep_init_ocram_hi:
      // get the core mask
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
+    mov  x5, x0
 
-     // x0 = core mask lsb
+     // x5 = core mask lsb
 
      // turn off icache, mmu
     mrs  x1, sctlr_el3
@@ -1897,9 +1853,19 @@ prep_init_ocram_hi:
     bl   _read_reg_dcfg
     cbnz x0, 1b
 
-     // read reset vector and branch to it
-    mrs x0, rvbar_el3
-    br  x0
+     // x5 = core mask lsb
+
+     // park the core until it is requested to be
+     // released
+2:
+    wfe
+     // read the core state to see if we have been released
+    mov   x0, x5
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+    cmp   x0, #CORE_PENDING
+    b.ne  2b
+
 
 //temp1:
 //    b   temp1
@@ -1927,8 +1893,9 @@ prep_init_ocram_lo:
      // get the core mask
     mrs  x0, MPIDR_EL1
     bl   _get_core_mask_lsb
+    mov  x5, x0
 
-     // x0 = core mask lsb
+     // x5 = core mask lsb
 
      // turn off icache, mmu
     mrs  x1, sctlr_el3
@@ -1958,9 +1925,20 @@ prep_init_ocram_lo:
     bl   _read_reg_dcfg
     cbnz x0, 1b
 
-     // read reset vector and branch to it
-    mrs x0, rvbar_el3
-    br  x0
+     // x5 = core mask lsb
+
+     // park the core until it is requested to be
+     // released
+2:
+    wfe
+     // read the core state to see if we have been released
+    mov   x0, x5
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+    cmp   x0, #CORE_PENDING
+    b.ne  2b
+
+ //--------------------------------------
 
 //temp2:
 //    b   temp2

@@ -93,7 +93,7 @@ core_0_pause_2:
      // test PSCI_CPU_ON (core 1)
      // x0 = function id = 0xC4000003
      // x1 = mpidr       = 0x0001
-     // x2 = start addr  = core_1a_entry
+     // x2 = start addr  = core_1c_entry
      // x3 = context id  = CONTEXT_CORE_1
     dsb sy
     isb
