@@ -90,12 +90,6 @@
  // uses x0
 _soc_init_percpu:
 
-     // bit[22]: set Force in-order load
-    mrs  x0, CPUACTLR_EL1
-    orr  x0, x0, #CPUACTLR_FRC_INORDER_EN
-    msr	 CPUACTLR_EL1, x0
-
-    isb
     ret
 
 //-----------------------------------------------------------------------------
