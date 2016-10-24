@@ -460,49 +460,259 @@ _soc_core_restart:
 
 //-----------------------------------------------------------------------------
 
+ // part of CPU_SUSPEND
+ // this function puts the calling core into PW15
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x10
 _soc_core_entr_stdby:
+    mov  x10, x30
 
+     // clean the L1 dcache
+    mov  x0, xzr
+    bl   _cln_inv_L1_dcache
+
+     // clear CPUECTLR_EL1[2:0]
+    mrs  x0, CPUECTLR_EL1
+    bic  x0, x0, #CPUECTLR_TIMER_MASK
+    msr  CPUECTLR_EL1, x0
+
+     // IRQ taken to EL3, set SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    orr  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+    dsb  sy
+    isb
+    wfi
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
 
+ // part of CPU_SUSPEND
+ // this function performs any necessary cleanup after the calling core has
+ // exited PW15
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0
 _soc_core_exit_stdby:
+     // clear SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    bic  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+    isb
 
     ret
 
 //-----------------------------------------------------------------------------
 
+ // part of CPU_SUSPEND
+ // this function puts the calling core into a power-down state
+ // the calling core will enter PW20
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x9, x10
 _soc_core_entr_pwrdn:
+    mov  x10, x30
 
+     // X0 = core mask lsb
+    mov  x9, x0
+
+     // mask interrupts by setting DAIF[7:4] to 'b1111
+    mrs  x1, DAIF
+    ldr  x0, =DAIF_SET_MASK
+    orr  x1, x1, x0
+    msr  DAIF, x1
+
+     // cln/inv L1 dcache
+    mov  x0, #1
+    bl   _cln_inv_L1_dcache
+
+     // IRQ taken to EL3, set SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    orr  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+     // disable icache, dcache, mmu @ EL2 & EL1
+    mov  x1, #SCTLR_I_C_M_MASK
+    mrs  x0, sctlr_el1
+    bic  x0, x0, x1
+    msr  sctlr_el1, x0
+
+     // disable dcache @ EL3
+    mrs  x0, sctlr_el3
+    bic  x0, x0, #SCTLR_C_MASK
+    msr  sctlr_el3, x0
+
+     // make sure system counter is enabled
+    ldr  x3, =TIMER_BASE_ADDR
+    ldr  w0, [x3, #SYS_COUNTER_CNTCR_OFFSET]
+    tst  w0, #SYS_COUNTER_CNTCR_EN
+    b.ne 1f
+    orr  w0, w0, #SYS_COUNTER_CNTCR_EN
+    str  w0, [x3, #SYS_COUNTER_CNTCR_OFFSET]
+1:
+
+     // enable dynamic retention control (CPUECTLR[2:0])
+     // set the SMPEN bit (CPUECTLR[6])
+    mrs  x0, CPUECTLR_EL1
+    orr  x0, x0, #CPUECTLR_TIMER_8TICKS
+    orr  x0, x0, #CPUECTLR_SMPEN_EN
+    msr  CPUECTLR_EL1, x0
+
+    dsb  sy
+    isb
+    wfi
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
 
+ // part of CPU_SUSPEND
+ // this function performs any necessary cleanup after the calling core has
+ // exited PW20
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0
 _soc_core_exit_pwrdn:
+     // clear SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    bic  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+    isb
 
     ret
 
 //-----------------------------------------------------------------------------
 
+ // part of CPU_SUSPEND
+ // this function puts the final core of the specified cluster into PW15
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x10
 _soc_clstr_entr_stdby:
+    mov  x10, x30
+
+     // clean the L1 dcache
+    mov  x0, xzr
+    bl   _cln_inv_L1_dcache
+
+     // clear CPUECTLR_EL1[2:0]
+    mrs  x0, CPUECTLR_EL1
+    bic  x0, x0, #CPUECTLR_TIMER_MASK
+    msr  CPUECTLR_EL1, x0
+
+     // IRQ taken to EL3, set SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    orr  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+    dsb  sy
+    isb
+    wfi
+
+    mov  x30, x10
 
     ret
 
 //-----------------------------------------------------------------------------
 
+ // part of CPU_SUSPEND
+ // this function performs any necessary cleanup after the calling core has
+ // exited PW15
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0
 _soc_clstr_exit_stdby:
+     // clear SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    bic  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+    isb
 
     ret
 
 //-----------------------------------------------------------------------------
 
+ // part of CPU_SUSPEND
+ // this function puts the final core of the specified cluster into a
+ // power-down state - the calling core will enter PW20
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x9, x10
 _soc_clstr_entr_pwrdn:
+    mov  x10, x30
+
+     // X0 = core mask lsb
+    mov  x9, x0
+
+     // mask interrupts by setting DAIF[7:4] to 'b1111
+    mrs  x1, DAIF
+    ldr  x0, =DAIF_SET_MASK
+    orr  x1, x1, x0
+    msr  DAIF, x1
+
+     // cln/inv L1 dcache
+    mov  x0, #1
+    bl   _cln_inv_L1_dcache
+
+     // IRQ taken to EL3, set SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    orr  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+
+     // disable icache, dcache, mmu @ EL2 & EL1
+    mov  x1, #SCTLR_I_C_M_MASK
+    mrs  x0, sctlr_el1
+    bic  x0, x0, x1
+    msr  sctlr_el1, x0
+
+     // disable dcache @ EL3
+    mrs  x0, sctlr_el3
+    bic  x0, x0, #SCTLR_C_MASK
+    msr  sctlr_el3, x0
+
+     // make sure system counter is enabled
+    ldr  x3, =TIMER_BASE_ADDR
+    ldr  w0, [x3, #SYS_COUNTER_CNTCR_OFFSET]
+    tst  w0, #SYS_COUNTER_CNTCR_EN
+    b.ne 1f
+    orr  w0, w0, #SYS_COUNTER_CNTCR_EN
+    str  w0, [x3, #SYS_COUNTER_CNTCR_OFFSET]
+1:
+
+     // enable dynamic retention control (CPUECTLR[2:0])
+     // set the SMPEN bit (CPUECTLR[6])
+    mrs  x0, CPUECTLR_EL1
+    orr  x0, x0, #CPUECTLR_TIMER_8TICKS
+    orr  x0, x0, #CPUECTLR_SMPEN_EN
+    msr  CPUECTLR_EL1, x0
+
+    dsb  sy
+    isb
+    wfi
+
+    mov  x30, x10
 
     ret
 
 //-----------------------------------------------------------------------------
 
+ // part of CPU_SUSPEND
+ // this function performs any necessary cleanup after the calling core has
+ // exited PW20
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0
 _soc_clstr_exit_pwrdn:
+     // clear SCR_EL3[IRQ]
+    mrs  x0, SCR_EL3
+    bic  x0, x0, #SCR_IRQ_MASK
+    msr  SCR_EL3, x0
+    isb
 
     ret
 
