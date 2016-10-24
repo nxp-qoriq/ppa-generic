@@ -11,12 +11,13 @@
 
   .section .text, "ax"
 
+//-----------------------------------------------------------------------------
+
 #include "boot.h"
 
 //-----------------------------------------------------------------------------
 
   .global  non_boot_core
-  .global  inv_L1_dcache
   .global  get_core_mask_lsb
 
 //-----------------------------------------------------------------------------
@@ -119,20 +120,20 @@ get_core_mask_lsb:
 core_disable:
      // turn off caches in SCTRL
     mrs  x1, SCTLR_EL3
-    mov  x3, #0x1004
-    bic  x1, x1, x3
+    bic  x1, x1, #SCTLR_I_MASK
+    bic  x1, x1, #SCTLR_C_MASK
     msr  SCTLR_EL3, x1
 
      // clear SMP and set retention control in CPUECTLR
-    mov  x1, #0x2
-    msr  S3_1_c15_c2_1, x1
+    mov  x1, #CPUECTLR_TIMER_8TICKS
+    msr  CPUECTLR_EL1, x1
 
      // disable interrupts in DAIF
-    mov  x3, 0x3c0
+    mov  x3, #DAIF_SET_MASK
     msr  daif, x3
 
      // set OSDLR_EL1.DK
-    mov  x1, #1
+    mov  x1, #OSDLR_EL1_DLK_MASK
     msr  osdlr_el1, x1
 
      // enable the generic timer counter
@@ -160,113 +161,6 @@ core_disable:
 disable_loop:
     wfi
     b  disable_loop
-
-//-----------------------------------------------------------------------------
-
- // clean and invalidate the L1 dcache
- // uses x3-x10
-flush_L1_dcache:
-    dsb  #0xF
-     // select the L1 cache id register
-	msr	 csselr_el1, xzr
-	isb
-     // read the cache id register
-	mrs	 x6, ccsidr_el1
-     // get the L offset
-	and	 x10, x6, #7
-	add	 x10, x10, #4
-
-     // extract the max way
-	mov	 x3, #0x3ff
-	and	 x3, x3, x6, lsr #3
-     // get the bit position of the ways field
-	clz	 w5, w3
-
-     // extract the max set
-	mov	 x4, #0x7fff
-	and	 x4, x4, x6, lsr #13
-
-	 // x3  -> number of cache ways - 1
-	 // x4  -> number of cache sets - 1
-	 // x5  -> bit position of ways
-	 // x10 -> L offset
-
-loop_set:
-     // load the working copy of the max way
-	mov	 x6, x3
-loop_way:
-     // insert #way and level to data reg
-	lsl	 x7, x6, x5
-	orr	x9, xzr, x7
-     // insert #set to data reg
-	lsl	 x7, x4, x10
-	orr	 x9, x9, x7
-
-     // clean and invalidate
-    dc    cisw, x9
-     // decrement the way
-    subs  x6, x6, #1
-	b.ge  loop_way
-     // decrement the set
-	subs  x4, x4, #1
-	b.ge  loop_set
-
-    dsb sy
-    isb
-	ret
-
-//-----------------------------------------------------------------------------
-
- // invalidate the L1 dcache
- // uses x3-x10
-inv_L1_dcache:
-    dsb  #0xF
-     // select the L1 cache id register
-	msr	 csselr_el1, xzr
-	isb
-     // read the cache id register
-	mrs	 x6, ccsidr_el1
-     // get the L offset
-	and	 x10, x6, #7
-	add	 x10, x10, #4
-
-     // extract the max way
-	mov	 x3, #0x3ff
-	and	 x3, x3, x6, lsr #3
-     // get the bit position of the ways field
-	clz	 w5, w3
-
-     // extract the max set
-	mov	 x4, #0x7fff
-	and	 x4, x4, x6, lsr #13
-
-	 // x3  -> number of cache ways - 1
-	 // x4  -> number of cache sets - 1
-	 // x5  -> bit position of ways
-	 // x10 -> L offset
-
-1:
-     // load the working copy of the max way
-	mov	 x6, x3
-2:
-     // insert #way and level to data reg
-	lsl	 x7, x6, x5
-	orr	x9, xzr, x7
-     // insert #set to data reg
-	lsl	 x7, x4, x10
-	orr	 x9, x9, x7
-
-     // invalidate by set/way
-    dc    isw, x9
-     // decrement the way
-    subs  x6, x6, #1
-	b.ge  2b
-     // decrement the set
-	subs  x4, x4, #1
-	b.ge  1b
-
-    isb
-	ret
 
 //-----------------------------------------------------------------------------
 
@@ -302,7 +196,7 @@ write_reg_secreg:
  // uses x0, x1, x2
 is_core_released_mpidr:
      // get the 64-bit base address of the dcfg block
-    ldr  w2, =DCFG_BASE_ADDR
+    ldr  x2, =DCFG_BASE_ADDR
      // read SCRATCHRW7
     ldr  w0, [x2, #SCRATCHRW7_OFFSET]
 
@@ -332,7 +226,7 @@ is_core_released_mpidr:
  // uses x0, x1, x2
 is_core_released_tester:
      // get the 64-bit base address of the secure register file
-    ldr  w2, =SEC_REGFILE_BASE_ADDR
+    ldr  x2, =SEC_REGFILE_BASE_ADDR
      // read CORE_HOLD
     ldr  w1, [x2, #CORE_HOLD_OFFSET]
 
@@ -355,12 +249,12 @@ is_core_released_tester:
  // perform this step last just before branching to the start address
  // in:  none
  // out: none
- // uses x1
+ // uses x0
 notify_core_up:
      // get the 64-bit base address of the dcfg block
-    ldr  w1, =DCFG_BASE_ADDR
+    ldr  x0, =DCFG_BASE_ADDR
      // set SCRATCHRW7 to 0x0
-    str  wzr, [x1, #SCRATCHRW7_OFFSET]
+    str  wzr, [x0, #SCRATCHRW7_OFFSET]
     ret
 
 //-----------------------------------------------------------------------------

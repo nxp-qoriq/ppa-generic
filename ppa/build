@@ -3,10 +3,10 @@ echo Multi-Device build
 echo 
 
 # initialize device and target lists --
-device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 all"
+device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 ua all"
 device_all=" all"
-target_list="clean rdb rdb-fit sim"
-option_list="DBG=on DBG=off TEST=smp_boot TEST=hotplug TEST=suspend TEST=off_abort"
+target_list="clean rdb rdb-fit generic generic-fit sim"
+option_list="DBG=on DBG=off TEST=smp_boot TEST=hotplug TEST=suspend TEST=off_abort TEST=aarch32"
 #--------------------------------------
 
 # output some friendly help -----------
@@ -14,11 +14,13 @@ if [ "$1" = "help" ]; then
     echo "usage: >build target [option] [option] device_list"
     echo
     echo "        target (required):"
-    echo "          rdb     - binary image build"
-    echo "          rdb-fit - fit image build"
-    echo "          sim     - simulator build with bootrom code"
-    echo "          clean   - clean the build folders"
-    echo "          help    - print this help text"
+    echo "          rdb         - binary image build"
+    echo "          rdb-fit     - fit image build"
+    echo "          generic     - generic binary image build"
+    echo "          generic-fit - generic fit image build"
+    echo "          sim         - simulator build with bootrom code"
+    echo "          clean       - clean the build folders"
+    echo "          help        - print this help text"
     echo
     echo "        option(s):"
     echo "          DBG=on      - build with debug options"
@@ -39,6 +41,7 @@ if [ "$1" = "help" ]; then
     echo "          ls1088  - build for the LS1088 device"
     echo "          ls2080  - build for the LS2080 device"
     echo "          ls2088  - build for the LS2088 device"
+    echo "          ua      - build for the UA device"
     echo "          all     - build for ALL of the above devices"
     echo
     echo "examples:"
