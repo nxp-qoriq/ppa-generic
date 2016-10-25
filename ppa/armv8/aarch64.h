@@ -100,6 +100,10 @@
 .equ  CLEAN_DCACHE,           0x0
 .equ  CLN_INV_DCACHE,         0x1
 
+.equ  CNTP_CTL_EL0_EN,        0x1
+.equ  CNTP_CTL_EL0_IMASK,     0x2
+.equ  CNTP_CTL_EL0_ISTAT,     0x4
+
 //-----------------------------------------------------------------------------
 
 .macro m_get_core_pos _res, _reg1

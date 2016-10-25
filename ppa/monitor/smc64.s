@@ -154,26 +154,26 @@ smc64_arch_count:
 
      //------------------------------------------
 
- // this function allows changing the execution width of EL2 to Aarch32
- // Note: MUST be called from EL2 Aarch64
+ // this function allows changing the execution width of EL2 from Aarch64
+ // to Aarch32
+ // Note: MUST be called from EL2 @ Aarch64
  // in:  x1 = start address for EL2 @ Aarch32
  //      x2 = first parameter to pass to EL2 @ Aarch32
  //      x3 = second parameter to pass to EL2 @ Aarch32
- //      x4 = 0, EL2 @ Aarch32 in LE (little-endian)
- //      x4 = 1, EL2 @ Aarch32 in BE (big-endian)
- // uses x0, x1, x2, x3, x4. x5, x12
+ // uses x0, x1, x2, x3, x12
 smc64_arch_el2_2_aarch32:
     mov   x12, x30
 
      // x1 = start address
      // x2 = parm 1
      // x3 = parm2
-     // x4 = endianness
 
      // check that we were called from EL2 @ Aarch64 - return "invalid" if not
     mrs  x0, spsr_el3
      // see if we were called from Aarch32
-    tbnz  x0, #SPSR_EL3_M4, _smc_invalid
+    tst  x0, #SPSR_EL3_M4
+    b.ne _smc_invalid
+
      // see if we were called from EL2
     and   x0, x0, SPSR_EL_MASK
     cmp   x0, SPSR_EL2
@@ -188,16 +188,10 @@ smc64_arch_el2_2_aarch32:
 
      // set sctlr_el2
     ldr   x1, =SCTLR_EL2_RES1
-    cbz   x4, 1f
-    orr   x1, x1, #SCTLR_EE_BE
-1:
     msr  sctlr_el2, x1
 
      // set spsr_el3
     ldr  x0, =SPSR32_EL2_LE
-    cbz   x4, 2f
-    orr   x0, x0, #SPSR32_E_BE
-2:
     msr  spsr_el3, x0
 
      // x2 = parm 1

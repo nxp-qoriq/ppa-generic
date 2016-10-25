@@ -1033,10 +1033,15 @@ _soc_core_entr_off:
     dsb  sy
     isb
 
-     // enable the timer
+     // enable the timer base
     mov  x1, #TIMER_BASE_ADDR
     mov  x2, #CNTCR_EN
     str  w2, [x1, #TIMER_CNTCR_OFFSET]
+
+     // enable the core timer and mask timer interrupt
+    mov  x1, #CNTP_CTL_EL0_EN
+    orr  x1, x1, #CNTP_CTL_EL0_IMASK
+    msr  cntp_ctl_el0, x1
 
      // x5 = core mask lsb
 
@@ -1045,6 +1050,7 @@ _soc_core_entr_off:
     bic  x1, x1, #CPUECTLR_TIMER_MASK
     orr  x1, x1, #CPUECTLR_TIMER_8TICKS
     msr  CPUECTLR_EL1, x1
+    isb
 
 1:
      // enter low-power state by executing wfi
@@ -1865,7 +1871,6 @@ prep_init_ocram_hi:
     bl    _getCoreData
     cmp   x0, #CORE_PENDING
     b.ne  2b
-
 
 //temp1:
 //    b   temp1
