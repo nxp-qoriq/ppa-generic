@@ -51,6 +51,8 @@ OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 #------------------------------------------------
 # generic build targets:
 
+.NOTPARALLEL:
+
 clean:
 	@rm -f -r build
 
