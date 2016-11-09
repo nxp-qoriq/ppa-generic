@@ -56,6 +56,8 @@
 
 .global _getCoreData
 .global _setCoreData
+.global _get_gic_rd_base
+.global _get_gic_sgi_base
 
 //-----------------------------------------------------------------------------
 
@@ -1088,7 +1090,7 @@ init_tzasc:
  // in:  x0 - core mask lsb of specified core
  // out: x0 = redistributor rd base address for specified core
  // uses x0, x1, x2
-get_gic_rd_base:
+_get_gic_rd_base:
      // get the 0-based core number
     clz  w1, w0
     mov  w2, #0x20
@@ -1114,7 +1116,7 @@ get_gic_rd_base:
  // in:  x0 - core mask lsb of specified core
  // out: x0 = redistributor sgi base address for specified core
  // uses x0, x1, x2
-get_gic_sgi_base:
+_get_gic_sgi_base:
      // get the 0-based core number
     clz  w1, w0
     mov  w2, #0x20

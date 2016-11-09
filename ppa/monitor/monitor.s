@@ -88,6 +88,7 @@ debug_stop:
 
      // configure GIC
     bl   _gic_init_common
+    bl   _get_current_mask
     bl   _gic_init_percpu
 
      // configure the c-runtime
@@ -145,6 +146,7 @@ _secondary_core_init:
      // perform any secondary-core platform security setup here
      //   configure secure mmu
      //   configure gic
+    mov  x0, x6
     bl   _gic_init_percpu
 
      // configure c-runtime support for this core

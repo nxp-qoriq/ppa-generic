@@ -57,6 +57,9 @@
 .global _soc_core_phase1_clnup
 .global _soc_core_phase2_clnup
 
+.global _get_gic_rd_base
+.global _get_gic_sgi_base
+
 //-----------------------------------------------------------------------------
 
  // register offsets
@@ -504,13 +507,15 @@ _soc_core_restart:
      // x5 = gicd base addr
 
      // generate target list bit
-    mov   x2, x4
-     // insert the SGI 15 INTID
-    orr   x2, x2, #ICC_SGI0R_EL1_INTID
-     // extract affinity1
-    and  x3, x0, #MPIDR_AFFINITY1_MASK
-     // combine affinity1 field, target list field, and INTID
-    orr  x2, x2, x3, lsl #8
+    and  x1, x0, #MPIDR_AFFINITY0_MASK
+    mov  x2, #1
+    lsl  x2, x2, x1
+     // get the affinity1 field
+    and  x1, x0, #MPIDR_AFFINITY1_MASK
+    lsl  x1, x1, #8
+    orr  x2, x2, x1
+     // insert the INTID for SGI15
+    orr  x2, x2, #ICC_SGI0R_EL1_INTID
      // fire the SGI
     msr  ICC_SGI0R_EL1, x2
     dsb  sy
@@ -886,9 +891,10 @@ _soc_core_phase1_off:
     mov  x0, #1
     bl   _cln_inv_L1_dcache
 
-     // FIQ taken to EL3, set SCR_EL3[FIQ]
+     // IRQ & FIQ taken to EL3, set SCR_EL3[FIQ+IRQ]
     mrs   x0, scr_el3
     orr   x0, x0, #SCR_FIQ_MASK
+    orr   x0, x0, #SCR_IRQ_MASK
     msr   scr_el3, x0
 
     dsb  sy
@@ -913,12 +919,12 @@ _soc_core_phase2_off:
 
      // get redistributor rd base addr for this core
     mov  x0, x7
-    bl   get_gic_rd_base
+    bl   _get_gic_rd_base
     mov  x6, x0
 
      // get redistributor sgi base addr for this core
     mov  x0, x7
-    bl   get_gic_sgi_base
+    bl   _get_gic_sgi_base
     mov  x5, x0
 
      // x5 = gicr sgi base addr
@@ -960,6 +966,8 @@ _soc_core_phase2_off:
      // enable SGI 15 at redistributor - GICR_ISENABLER0
     mov  w3, #GICR_ISENABLER0_SGI15
     str  w3, [x5, #GICR_ISENABLER0_OFFSET]
+    dsb  sy
+    isb
 3:
      // poll on rwp bit in GICR_CTLR
     ldr  w4, [x6, #GICR_CTLR_OFFSET]
@@ -974,16 +982,9 @@ _soc_core_phase2_off:
 
      // x6 = gicr rd  base addr
 
-     // set ProcessorSleep
-    ldr  w3, [x6, #GICR_WAKER_OFFSET]
-    orr  w3, w3, #GICR_WAKER_PROCSLEEP
-    str  w3, [x6, #GICR_WAKER_OFFSET]
-
-     // poll on ChildrenAsleep til it goes high
-1:
-    ldr  w3, [x6, #GICR_WAKER_OFFSET]
-    tst  w3, #GICR_WAKER_CHILDSLEEP
-    b.eq 1b
+     // enable grp0 ints
+    mov  x3, #ICC_IGRPEN0_EL1_EN
+    msr  ICC_IGRPEN0_EL1, x3
 
     mov  x30, x8
     ret
@@ -1003,7 +1004,7 @@ _soc_core_entr_off:
      // x5 = core mask lsb
 
      // get redistributor sgi base addr for this core
-    bl   get_gic_sgi_base
+    bl   _get_gic_sgi_base
     mov  x4, x0
 
      // clear any pending interrupts
@@ -1033,17 +1034,20 @@ _soc_core_entr_off:
     dsb  sy
     isb
 
-     // enable the timer base
-    mov  x1, #TIMER_BASE_ADDR
-    mov  x2, #CNTCR_EN
-    str  w2, [x1, #TIMER_CNTCR_OFFSET]
+     // x5 = core mask lsb
 
+     // make sure system counter is enabled
+    ldr  x3, =TIMER_BASE_ADDR
+    ldr  w0, [x3, #SYS_COUNTER_CNTCR_OFFSET]
+    tst  w0, #SYS_COUNTER_CNTCR_EN
+    b.ne 2f
+    orr  w0, w0, #SYS_COUNTER_CNTCR_EN
+    str  w0, [x3, #SYS_COUNTER_CNTCR_OFFSET]
+2:
      // enable the core timer and mask timer interrupt
     mov  x1, #CNTP_CTL_EL0_EN
     orr  x1, x1, #CNTP_CTL_EL0_IMASK
     msr  cntp_ctl_el0, x1
-
-     // x5 = core mask lsb
 
      // set retention control in cpuectlr
     mrs  x1, CPUECTLR_EL1
@@ -1058,14 +1062,14 @@ _soc_core_entr_off:
 
      // x5 = core mask lsb
 
-     // see if the wakeup int is pending
-    ldr  w3, [x4, #GICR_ICPENDR0_OFFSET]
-      
-     // if yes, clear it, if not, branch back to wfi
-    tst  w3, #GICR_ICPENDR0_SGI15
-    b.eq 1b
-    mov  w3, #GICR_ICPENDR0_SGI15
-    str  w3, [x4, #GICR_ICPENDR0_OFFSET]
+     // see if SGI15 woke us up
+    mrs  x2, ICC_IAR0_EL1
+    mov  x3, #ICC_IAR0_EL1_SGI15
+    cmp  x2, x3
+    b.ne 1b
+
+     // deactivate the int
+    msr ICC_EOIR0_EL1, x2
 
      // x5 = core mask lsb
     
@@ -1120,9 +1124,10 @@ _soc_core_phase1_clnup:
     bl   _getCoreData
     msr  CPUECTLR_EL1, x0
 
-     // clr SCR_EL3[FIQ]
+     // clr SCR_EL3[FIQ+IRQ]
     mrs   x0, scr_el3
     bic   x0, x0, #SCR_FIQ_MASK
+    bic   x0, x0, #SCR_IRQ_MASK
     msr   scr_el3, x0
 
     isb
@@ -1142,9 +1147,12 @@ _soc_core_phase2_clnup:
 
      // x3 = core mask lsb
 
+     // disable forwarding of GRP0 ints at cpu interface
+    msr  ICC_IGRPEN0_EL1, xzr
+
      // get redistributor sgi base addr for this core
     mov  x0, x3
-    bl   get_gic_sgi_base
+    bl   _get_gic_sgi_base
     mov  x4, x0
 
      // x4 = gicr sgi base addr
@@ -1155,7 +1163,7 @@ _soc_core_phase2_clnup:
 
      // get redistributor rd base addr for this core
     mov  x0, x3
-    bl   get_gic_rd_base
+    bl   _get_gic_rd_base
     mov  x4, x0
 
      // x4 = gicr rd  base addr
@@ -1172,17 +1180,6 @@ _soc_core_phase2_clnup:
     bic  x3, x3, #OSDLR_EL1_DLK_LOCK
     msr  osdlr_el1, x3
     isb
-
-     // clear ProcessorSleep
-    ldr  w3, [x4, #GICR_WAKER_OFFSET]
-    bic  w3, w3, #GICR_WAKER_PROCSLEEP
-    str  w3, [x4, #GICR_WAKER_OFFSET]
-     
-     // poll on ChildrenAsleep to go low
-1:
-    ldr  w3, [x4, #GICR_WAKER_OFFSET]
-    tst  w3, #GICR_WAKER_CHILDSLEEP
-    b.ne 1b
 
     dsb sy
     isb
@@ -1681,7 +1678,7 @@ init_tzasc:
  // in:  x0 - core mask lsb of specified core
  // out: x0 = redistributor rd base address for specified core
  // uses x0, x1, x2
-get_gic_rd_base:
+_get_gic_rd_base:
      // get the 0-based core number
     clz  w1, w0
     mov  w2, #0x20
@@ -1707,7 +1704,7 @@ get_gic_rd_base:
  // in:  x0 - core mask lsb of specified core
  // out: x0 = redistributor sgi base address for specified core
  // uses x0, x1, x2
-get_gic_sgi_base:
+_get_gic_sgi_base:
      // get the 0-based core number
     clz  w1, w0
     mov  w2, #0x20

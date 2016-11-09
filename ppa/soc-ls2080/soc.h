@@ -80,6 +80,10 @@
 #define DCFG_SCRATCHRW7_OFFSET  0x218
 #define DCFG_COREDISR_OFFSET    0x94
 
+ // System Counter Offset and Bit Mask
+#define SYS_COUNTER_CNTCR_OFFSET	0x0
+#define SYS_COUNTER_CNTCR_EN		0x00000001
+
  // timer frequency - 25mhz
 #define  COUNTER_FRQ_EL0 0x017D7840
 

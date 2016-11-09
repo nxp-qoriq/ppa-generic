@@ -20,6 +20,10 @@
 .global _gic_init_percpu
 .global _gic_init_common
 
+.equ  GICR_ISENABLER0_SGI0,  0x1
+.equ  GICR_WAKER_PROCSLEEP,  0x2
+.equ  GICR_WAKER_CHILDSLEEP, 0x4
+
 //-----------------------------------------------------------------------------
 
  // this function performs one-time gic init, executed by the boot core
@@ -63,102 +67,74 @@ _gic_init_common:
 //-----------------------------------------------------------------------------
 
  // perform the per-cpu EL3 initialization of the GIC
- // in:   none
+ // in:   x0 = core mask lsb
  // out:  none
- // uses: x0, x2, x1, x3
+ // uses: x0, x2, x1, x3, x4, x5, x6, x7
 _gic_init_percpu:
+    mov   x7, x30
+    mov   x6, x0
 
-     // get starting base address of the redistributor
-    ldr  x1, =GICR_RD_BASE_ADDR
+     // x6 = core mask lsb
 
-	 // x1 = redistributor base addr
+    mov   x0, x6
+    bl    _get_gic_rd_base
+    mov   x5, x0
 
-	 // initialize gic redistributor for this core
-	mrs	  x2, mpidr_el1
-	lsr	  x3, x2, #32
+     // x5 = gic rd base addr for this core
+     // x6 = core mask lsb
 
-     // w2 = aff3:aff2:aff1:aff0 of this core
-
-	bfi	  x2, x3, #24, #8
-	mov	  x3, x1
+     // clear ProcessorSleep
+    ldr   w3, [x5, #GICR_WAKER_OFFSET]
+    bic   w3, w3, #GICR_WAKER_PROCSLEEP
+    str   w3, [x5, #GICR_WAKER_OFFSET]
+     
+     // poll on ChildrenAsleep to go low
 1:
-    ldr	  x0, [x3, #GICR_TYPER_OFFSET]
-	lsr	  x0, x0, #32
+    ldr   w3, [x5, #GICR_WAKER_OFFSET]
+    tst   w3, #GICR_WAKER_CHILDSLEEP
+    b.ne  1b
 
-     // w0 = aff3:aff2:aff1:aff0 of this redistributor
+    mov   x0, x6
+    bl    _get_gic_sgi_base
+    mov   x5, x0
 
-	cmp	  w2, w0
-	b.eq  2f
-	add   x3, x3, #GIC_RD_OFFSET
-	b     1b
+     // x5 = gic sgi base addr for this core
+     // x6 = core mask lsb
 
-	 // x3 = redistributor base addr of this core
-2:
-    mov   w2, #~0x2
-	ldr   w0, [x3, #GICR_WAKER_OFFSET]
+     // set all PPI/SGI  as group1 
+     // except set SGI15 as group0
+    mvn   w0,  wzr
+    bic   w0,  w0, #GICR_IGROUPR0_SGI15
+    str   w0,  [x5, #GICR_IGROUPR0_OFFSET]
+	str   wzr, [x5, #GICR_IGRPMODR0_OFFSET]
 
-     // clear procesor sleep
-	and   w0, w0, w2
-	str   w0, [x3, #GICR_WAKER_OFFSET]
-	dsb   st
-	isb
-3:
-    ldr   w2, [x3, #GICR_WAKER_OFFSET]
-
-     // wait children be alive
-	tbnz  w2, #2, 3b
-
-     // get this cores sgi base addr
-	add   x2, x3, #GIC_RD_2_SGI_OFFSET
-
-	 // x2 = sgi base addr of this core
-2:
-	mov   w0, #~0
-	str   w0, [x2, #GICR_IGROUPR0_OFFSET]
-     // SGIs|PPIs group1NS
-	str   wzr, [x2, #GICR_IGRPMODR0_OFFSET]
      // enable SGI 0
-	mov   w0, #0x1
-	str   w0, [x2, #GICR_ISENABLER0_OFFSET]
+	mov   w0, #GICR_ISENABLER0_SGI0
+	str   w0, [x5, #GICR_ISENABLER0_OFFSET]
 
-	 // init cpu interface
-	mrs   x2, ICC_SRE_EL3
+     // enable system register access @ EL3
+     // disable IRQ/FIQ bypass @ EL3
+     // allow el2 access
+    mov   x1, #0xF
+	msr   ICC_SRE_EL3, x1
+    isb
 
-     // SRE & disable IRQ/FIQ bypass &
-     // allow EL2 access to ICC_SRE_EL2
-	orr   x2, x2, #0xf
-	msr   ICC_SRE_EL3, x2
-	isb
+     // enable system register access @ EL2
+     // disable IRQ/FIQ bypass @ EL2
+     // allow el1 access
+    mov   x1, #0xF
+	msr   ICC_SRE_EL2, x1
 
-	mrs   x2, ICC_SRE_EL2
-     // SRE & disable IRQ/FIQ bypass &
-     // allow EL1 access to ICC_SRE_EL1
-	orr   x2, x2, #0xf
-	msr   ICC_SRE_EL2, x2
-	isb
-
-     // enableGrp1NS | enableGrp1S
-	mov   x2, #0x3
+     // enable grp1 NS | enable grp1 S
+    mov   x2, #0x3
 	msr   ICC_IGRPEN1_EL3, x2
-	isb
 
-	msr   ICC_CTLR_EL3, xzr
-	isb
-
-     // NonSecure ICC_CTLR_EL1
+     // initialize the el1 control register
 	msr   ICC_CTLR_EL1, xzr
-	isb
 
-     // Non-Secure access to ICC_PMR_EL1
-	mov   x2, #0x1 << 7
+     // set a default priority filter
+    mov   x2, #ICC_PMR_EL1_P_FILTER
 	msr   ICC_PMR_EL1, x2
-
-     // cpu interface setup
-
-     // set SRE access for EL3
-    mrs   x1, ICC_SRE_EL3
-    orr   x1, x1, #ICC_SRE_EL3_SRE
-    msr   ICC_SRE_EL3, x1
 
      // setup ICC_CTLR_EL3
     mrs   x2, ICC_CTLR_EL3
@@ -167,6 +143,8 @@ _gic_init_percpu:
     orr   x2, x2, #ICC_CTLR_EL3_PMHE
     msr   ICC_CTLR_EL3, x2
 
+    isb
+    mov  x30, x7
     ret
 
 //-----------------------------------------------------------------------------
