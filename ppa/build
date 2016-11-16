@@ -153,7 +153,7 @@ if [ "$1" = "all" ]; then
             echo $action $target $option1 $option2 $option3 $option4 for soc-$device >> bldlog.txt
         fi
         cd soc-$device
-        make $target $option1 $option2 $option3 $option4 >> ../bldlog.txt
+        make -j24 $target $option1 $option2 $option3 $option4 >> ../bldlog.txt
         cd ..
     done
 else
@@ -168,7 +168,7 @@ else
                     echo $action $target $option1 $option2 $option3 $option4 for soc-$device >> bldlog.txt
                 fi
                 cd soc-$device
-                make $target $option1 $option2 $option3 $option4 >> ../bldlog.txt
+                make -j24 $target $option1 $option2 $option3 $option4 >> ../bldlog.txt
                 cd ..
                 break
             fi

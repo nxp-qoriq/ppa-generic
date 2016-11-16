@@ -1115,20 +1115,20 @@ psci_completed:
 
      // restore the LR
     mov  x30, x12
-     // zero-out the scratch registers
-    mov  x1,  #0
-    mov  x2,  #0
-    mov  x3,  #0
-    mov  x4,  #0
-    mov  x5,  #0
-    mov  x6,  #0
-    mov  x7,  #0
-    mov  x8,  #0
-    mov  x9,  #0
-    mov  x10, #0
-    mov  x11, #0
-    mov  x12, #0
 
+     // zero-out the scratch registers
+    ldr  x1, =REGISTER_OBFUSCATE
+    mvn  x2,  x1
+    mov  x3,  x1
+    mov  x4,  x2
+    mov  x5,  x1
+    mov  x6,  x2
+    mov  x7,  x1
+    mov  x8,  x2
+    mov  x9,  x1
+    mov  x10, x2
+    mov  x11, x1
+    mov  x12, x2
     b    2f
 
 1:   // called from aarch32
@@ -1138,10 +1138,9 @@ psci_completed:
     bl   _restore_aarch32_nvolatile    
 
      // zero-out the scratch registers
-    mov  x1,  #0
-    mov  x2,  #0
-    mov  x3,  #0
-
+    ldr  x1, =REGISTER_OBFUSCATE
+    mvn  x2, x1
+    mov  x3, x1
 2:
      // return from exception
     eret
@@ -1204,115 +1203,6 @@ _initialize_psci:
 
 3:
     mov   x30, x6
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function selects the base address to a cpu data area
- // in:  x0 = core mask lsb
- // out: x0 = base address to core data area
- // uses x0
-get_core_data:
-
-    cmp   x0, #CORE_0_MASK
-    b.ne  1f
-    adr   x0, _cpu0_data
-    b     99f    
-1:
-    cmp   x0, #CORE_1_MASK
-    b.ne  2f
-    adr   x0, cpu1_data
-    b     99f    
-2:
-
-.if (CPU_MAX_COUNT > 2)
-    cmp   x0, #CORE_2_MASK
-    b.ne  3f
-    adr   x0, cpu2_data
-    b     99f    
-3:
-    cmp   x0, #CORE_3_MASK
-    b.ne  4f
-    adr   x0, cpu3_data
-    b     99f    
-4:
-.endif
-
-.if (CPU_MAX_COUNT > 4)
-    cmp   x0, #CORE_4_MASK
-    b.ne  5f
-    adr   x0, cpu4_data
-    b     99f    
-5:
-    cmp   x0, #CORE_5_MASK
-    b.ne  6f
-    adr   x0, cpu5_data
-    b     99f    
-6:
-    cmp   x0, #CORE_6_MASK
-    b.ne  7f
-    adr   x0, cpu6_data
-    b     99f    
-7:
-    cmp   x0, #CORE_7_MASK
-    b.ne  8f
-    adr   x0, cpu7_data
-    b     99f    
-8:
-.endif
-
-.if (CPU_MAX_COUNT > 8)
-    cmp   x0, #CORE_8_MASK
-    b.ne  9f
-    adr   x0, cpu8_data
-    b     99f    
-9:
-    cmp   x0, #CORE_9_MASK
-    b.ne  10f
-    adr   x0, cpu9_data
-    b     99f    
-10:
-    cmp   x0, #CORE_10_MASK
-    b.ne  11f
-    adr   x0, cpu10_data
-    b     99f    
-11:
-    cmp   x0, #CORE_11_MASK
-    b.ne  12f
-    adr   x0, cpu11_data
-    b     99f    
-12:
-.endif
-
-.if (CPU_MAX_COUNT > 12)
-    cmp   x0, #CORE_12_MASK
-    b.ne  13f
-    adr   x0, cpu12_data
-    b     99f    
-13:
-    cmp   x0, #CORE_13_MASK
-    b.ne  14f
-    adr   x0, cpu13_data
-    b     99f    
-14:
-    cmp   x0, #CORE_14_MASK
-    b.ne  15f
-    adr   x0, cpu14_data
-    b     99f    
-15:
-    cmp   x0, #CORE_15_MASK
-    b.ne  16f
-    adr   x0, cpu15_data
-    b     99f    
-16:
-.endif
-
- // if assembly stops here, you need to add more data areas
-.if (CPU_MAX_COUNT > 16)
-.err
-.endif
-
-99:
     ret
 
 //-----------------------------------------------------------------------------

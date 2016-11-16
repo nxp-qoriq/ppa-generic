@@ -83,30 +83,23 @@ PLATFLAGS = $(DBG_FLAGS)                   \
 ifeq ($(MAKECMDGOALS), sim)
     # builds from the platform folder are not supported for target sim
     PLAT_PATH=platform-sim
-    include $(PLAT_PATH)/plat.mk
 else
-    ifeq ($(MAKECMDGOALS), rdb)
-        ifeq ($(PLAT_BUILD), 1)
-            # for a platform-level build, the file is local
-            PLAT_PATH=.
-        else
-            # non-platform build, need path to find file
-            PLAT_PATH=platform-rdb
-        endif
-        include $(PLAT_PATH)/plat.mk
+    ifeq ($(MAKECMDGOALS), sim_out)
+        PLAT_PATH=platform-sim
     else
-        ifeq ($(MAKECMDGOALS), rdb-fit)
+        ifeq ($(MAKECMDGOALS), sim_bin)
+            PLAT_PATH=platform-sim
+        else
             ifeq ($(PLAT_BUILD), 1)
                 # for a platform-level build, the file is local
                 PLAT_PATH=.
             else
-                # non-platform build, need path to find file
                 PLAT_PATH=platform-rdb
             endif
-            include $(PLAT_PATH)/plat.mk
         endif
     endif
 endif
+include $(PLAT_PATH)/plat.mk
 
 # -----------------------------------------------------------------------------
 

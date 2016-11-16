@@ -10,7 +10,7 @@ MONITOR_SRC = $(PRE_PATH)../monitor
 ARMV8_SRC   = $(PRE_PATH)../armv8
 PSCI_SRC    = $(PRE_PATH)../psci
 CMN_SRC     = $(PRE_PATH)../common
-SOC_SRC     = $(PRE_PATH)./
+SOC_SRC     = $(PRE_PATH).
 TEST_SRC    = $(PRE_PATH)../test
 SRC_DIR     = build/src
 OBJ_DIR     = build/obj
@@ -26,6 +26,7 @@ CC64		= $(CROSS_COMPILE)gcc
 LD64		= $(CROSS_COMPILE)ld
 OBJ64		= $(CROSS_COMPILE)objcopy
 MKIMAGE		= mkimage
+MAKE        = @make --no-print-directory
 
 CFLAGS64		= $(CFLAGS) -Wa,-march=armv8-a -Wa,-EL -c
 LDFLAGS64		= --oformat=elf64-littleaarch64
@@ -51,7 +52,7 @@ OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 #------------------------------------------------
 # generic build targets:
 
-.NOTPARALLEL:
+#.NOTPARALLEL:
 
 clean:
 	@rm -f -r build
@@ -64,7 +65,7 @@ cleanout:
 
 monitor.bin: monitor.elf
 bootmain.64.bin: bootmain.64.elf
-monitor.elf: $(HDRS_ASM) $(COMMON_HDRS) $(OBJECTS)
+monitor.elf: $(BUILD_C) $(BUILD_ASM) $(HDRS_ASM) $(COMMON_HDRS) $(OBJECTS)
 
 $(TARGETS):
 	$(OBJ64) -v -O binary $(OBJ_DIR)/$< $(OBJ_DIR)/$@
@@ -83,37 +84,55 @@ ppa.ld: ppa.ld.s obj
 
 #------------------------------------------------
 
-.s.o:
+.s.o: $(BUILD_ASM) $(HDRS_ASM)
 	$(CC64) $(ASFLAGS64) $(PLATFLAGS) $(SRC_DIR)/$< -o $(OBJ_DIR)/$@
 
-.c.o:
+.c.o: $(BUILD_C)
 	$(CC64) $(CFLAGS64) $(PLATFLAGS) $(SRC_DIR)/$< -o $(OBJ_DIR)/$@
 
 ppa.its: src
 	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
 
-$(SRC_SOC) $(HDRS_SOC) $(LINK_ASM): src
+$(SRC_SOC): $(SOC_SRC)/$@ $(HDRS_SOC) src
 	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
 
-$(SRC_PSCI) $(HDRS_PSCI): src
+$(LINK_ASM): $(SOC_SRC)/$@ $(HDRS_SOC) src
+	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+
+$(HDRS_SOC): $(SOC_SRC)/$@ src
+	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+
+$(SRC_PSCI): $(PSCI_SRC)/$@ $(HDRS_PSCI) src
 	@cp $(PSCI_SRC)/$@ $(SRC_DIR)/$@
 
-$(SRC_ARMV8) $(HDRS_ARMV8): src
+$(HDRS_PSCI): $(PSCI_SRC)/$@ src
+	@cp $(PSCI_SRC)/$@ $(SRC_DIR)/$@
+
+$(SRC_ARMV8): $(ARMV8_SRC)/$@ $(HDRS_ARMV8) src
 	@cp $(ARMV8_SRC)/$@ $(SRC_DIR)/$@
 
-$(SRC_MNTR) $(HDRS_MNTR): src
+$(HDRS_ARMV8): $(ARMV8_SRC)/$@ src
+	@cp $(ARMV8_SRC)/$@ $(SRC_DIR)/$@
+
+$(SRC_MNTR): $(MONITOR_SRC)/$@ $(HDRS_MNTR) src
 	@cp $(MONITOR_SRC)/$@ $(SRC_DIR)/$@
 
-$(SRC_PLAT) $(HDRS_PLAT): src
+$(HDRS_MNTR): $(MONITOR_SRC)/$@ src
+	@cp $(MONITOR_SRC)/$@ $(SRC_DIR)/$@
+
+$(SRC_PLAT): $(PLAT_PATH)/$@ $(HDRS_PLAT) src
 	@cp $(PLAT_PATH)/$@ $(SRC_DIR)/$@
 
-$(PLAT_ASM): src
+$(HDRS_PLAT): $(PLAT_PATH)/$@ src
 	@cp $(PLAT_PATH)/$@ $(SRC_DIR)/$@
 
-$(TEST_ASM): src
+$(PLAT_ASM): $(PLAT_PATH)/$@ src
+	@cp $(PLAT_PATH)/$@ $(SRC_DIR)/$@
+
+$(TEST_ASM): $(TEST_SRC)/$@ src
 	@cp $(TEST_SRC)/$@ $(SRC_DIR)/$@
 
-$(COMMON_C) $(COMMON_ASM) $(COMMON_HDRS): src
+$(COMMON_C) $(COMMON_ASM) $(COMMON_HDRS): $(CMMN_SRC)/$@ src
 	@cp $(CMMN_SRC)/$@ $(SRC_DIR)/$@
 
 #------------------------------------------------

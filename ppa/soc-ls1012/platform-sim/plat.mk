@@ -14,11 +14,13 @@
 #
 # builds a ppa bound in with the bootrom code, suitable for execution on any target which
 # does not contain bootrom (simulator, emulator)
-sim:	SIM_BUILD=1
-sim:	cleanout sim_out bootmain.64.bin bootmain.64.elf bootmain.64.elf.rom.rmh0.rmh
+sim:
+	$(MAKE) SIM_BUILD=1 sim_out
+	$(MAKE) SIM_BUILD=1 sim_bin
 sim_out:
 	@echo 'build: image=sim \ $(GIC_FILE) \ $(INTER_FILE) \ debug $(DBG) \ test "$(TEST)"'
 	@echo
+sim_bin: bootmain.64.elf.rom.rmh0.rmh
 
 # -----------------------------------------------------------------------------
 
@@ -50,7 +52,7 @@ TEST_ASM =$(TEST_FILE)
 
 # -----------------------------------------------------------------------------
 
-bootmain.64.elf.rom.rmh0.rmh: bootmain.64.elf
+bootmain.64.elf.rom.rmh0.rmh: bootmain.64.elf bootmain.64.bin
 	perl $(CMMN_SRC)/elf-to-rmh.prl -f $(OBJ_DIR)/bootmain.64.elf > $(OBJ_DIR)/log.txt
 
 # -----------------------------------------------------------------------------

@@ -14,15 +14,17 @@
 # -----------------------------------------------------------------------------
 #
 # builds a binary image for the rdb board
-rdb:	SIM_BUILD=0
-rdb:	cleanout rdb_out monitor.bin monitor.elf
+rdb: 
+	$(MAKE) SIM_BUILD=0 rdb_out
+	$(MAKE) SIM_BUILD=0 monitor.bin
 rdb_out:
 	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ debug $(DBG) \ test "$(TEST)"'
 	@echo
 
 # builds a fit image for the rdb board
-rdb-fit:	SIM_BUILD=0
-rdb-fit:	cleanout rdb_fit_out ppa.itb monitor.bin
+rdb-fit: 
+	$(MAKE) SIM_BUILD=0 rdb_fit_out
+	$(MAKE) SIM_BUILD=0 ppa.itb
 rdb_fit_out:
 	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ debug $(DBG) \ test "$(TEST)"'
 	@echo

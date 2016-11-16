@@ -22,6 +22,20 @@ Devices Supported:
     LS2088A
     UA
 
+Date: 11/16/2016 --------------------------------------------------------------
+
+1) Added support for parallel builds, at all levels.
+   The .NOTPARALLEL pseudo-target has been removed from the makefiles, and
+   make -j24 is supported for builds at all levels. The "-j24" parameter has also
+   been added to the make coomands in the top level "build" script.
+
+2) For devices with CCI-400 intercnnects, clearing the "terminate barriers" bit
+   in the Control Override register. This bit is set by bootloader as a WA for
+   an issue with uninitialized ddr not responding to barrier requests, resulting
+   in device hang. The bit needs to be cleared after ddr is up.
+
+//- end 11/16/2016 update -----------------------------------------------------
+
 Date: 10/25/2016 --------------------------------------------------------------
 
 1) Added core timer enable in _soc_core_entr_off() for LS2088.
