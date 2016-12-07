@@ -93,14 +93,8 @@ ppa.ld: ppa.ld.s obj
 ppa.its: src
 	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
 
-$(SRC_SOC): $(SOC_SRC)/$@ $(HDRS_SOC) src
-	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
-
-$(LINK_ASM): $(SOC_SRC)/$@ $(HDRS_SOC) src
-	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
-
-$(HDRS_SOC): $(SOC_SRC)/$@ src
-	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+$(SRC_SOC) $(HDRS_SOC) $(LINK_ASM): src
+	cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
 
 $(SRC_PSCI): $(PSCI_SRC)/$@ $(HDRS_PSCI) src
 	@cp $(PSCI_SRC)/$@ $(SRC_DIR)/$@
