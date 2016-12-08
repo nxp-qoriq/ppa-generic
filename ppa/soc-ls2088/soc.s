@@ -497,58 +497,14 @@ _soc_core_restart:
     b.ne 4b   
 
      // x4 = core mask lsb
-
-     // get redistributor sgi base addr for this core
-    mov  x0, x4
-    bl   _get_gic_sgi_base
-    mov  x5, x0
-
-     // x4 = core mask lsb
-     // x5 = sgi base addr
-
-     // program the redistributor - poll on GICR_CTLR.RWP as needed
-
-     // define SGI 15 as Grp0 - GICR_IGROUPR0
-    ldr  w2, [x5, #GICR_IGROUPR0_OFFSET]
-    bic  w2, w2, #GICR_IGROUPR0_SGI15
-    str  w2, [x5, #GICR_IGROUPR0_OFFSET]
-
-     // define SGI 15 as Grp0 - GICR_IGRPMODR0
-    ldr  w3, [x5, #GICR_IGRPMODR0_OFFSET]
-    bic  w3, w3, #GICR_IGRPMODR0_SGI15
-    str  w3, [x5, #GICR_IGRPMODR0_OFFSET]
-
-     // set priority of SGI 15 to highest (0x0) - GICR_IPRIORITYR3
-    ldr  w2, [x5, #GICR_IPRIORITYR3_OFFSET]
-    bic  w2, w2, #GICR_IPRIORITYR3_SGI15_MASK
-    str  w2, [x5, #GICR_IPRIORITYR3_OFFSET]
-
-     // enable SGI 15 at redistributor - GICR_ISENABLER0
-    mov  w3, #GICR_ISENABLER0_SGI15
-    str  w3, [x5, #GICR_ISENABLER0_OFFSET]
-    dsb  sy
-    isb
-
-     // get redistributor rd base addr for this core
-    mov  x0, x4
-    bl   _get_gic_rd_base
-    mov  x3, x0
-
-     // x3 = rd base addr
-     // x4 = core mask lsb
-3:
-     // poll on rwp bit in GICR_CTLR
-    ldr  w2, [x3, #GICR_CTLR_OFFSET]
-    tst  w2, #GICR_CTLR_RWP_MASK
-    b.ne 3b
-
-     // x4 = core mask lsb
+     // x5 = gicd base addr
 
     mov  x0, x4
     bl   get_mpidr_value
 
      // x0 = mpidr of target core
      // x4 = core mask lsb of target core
+     // x5 = gicd base addr
 
      // generate target list bit
     and  x1, x0, #MPIDR_AFFINITY0_MASK
@@ -566,6 +522,7 @@ _soc_core_restart:
     isb
 
      // x4 = core mask lsb
+     // x5 = gicd base addr
 
     ldr  x3, =RESTART_RETRY_CNT
 
@@ -972,21 +929,48 @@ _soc_core_phase2_off:
      // x6 = gicr rd  base addr
      // x7 = core mask lsb
 
+     // disable SGI 15 at redistributor - GICR_ICENABLER0
+    mov  w3, #GICR_ICENABLER0_SGI15
+    str  w3, [x5, #GICR_ICENABLER0_OFFSET]
+2:
+     // poll on rwp bit in GICR_CTLR
+    ldr  w4, [x6, #GICR_CTLR_OFFSET]
+    tst  w4, #GICR_CTLR_RWP_MASK
+    b.ne 2b
+
      // disable GRP1 interrupts at cpu interface
     msr  ICC_IGRPEN1_EL3, xzr
 
+     // disable GRP0 ints at cpu interface
+    msr  ICC_IGRPEN0_EL1, xzr
+
      // program the redistributor - poll on GICR_CTLR.RWP as needed
+
+     // define SGI 15 as Grp0 - GICR_IGROUPR0
+    ldr  w4, [x5, #GICR_IGROUPR0_OFFSET]
+    bic  w4, w4, #GICR_IGROUPR0_SGI15
+    str  w4, [x5, #GICR_IGROUPR0_OFFSET]
+
+     // define SGI 15 as Grp0 - GICR_IGRPMODR0
+    ldr  w3, [x5, #GICR_IGRPMODR0_OFFSET]
+    bic  w3, w3, #GICR_IGRPMODR0_SGI15
+    str  w3, [x5, #GICR_IGRPMODR0_OFFSET]
+
+     // set priority of SGI 15 to highest (0x0) - GICR_IPRIORITYR3
+    ldr  w4, [x5, #GICR_IPRIORITYR3_OFFSET]
+    bic  w4, w4, #GICR_IPRIORITYR3_SGI15_MASK
+    str  w4, [x5, #GICR_IPRIORITYR3_OFFSET]
 
      // enable SGI 15 at redistributor - GICR_ISENABLER0
     mov  w3, #GICR_ISENABLER0_SGI15
     str  w3, [x5, #GICR_ISENABLER0_OFFSET]
     dsb  sy
     isb
-2:
+3:
      // poll on rwp bit in GICR_CTLR
     ldr  w4, [x6, #GICR_CTLR_OFFSET]
     tst  w4, #GICR_CTLR_RWP_MASK
-    b.ne 2b
+    b.ne 3b
 
      // quiesce the debug interfaces
     mrs  x3, osdlr_el1

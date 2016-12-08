@@ -13,7 +13,12 @@
 
 //-----------------------------------------------------------------------------
 
+#include "aarch64.h"
 #include "soc.h"
+
+//-----------------------------------------------------------------------------
+
+#define  ICC_SRE_EL1     S3_0_C12_C12_5
 
 //-----------------------------------------------------------------------------
 
@@ -122,8 +127,25 @@ _gic_init_percpu:
      // enable system register access @ EL2
      // disable IRQ/FIQ bypass @ EL2
      // allow el1 access
-    mov   x1, #0xF
+    mov   x1, #0x7
 	msr   ICC_SRE_EL2, x1
+
+     // enable system register access @ EL1 (NS)
+     // disable IRQ/FIQ bypass @ EL1
+     // allow el1 access
+    mov   x1, #0x7
+	msr   ICC_SRE_EL1, x1
+     // must clr SCR_EL3.NS for access to ICC_SRE_EL1(S)
+    mrs  x2, SCR_EL3
+    bic  x2, x2, #SCR_EL3_NS_MASK
+    msr  SCR_EL3, x2
+    isb
+     // enable system register access @ EL1 (S)
+	msr  ICC_SRE_EL1, x1
+     // reset SCR_EL3.NS
+    orr  x2, x2, #SCR_EL3_NS_MASK
+    msr  SCR_EL3, x2
+    isb
 
      // enable grp1 NS | enable grp1 S
     mov   x2, #0x3

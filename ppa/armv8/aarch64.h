@@ -94,6 +94,7 @@
 .equ  SCR_EL3_HCE_EN,         0x100
 .equ  SCR_EL3_SIF_DIS,        0x200
 .equ  SCR_EL3_FIQ_EN,         0x4
+.equ  SCR_EL3_NS_MASK,        0x1
 
 .equ  SPSEL_SP,               0x1
 
