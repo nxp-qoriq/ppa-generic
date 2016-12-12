@@ -73,7 +73,7 @@ _smc32_std_svc:
     ldr  x10, =PSCI32_CPU_SUSPEND_ID
     and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
-    b.eq smc64_psci_cpu_suspend
+    b.eq smc32_psci_cpu_suspend
 
      // is this CPU_OFF
     ldr  x10, =PSCI_CPU_OFF_ID
@@ -85,7 +85,7 @@ _smc32_std_svc:
     ldr  x10, =PSCI32_CPU_ON_ID
     and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
-    b.eq smc64_psci_cpu_on
+    b.eq smc32_psci_cpu_on
 
      // is this SYSTEM_OFF
     ldr  x10, =PSCI_SYSTEM_OFF
@@ -109,12 +109,25 @@ _smc32_std_svc:
     ldr  x10, =PSCI32_AFFINITY_INFO_ID
     and  w10, w10, #PSCI_FUNCTION_MASK
     cmp  w10, w11
-    b.eq smc64_psci_affinity_info
+    b.eq smc32_psci_affinity_info
 
      // if we are here then we have an unimplemented/unrecognized function
     b _smc_unimplemented
 
 //-----------------------------------------------------------------------------
+
+ // this is the 32-bit interface to the 64-bit cpu_suspend function
+ // Note that this interface falls directly thru to the 64-bit entry
+smc32_psci_cpu_suspend:
+     // make sure bits 63:32 in the registers containing input parameters
+     // are zeroed-out
+     // for this function, input parameters are in x1-x3
+    lsl  x1, x1, #32
+    lsl  x2, x2, #32
+    lsl  x3, x3, #32
+    lsr  x1, x1, #32
+    lsr  x2, x2, #32
+    lsr  x3, x3, #32
 
 smc64_psci_cpu_suspend:
      // x0 = function id
@@ -574,6 +587,19 @@ system_in_pwrdn:
 
 //-----------------------------------------------------------------------------
 
+ // this is the 32-bit interface to the 64-bit cpu_on function
+ // Note that this interface falls directly thru to the 64-bit entry
+smc32_psci_cpu_on:
+     // make sure bits 63:32 in the registers containing input parameters
+     // are zeroed-out
+     // for this function, input parameters are in x1-x3
+    lsl  x1, x1, #32
+    lsl  x2, x2, #32
+    lsl  x3, x3, #32
+    lsr  x1, x1, #32
+    lsr  x2, x2, #32
+    lsr  x3, x3, #32
+
 smc64_psci_cpu_on:
      // x0   = function id 
      // x1   = target cpu (mpidr)
@@ -791,6 +817,17 @@ core_is_off:
     b    psci_success
 
 //-----------------------------------------------------------------------------
+
+ // this is the 32-bit interface to the 64-bit affinity info function
+ // Note that this interface falls directly thru to the 64-bit entry
+smc32_psci_affinity_info:
+     // make sure bits 63:32 in the registers containing input parameters
+     // are zeroed-out
+     // for this function, input parameters are in x1-x2
+    lsl  x1, x1, #32
+    lsl  x2, x2, #32
+    lsr  x1, x1, #32
+    lsr  x2, x2, #32
 
 smc64_psci_affinity_info:
      // x1 = target_affinity
