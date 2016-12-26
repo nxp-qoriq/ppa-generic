@@ -292,7 +292,7 @@ _soc_sys_exit_stdby:
  // in:  x0 = core mask lsb
  // out: x0 = 0, success
  //      x0 < 0, failure
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x13, x16, x17
 _soc_sys_entr_pwrdn:
     mov  x10, x30
 
@@ -1651,7 +1651,7 @@ prep_init_ocram_lo:
  //      w16 = DEVDISR4 saved value
  //      w17 = DEVDISR5 saved value
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x13, x16, x17
 
  // 4Kb aligned
 .align 12

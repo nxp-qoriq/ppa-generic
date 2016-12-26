@@ -20,7 +20,7 @@
 
  // must be kept in synch with SmcDataStruc
  // Note: size must be a quad-word multiple
-#define SMC_DATA_OFFSET   0x80
+#define SMC_DATA_OFFSET   0xc0
 
  // function return values
 #define  SMC_SUCCESS         0
@@ -51,5 +51,7 @@
 #define  ARCH_EL2_2_AARCH32_ID  0xC000FF04
 
 //-----------------------------------------------------------------------------
+
+.equ REGISTER_OBFUSCATE, 0xA5A5A5A5A5A5A5A5
 
 #endif // _SMC_H

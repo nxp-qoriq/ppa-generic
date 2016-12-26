@@ -164,7 +164,6 @@
  //  w/CoreDataStruc in psci_data.h
 .equ CORE_DATA_OFFSET,  0x80
 
-.equ REGISTER_OBFUSCATE, 0xA5A5A5A5A5A5A5A5
 
 //-----------------------------------------------------------------------------
 

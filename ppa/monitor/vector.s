@@ -19,6 +19,7 @@
 
   .global _el3_vector_base
   .global __el3_dead_loop
+  .global _smc_exit
  
 //-----------------------------------------------------------------------------
 
@@ -162,10 +163,6 @@ a64smc_router:
     ldr   x1,  [sp, #0x10]
     ldr   x2,  [sp, #0x18]
     ldr   x3,  [sp, #0x20]
-    str   xzr, [sp, #0x8]
-    str   xzr, [sp, #0x10]
-    str   xzr, [sp, #0x18]
-    str   xzr, [sp, #0x20]
     dsb   sy
     isb
 
@@ -211,6 +208,10 @@ a32smc_router:
     str   x12, [sp, #0x68]
     str   x13, [sp, #0x70]
     str   x14, [sp, #0x78]
+    str   x15, [sp, #0x80]
+    str   x16, [sp, #0x88]
+    str   x17, [sp, #0x90]
+    str   x30, [sp, #0x98]
 
      // set the aarch32 flag
     mov   x5, #SMC_AARCH32_MODE
@@ -221,12 +222,6 @@ a32smc_router:
     ldr   x1,  [sp, #0x10]
     ldr   x2,  [sp, #0x18]
     ldr   x3,  [sp, #0x20]
-
-     // clear the data area
-    str   xzr, [sp, #0x8]
-    str   xzr, [sp, #0x10]
-    str   xzr, [sp, #0x18]
-    str   xzr, [sp, #0x20]
 
     dsb  sy
     isb
@@ -239,4 +234,103 @@ __el3_dead_loop:
     b __el3_dead_loop
 
 //-----------------------------------------------------------------------------
+
+_smc_exit:
+     // x0 = status code
+    str   x0, [sp, #0x8]
+
+     // called from aarch32 or aarch64?
+    bl    _get_aarch_flag
+    cbnz  x0, 1f
+
+     // called from aarch64
+
+     // restore the LR
+    mov  x30, x12
+
+     // zero-out the scratch registers
+    ldr  x1, =REGISTER_OBFUSCATE
+    mvn  x2,  x1
+    mov  x3,  x1
+    mov  x4,  x2
+    mov  x5,  x1
+    mov  x6,  x2
+    mov  x7,  x1
+    mov  x8,  x2
+    mov  x9,  x1
+    mov  x10, x2
+    mov  x11, x1
+    mov  x12, x2
+
+    b    2f
+
+1:   // called from aarch32
+
+     // restore the aarch32 non-volatile registers
+     // clear the aarch32 flag
+    str   xzr,  [sp, #0x0]
+
+     // restore the non-volatile registers
+    ldr   x4,  [sp, #0x28]
+    ldr   x5,  [sp, #0x30]
+    ldr   x6,  [sp, #0x38]
+    ldr   x7,  [sp, #0x40]
+    ldr   x8,  [sp, #0x48]
+    ldr   x9,  [sp, #0x50]
+    ldr   x10, [sp, #0x58]
+    ldr   x11, [sp, #0x60]
+    ldr   x12, [sp, #0x68]
+    ldr   x13, [sp, #0x70]
+    ldr   x14, [sp, #0x78]
+    ldr   x15, [sp, #0x80]
+    ldr   x16, [sp, #0x88]
+    ldr   x17, [sp, #0x90]
+    ldr   x30, [sp, #0x98]
+
+     // clear the data area
+    str   xzr, [sp, #0x28]
+    str   xzr, [sp, #0x30]
+    str   xzr, [sp, #0x38]
+    str   xzr, [sp, #0x40]
+    str   xzr, [sp, #0x48]
+    str   xzr, [sp, #0x50]
+    str   xzr, [sp, #0x58]
+    str   xzr, [sp, #0x60]
+    str   xzr, [sp, #0x68]
+    str   xzr, [sp, #0x70]
+    str   xzr, [sp, #0x78]
+    str   xzr, [sp, #0x80]
+    str   xzr, [sp, #0x88]
+    str   xzr, [sp, #0x90]
+    str   xzr, [sp, #0x98]
+
+     // zero-out the scratch registers
+    ldr   x1, =REGISTER_OBFUSCATE
+    mvn   x2, x1
+    mov   x3, x1
+
+2:
+     // x0 = status code
+    ldr   x0,  [sp, #0x8]
+
+    dsb  sy
+    isb
+
+     // return from exception
+    eret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the execution state the smc was called from
+ // in:  none
+ // out: x0 = SMC_AARCH32_MODE or SMC_AARCH64_MODE
+ // uses x0,
+_get_aarch_flag:
+
+    ldr  x0, [sp, #0x0]
+
+    ret
+
+//-----------------------------------------------------------------------------
+
 

@@ -29,7 +29,7 @@ SRC_PSCI   =psci.s
 HDRS_PSCI  =psci.h psci_data.h
 
 # add soc-specific source and headers here
-SRC_SOC    =bootmain.64.s nonboot64.s soc.s vector.s
+SRC_SOC    =bootmain.64.s nonboot64.s soc.s
 HDRS_SOC   =soc.h soc.mac
 
 # add arm-specific source and headers here
@@ -37,7 +37,7 @@ SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
 HDRS_ARMV8 =aarch64.h
 
 # add security-monitor source and headers here
-SRC_MNTR   =monitor.s smc64.s smc32.s
+SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
 HDRS_MNTR  =smc.h smc_data.h
 
 # add platform-specific source and headers here

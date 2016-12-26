@@ -1139,48 +1139,7 @@ psci_success:
 
 psci_completed:
      // x0 = status code
-    mov  x5, x0
-
-     // called from aarch32 or aarch64?
-    bl   _get_aarch_flag
-    cbnz  x0, 1f
-
-     // called from aarch64
-
-     // restore the return code
-    mov  x0, x5
-
-     // restore the LR
-    mov  x30, x12
-
-     // zero-out the scratch registers
-    ldr  x1, =REGISTER_OBFUSCATE
-    mvn  x2,  x1
-    mov  x3,  x1
-    mov  x4,  x2
-    mov  x5,  x1
-    mov  x6,  x2
-    mov  x7,  x1
-    mov  x8,  x2
-    mov  x9,  x1
-    mov  x10, x2
-    mov  x11, x1
-    mov  x12, x2
-    b    2f
-
-1:   // called from aarch32
-    mov  x0, x5
-
-     // restore the aarch32 non-volatile registers
-    bl   _restore_aarch32_nvolatile    
-
-     // zero-out the scratch registers
-    ldr  x1, =REGISTER_OBFUSCATE
-    mvn  x2, x1
-    mov  x3, x1
-2:
-     // return from exception
-    eret
+    b  _smc_exit
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
