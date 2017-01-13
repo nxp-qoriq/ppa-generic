@@ -51,7 +51,7 @@ SECTIONS
 
      // Place Stack End at PPA Limit to allow max Stack Depth
 
-    ASSERT(. <= PPA_SIZE, "Not sufficient space") . = PPA_SIZE ;
+//    ASSERT(. <= PPA_SIZE, "Not sufficient space") . = PPA_SIZE ;
 
     __PPA_END__ = PPA_SIZE;
 

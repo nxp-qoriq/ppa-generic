@@ -91,13 +91,22 @@ debug_stop:
     bl   _get_current_mask
     bl   _gic_init_percpu
 
+#if 0
      // configure the c-runtime
     bl set_runtime_env
-
     bl  _ppa_main
+#else
+    bl set_runtime_env
+
+     // init uart
+    bl   uart_init
+
+    bl   soc_errata
+    bl   timer_init
+#endif
 
      // setup i2c and initialize ddr
-    bl   _init_i2c 
+    bl   i2c_init
     bl   _init_ddr
 
      // exit the monitor
@@ -411,6 +420,7 @@ _mon_core_restart:
  // this function sets up c runtime env
 set_runtime_env:
 
+#if 0
      // BSS Section need not be zeroized - linker will pad with zero
 
      // set Core Stack - SPSel - EL3
@@ -418,6 +428,11 @@ set_runtime_env:
     msr spsel, x0
     m_get_cur_stack_top x0, x1, x2
     mov sp, x0
+#else
+	 // Debug in NOR, set stack at the top of ocram
+	ldr	x0, =(OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES)
+	bic	sp, x0, #0xf
+#endif
 
     ret
 

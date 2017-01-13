@@ -41,7 +41,7 @@ SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
 HDRS_MNTR  =smc.h smc_data.h
 
 # add platform-specific source and headers here
-SRC_PLAT   =ddr_init.c i2c.c
+SRC_PLAT   =ddr_init.c
 HDRS_PLAT  =policy.h
 
  # add platform-specific asm sources here
