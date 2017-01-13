@@ -18,7 +18,7 @@ sim:
 	$(MAKE) SIM_BUILD=1 sim_out
 	$(MAKE) SIM_BUILD=1 sim_bin
 sim_out:
-	@echo 'build: image=sim \ $(GIC_FILE) \ $(INTER_FILE) \ debug $(DBG) \ test "$(TEST)"'
+	@echo 'build: image=sim \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR):$(PLAT) \ debug $(DBG) \ test "$(TEST)"'
 	@echo
 sim_bin: bootmain.64.elf.rom.rmh0.rmh
 
@@ -40,15 +40,39 @@ HDRS_ARMV8 =aarch64.h
 SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
 HDRS_MNTR  =smc.h smc_data.h
 
-# add platform-specific source and headers here
-SRC_PLAT   =ddr_init.c
-HDRS_PLAT  =policy.h
-
  # add platform-specific asm sources here
 PLAT_ASM =
 
+# add platform-specific C source and headers here
+SRC_PLAT   =
+HDRS_PLAT  =policy.h
+
  # add platform-test-specific asm sources here
 TEST_ASM =$(TEST_FILE)
+
+ifeq ($(DDR_BLD), 1)
+  # add soc-specific C source and headers here
+  CSRC_SOC   =
+  CHDRS_SOC  =
+
+  # add ddr-specific source and headers here
+  DDR_C    =ddr_init.c
+  DDR_HDRS =config.h plat.h
+
+  # add sources for the ddr, i2c, and uart drivers here
+  DRIVER_C = utility.c regs.c ddr.c ddrc.c dimm.c opts.c debug.c crc32.c spd.c \
+	addr.c uart.c i2c.c timer.c
+  DRIVER_HDRS = utility.h lsch2.h immap.h ddr.h dimm.h opts.h regs.h debug.h \
+	errno.h io.h i2c.h lib.h timer.h uart.h
+else
+  CSRC_SOC    =
+  CHDRS_SOC   =
+  DDR_C       =
+  DDR_HDRS    =
+  DRIVER_C    =
+  DRIVER_HDRS =
+endif
+
 
 # -----------------------------------------------------------------------------
 

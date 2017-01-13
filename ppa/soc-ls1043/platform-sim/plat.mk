@@ -32,6 +32,10 @@ HDRS_PSCI  =psci.h psci_data.h
 SRC_SOC    =bootmain.64.s nonboot64.s soc.s
 HDRS_SOC   =soc.h soc.mac
 
+# add soc-specific C source and headers here
+CSRC_SOC   =
+CHDRS_SOC  =
+
 # add arm-specific source and headers here
 SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
 HDRS_ARMV8 =aarch64.h
@@ -40,15 +44,27 @@ HDRS_ARMV8 =aarch64.h
 SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
 HDRS_MNTR  =smc.h smc_data.h
 
-# add platform-specific source and headers here
-SRC_PLAT   =ddr_init.c
-HDRS_PLAT  =policy.h
-
  # add platform-specific asm sources here
 PLAT_ASM =
 
  # add platform-test-specific asm sources here
 TEST_ASM =$(TEST_FILE)
+
+# add platform-specific source and headers here
+ifeq ($(DDR_BLD), 1)
+  SRC_PLAT   =ddr_init.c
+  HDRS_PLAT  =policy.h config.h ls1028ardb.h
+
+  DRIVER_C = utility.c regs.c ddr.c ddrc.c dimm.c opts.c debug.c crc32.c spd.c \
+	addr.c uart.c i2c.c timer.c
+  DRIVER_HDRS = utility.h lsch2.h immap.h ddr.h dimm.h opts.h regs.h debug.h \
+	errno.h io.h i2c.h lib.h timer.h uart.h
+else
+  SRC_PLAT    =
+  HDRS_PLAT   =policy.h
+  DRIVER_C    =
+  DRIVER_HDRS =
+endif
 
 # -----------------------------------------------------------------------------
 

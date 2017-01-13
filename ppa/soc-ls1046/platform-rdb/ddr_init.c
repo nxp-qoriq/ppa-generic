@@ -36,7 +36,7 @@
 #include "io.h"
 #include "lsch2.h"
 #include "ddr.h"
-#include "ls1046ardb.h"
+#include "plat.h"
 #include "timer.h"
 
 void ddr_board_options(struct ddr_info *priv)

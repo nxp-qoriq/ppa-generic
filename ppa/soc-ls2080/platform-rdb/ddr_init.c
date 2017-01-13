@@ -35,7 +35,7 @@
 #include "lib.h"
 #include "io.h"
 #include "ddr.h"
-#include "ls2080ardb.h"
+#include "plat.h"
 #include "timer.h"
 
 void ddr_board_options(struct ddr_info *priv)

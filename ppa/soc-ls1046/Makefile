@@ -59,6 +59,13 @@ else
     DBG_FLAGS=
 endif
 
+# select if ddr is initialized
+ifeq ($(DDR), on)
+    DDR_BLD=1
+else
+    DDR_BLD=0
+endif
+
 # -----------------------------------------------------------------------------
 
 # include the test infrastructure
@@ -69,6 +76,7 @@ include $(TEST_SRC)/test.mk
 
 PLATFLAGS = $(DBG_FLAGS)                   \
 	-DDEBUG_BUILD=$(DBG_BLD)               \
+    -DDDR_INIT=$(DDR_BLD)                  \
 	-DSIMULATOR_BUILD=$(SIM_BUILD)         \
 	-DPSCI_TEST=$(TEST_PSCI)               \
 	-DCPU_MAX_COUNT=$(NUMBER_OF_CORES)     \
@@ -101,6 +109,27 @@ else
 endif
 include $(PLAT_PATH)/plat.mk
 
+# set the path to the ddr-specific sources
+ifeq ($(PLAT_PATH), platform-sim)
+    ifeq ($(PLAT), rdb)
+        DDR_PATH=platform-rdb
+    else
+        ifeq ($(PLAT), qds)
+            DDR_PATH=
+            $(error -> qds board not supported!)
+        else
+            ifeq ($(DDR), on)
+                DDR_PATH=
+                $(error -> simulated ddr platform (PLAT) not specified!)
+            else
+                DDR_PATH=
+            endif
+        endif
+    endif
+else
+    DDR_PATH=$(PLAT_PATH)
+endif
+
 # -----------------------------------------------------------------------------
 
 help:	help_out
@@ -111,6 +140,7 @@ help_out:
 	@echo 'options:'
 	@echo '  TEST=smp_boot|hotplug|off_abort|suspend'
 	@echo '  DBG=off|on'
+	@echo '  DDR=off|on'
 	@echo
 
 # -----------------------------------------------------------------------------
