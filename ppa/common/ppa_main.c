@@ -3,6 +3,13 @@
 //
 //-----------------------------------------------------------------------------
 
+#if (DDR_INIT)
+
+void _init_ddr(void) __attribute__ ((weak));
+void _init_ddr(void)
+{
+}
+
 void uart_init(void) __attribute__ ((weak));
 void uart_init(void)
 {
@@ -22,6 +29,8 @@ void soc_errata(void) __attribute__ ((weak));
 void soc_errata(void)
 {
 }
+
+#endif
 
 //-----------------------------------------------------------------------------
 

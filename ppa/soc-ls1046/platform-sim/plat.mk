@@ -73,7 +73,6 @@ else
   DRIVER_HDRS =
 endif
 
-
 # -----------------------------------------------------------------------------
 
 bootmain.64.elf.rom.rmh0.rmh: bootmain.64.elf bootmain.64.bin

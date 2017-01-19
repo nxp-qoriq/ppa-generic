@@ -47,12 +47,16 @@ PLAT_ASM =
 SRC_PLAT   =
 HDRS_PLAT  =policy.h
 
+# add platform-specific C source and headers here
+SRC_PLAT   =
+HDRS_PLAT  =policy.h
+
 # add platform-test-specific asm sources here
 TEST_ASM =$(TEST_FILE)
 
 ifeq ($(DDR_BLD), 1)
   # add soc-specific C source and headers here
-  CSRC_SOC   =errata.c
+  CSRC_SOC   =
   CHDRS_SOC  =
 
   # add ddr-specific source and headers here

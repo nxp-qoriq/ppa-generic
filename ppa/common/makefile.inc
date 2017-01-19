@@ -20,7 +20,7 @@ BENTRY = --entry=0 -Ttext=0x0
 MMAP   = -Map $(OBJ_DIR)/monitor.map
 MSCRIPT += --script $(OBJ_DIR)/ppa.ld
 
-CROSS_COMPILE	?= $(ARMV8_TOOLS_DIR)/aarch64-none-elf-
+CROSS_COMPILE	?= $(ARMV8_TOOLS_DIR)/$(ARMV8_TOOLS_PREFIX)
 
 CC64		= $(CROSS_COMPILE)gcc
 LD64		= $(CROSS_COMPILE)ld
