@@ -28,9 +28,8 @@ OBJ64		= $(CROSS_COMPILE)objcopy
 MKIMAGE		= mkimage
 MAKE        = @make --no-print-directory
 
-#GIT_VERSION    := $(shell git describe --dirty --always)
+GIT_VERSION    := $(shell git describe --dirty --always 2>/dev/null)
 CFLAGS		    = -fno-builtin -ggdb -mstrict-align -DVERSION=\"$(GIT_VERSION)\"
-#CFLAGS		    = -fno-builtin -ggdb -mstrict-align
 CFLAGS64		= $(CFLAGS) -Wa,-march=armv8-a -Wa,-EL -c
 LDFLAGS64		= --oformat=elf64-littleaarch64
 ASFLAGS64		= -Wa,-march=armv8-a -Wa,-EL -x assembler-with-cpp -c
