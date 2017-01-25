@@ -1,7 +1,7 @@
 #
 # Makefile - build AArch64 PPA
 #
-# Copyright (C) 2015, 2016 Freescale Semiconductor, Inc. All rights reserved.
+# Copyright (C) 2015-2017 Freescale Semiconductor, Inc. All rights reserved.
 #
 # -----------------------------------------------------------------------------
 # Define the following environment variables (and make sure they point to your
@@ -88,26 +88,70 @@ PLATFLAGS = $(DBG_FLAGS)                   \
 # -----------------------------------------------------------------------------
 
 # include the platform specifics
-ifeq ($(MAKECMDGOALS), sim)
-    # builds from the platform folder are not supported for target sim
-    PLAT_PATH=platform-sim
+ifeq ($(PLAT_BUILD), 1)
+     # for a platform-level build, the file is local
+    PLAT_PATH=.
 else
+    ifeq ($(MAKECMDGOALS), clean)
+        PLAT_PATH=
+    endif
+    ifeq ($(MAKECMDGOALS), cleanout)
+        PLAT_PATH=
+    endif
+
+    ifeq ($(MAKECMDGOALS), sim)
+        PLAT_PATH=platform-sim
+    endif
     ifeq ($(MAKECMDGOALS), sim_out)
         PLAT_PATH=platform-sim
-    else
-        ifeq ($(MAKECMDGOALS), sim_bin)
-            PLAT_PATH=platform-sim
-        else
-            ifeq ($(PLAT_BUILD), 1)
-                # for a platform-level build, the file is local
-                PLAT_PATH=.
-            else
-                PLAT_PATH=platform-rdb
-            endif
-        endif
+    endif
+    ifeq ($(MAKECMDGOALS), sim_bin)
+        PLAT_PATH=platform-sim
+    endif
+
+    ifeq ($(MAKECMDGOALS), rdb)
+        PLAT_PATH=platform-rdb
+    endif
+    ifeq ($(MAKECMDGOALS), rdb_out)
+        PLAT_PATH=platform-rdb
+    endif
+    ifeq ($(MAKECMDGOALS), rdb_bin)
+        PLAT_PATH=platform-rdb
+    endif
+
+    ifeq ($(MAKECMDGOALS), rdb_fit)
+        PLAT_PATH=platform-rdb
+    endif
+    ifeq ($(MAKECMDGOALS), rdb_fit_out)
+        PLAT_PATH=platform-rdb
+    endif
+    ifeq ($(MAKECMDGOALS), rdb_fit_bin)
+        PLAT_PATH=platform-rdb
+    endif
+
+    ifeq ($(MAKECMDGOALS), qds)
+        PLAT_PATH=platform-qds
+    endif
+    ifeq ($(MAKECMDGOALS), qds_out)
+        PLAT_PATH=platform-qds
+    endif
+    ifeq ($(MAKECMDGOALS), qds_bin)
+        PLAT_PATH=platform-qds
+    endif
+
+    ifeq ($(MAKECMDGOALS), qds_fit)
+        PLAT_PATH=platform-qds
+    endif
+    ifeq ($(MAKECMDGOALS), qds_fit_out)
+        PLAT_PATH=platform-qds
+    endif
+    ifeq ($(MAKECMDGOALS), qds_fit_bin)
+        PLAT_PATH=platform-qds
     endif
 endif
-include $(PLAT_PATH)/plat.mk
+ifneq ($(PLAT_PATH),)
+    include $(PLAT_PATH)/plat.mk
+endif
 
 # set the path to the ddr-specific sources
 ifeq ($(PLAT_PATH), platform-sim)
@@ -135,7 +179,7 @@ endif
 help:	help_out
 help_out:
 	@echo
-	@echo 'make rdb|rdb-fit|sim [options]'
+	@echo 'make rdb|rdb-fit|qds|qds-fit|sim [options]'
 	@echo
 	@echo 'options:'
 	@echo '  TEST=smp_boot|hotplug|off_abort|suspend'

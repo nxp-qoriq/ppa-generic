@@ -1,7 +1,7 @@
 #
 # make include file - build AArch64 PPA
 #
-# Copyright (C) 2015, 2016 Freescale Semiconductor, Inc. All rights reserved.
+# Copyright (C) 2015-2017 Freescale Semiconductor, Inc. All rights reserved.
 #
 # -----------------------------------------------------------------------------
 #
@@ -16,18 +16,20 @@
 # builds a binary image for the rdb board
 rdb: 
 	$(MAKE) SIM_BUILD=0 rdb_out
-	$(MAKE) SIM_BUILD=0 monitor.bin
+	$(MAKE) SIM_BUILD=0 rdb_bin
 rdb_out:
 	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
 	@echo
+rdb_bin: monitor.bin
 
 # builds a fit image for the rdb board
 rdb-fit: 
 	$(MAKE) SIM_BUILD=0 rdb_fit_out
-	$(MAKE) SIM_BUILD=0 ppa.itb
+	$(MAKE) SIM_BUILD=0 rdb_fit_bin
 rdb_fit_out:
 	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
 	@echo
+rdb_fit_bin: ppa.itb
 
 # -----------------------------------------------------------------------------
 

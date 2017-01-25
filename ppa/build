@@ -5,7 +5,7 @@ echo
 # initialize device and target lists --
 device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 ua all"
 device_all=" all"
-target_list="clean rdb rdb-fit generic generic-fit sim"
+target_list="clean rdb rdb-fit qds qds-fit generic generic-fit sim"
 option_list="DBG=on DBG=off TEST=smp_boot TEST=hotplug TEST=suspend TEST=off_abort TEST=aarch32"
 #--------------------------------------
 
@@ -14,8 +14,10 @@ if [ "$1" = "help" ]; then
     echo "usage: >build target [option] [option] device_list"
     echo
     echo "        target (required):"
-    echo "          rdb         - binary image build"
-    echo "          rdb-fit     - fit image build"
+    echo "          rdb         - binary image build for the rdb platform"
+    echo "          rdb-fit     - fit image build for the rdb platform"
+    echo "          qds         - binary image build for the qds platform"
+    echo "          qds-fit     - fit image build for the qds platform"
     echo "          generic     - generic binary image build"
     echo "          generic-fit - generic fit image build"
     echo "          sim         - simulator build with bootrom code"
