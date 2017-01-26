@@ -139,7 +139,7 @@ unsigned int picos_to_mclk(unsigned long data_rate, unsigned int picos)
 
 void remove_unused_controllers(struct ddr_info *info)
 {
-#ifdef CONFIG_SYS_LSCH3
+#ifdef CONFIG_SYS_FSL_HAS_CCN504
 	int i;
 	unsigned long long nodeid;
 	void *hnf_sam_ctrl = (void *)(CCI_HN_F_0_BASE + CCN_HN_F_SAM_CTL);
@@ -179,7 +179,7 @@ void remove_unused_controllers(struct ddr_info *info)
 		puts("Second DDR controller disabled\n");
 #endif
 	}
-#endif /* CONFIG_SYS_LSCH3 */
+#endif /* CONFIG_SYS_FSL_HAS_CCN504 */
 }
 
 void print_ddr_info(int start_ctrl)
