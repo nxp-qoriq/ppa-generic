@@ -32,8 +32,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LS1046ARDB_DDR_H__
-#define __LS1046ARDB_DDR_H__
+#ifndef __LS1046AQDS_DDR_H__
+#define __LS1046AQDS_DDR_H__
 
 struct board_specific_parameters {
 	unsigned int n_ranks;
@@ -64,4 +64,4 @@ static const struct board_specific_parameters udimm[] = {
 	{}
 };
 
-#endif /* __LS1046ARDB_DDR_H__ */
+#endif /* __LS1046AQDS_DDR_H__ */

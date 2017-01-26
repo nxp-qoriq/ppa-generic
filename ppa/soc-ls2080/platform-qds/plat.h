@@ -32,8 +32,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LS2080ARDB_DDR_H__
-#define __LS2080ARDB_DDR_H__
+#ifndef __LS2080AQDS_DDR_H__
+#define __LS2080AQDS_DDR_H__
 
 struct board_specific_parameters {
 	unsigned int n_ranks;
@@ -50,7 +50,6 @@ struct board_specific_parameters {
  * specific parameters. datarate_mhz_high values need to be in ascending order
  * for each n_ranks group.
  */
-
 static const struct board_specific_parameters udimm0[] = {
 	/*
 	 * memory controller 0
@@ -58,9 +57,9 @@ static const struct board_specific_parameters udimm0[] = {
 	 * ranks| mhz| GB  |adjst| start |   ctl2    |  ctl3
 	 */
 	{2,  1350, 0, 8,     6, 0x0708090B, 0x0C0D0E09,},
-	{2,  1666, 0, 10,    9, 0x090A0B0E, 0x0F11110C,},
-	{2,  1900, 0, 12,  0xA, 0x0B0C0E11, 0x1214140F,},
-	{2,  2300, 0, 12,  0xB, 0x0C0D0F12, 0x14161610,},
+	{2,  1666, 0, 8,     7, 0x08090A0C, 0x0D0F100B,},
+	{2,  1900, 0, 8,     7, 0x09090B0D, 0x0E10120B,},
+	{2,  2300, 0, 8,     8, 0x090A0C0F, 0x1012130C,},
 	{}
 };
 
@@ -231,4 +230,4 @@ enum ifc_ftims {
         IFC_FTIM3,
 };
 
-#endif /* __LS2080ARDB_DDR_H__ */
+#endif /* __LS2080AQDS_DDR_H__ */
