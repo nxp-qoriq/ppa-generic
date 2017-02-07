@@ -62,6 +62,7 @@ endif
 # select if ddr is initialized
 ifeq ($(DDR), on)
     $(error -> DDR init not [yet] supported on this platform!)
+    DDR_BLD=1
 else
     DDR_BLD=0
 endif
@@ -130,28 +131,22 @@ else
     endif
 
     ifeq ($(MAKECMDGOALS), qds)
-        $(error -> qds board not supported!)
         PLAT_PATH=platform-qds
     endif
     ifeq ($(MAKECMDGOALS), qds_out)
-        $(error -> qds board not supported!)
         PLAT_PATH=platform-qds
     endif
     ifeq ($(MAKECMDGOALS), qds_bin)
-        $(error -> qds board not supported!)
         PLAT_PATH=platform-qds
     endif
 
     ifeq ($(MAKECMDGOALS), qds_fit)
-        $(error -> qds board not supported!)
         PLAT_PATH=platform-qds
     endif
     ifeq ($(MAKECMDGOALS), qds_fit_out)
-        $(error -> qds board not supported!)
         PLAT_PATH=platform-qds
     endif
     ifeq ($(MAKECMDGOALS), qds_fit_bin)
-        $(error -> qds board not supported!)
         PLAT_PATH=platform-qds
     endif
 endif
@@ -166,7 +161,6 @@ ifeq ($(PLAT_PATH), platform-sim)
     else
         ifeq ($(PLAT), qds)
             DDR_PATH=
-            $(error -> qds board not supported!)
         else
             ifeq ($(DDR), on)
                 DDR_PATH=

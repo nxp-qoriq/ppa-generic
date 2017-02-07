@@ -5,31 +5,31 @@
 #
 # -----------------------------------------------------------------------------
 #
-# rdb platform specific definitions
+# qds platform specific definitions
 #
 # supported targets:
-#   rdb     - binary image
-#   rdb_fit - fit image
+#   qds     - binary image
+#   qds_fit - fit image
 #
 # -----------------------------------------------------------------------------
 #
-# builds a binary image for the rdb board
-rdb: 
-	$(MAKE) SIM_BUILD=0 rdb_out
-	$(MAKE) SIM_BUILD=0 rdb_bin
-rdb_out:
+# builds a binary image for the qds board
+qds: 
+	$(MAKE) SIM_BUILD=0 qds_out
+	$(MAKE) SIM_BUILD=0 qds_bin
+qds_out:
 	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
 	@echo
-rdb_bin: monitor.bin
+qds_bin: monitor.bin
 
-# builds a fit image for the rdb board
-rdb-fit: 
-	$(MAKE) SIM_BUILD=0 rdb_fit_out
-	$(MAKE) SIM_BUILD=0 rdb_fit_bin
-rdb_fit_out:
+# builds a fit image for the qds board
+qds-fit: 
+	$(MAKE) SIM_BUILD=0 qds_fit_out
+	$(MAKE) SIM_BUILD=0 qds_fit_bin
+qds_fit_out:
 	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
 	@echo
-rdb_fit_bin: ppa.itb
+qds_fit_bin: ppa.itb
 
 # -----------------------------------------------------------------------------
 
