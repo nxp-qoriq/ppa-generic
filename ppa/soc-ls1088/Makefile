@@ -120,7 +120,7 @@ else
         PLAT_PATH=platform-rdb
     endif
 
-    ifeq ($(MAKECMDGOALS), rdb_fit)
+    ifeq ($(MAKECMDGOALS), rdb-fit)
         PLAT_PATH=platform-rdb
     endif
     ifeq ($(MAKECMDGOALS), rdb_fit_out)
