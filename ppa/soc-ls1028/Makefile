@@ -119,7 +119,7 @@ else
         PLAT_PATH=platform-rdb
     endif
 
-    ifeq ($(MAKECMDGOALS), rdb_fit)
+    ifeq ($(MAKECMDGOALS), rdb-fit)
         PLAT_PATH=platform-rdb
     endif
     ifeq ($(MAKECMDGOALS), rdb_fit_out)
@@ -142,7 +142,7 @@ else
         PLAT_PATH=platform-qds
     endif
 
-    ifeq ($(MAKECMDGOALS), qds_fit)
+    ifeq ($(MAKECMDGOALS), qds-fit)
         $(error -> qds board not supported!)
         PLAT_PATH=platform-qds
     endif
