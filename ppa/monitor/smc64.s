@@ -126,6 +126,11 @@ smc64_sip_svc:
     cmp  w10, w11
     b.eq smc64_sip_count
 
+     // SIP service call PRNG_64
+    mov  w10, #SIP_PRNG
+    cmp  w10, w11
+    b.eq smc64_sip_PRNG
+
     b    _smc_unimplemented 
 
      //------------------------------------------
@@ -138,6 +143,36 @@ smc64_sip_count:
     mov  x3,  #0
     mov  x2,  #0
     mov  x1,  #0
+    b    _smc_success
+
+     //------------------------------------------
+
+ // this is the 64-bit interface to the PRNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit PRNG requested
+ //      x1 = 1, 64-bit PRNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-bit PRNG, or 64-bit PRNG
+smc64_sip_PRNG:
+    mov  x12, x30
+
+    cbz  x1, 1f
+     // 64-bit PRNG
+    mov  x0, #SIP_PRNG_64BIT
+    bl   _get_PRNG
+    mov  x1, x0
+    b    2f
+
+1:   // 32-bit PRNG
+    mov  x0, #SIP_PRNG_32BIT
+    bl   _get_PRNG
+    mov  x1, x0
+
+2:
+    mov  x30, x12
+    mov  x3,  xzr
+    mov  x4,  xzr
     b    _smc_success
 
      //------------------------------------------

@@ -10,6 +10,7 @@ MONITOR_SRC = $(PRE_PATH)../monitor
 ARMV8_SRC   = $(PRE_PATH)../armv8
 PSCI_SRC    = $(PRE_PATH)../psci
 CMN_SRC     = $(PRE_PATH)../common
+DRVR_SRC    = $(PRE_PATH)../drivers
 SOC_SRC     = $(PRE_PATH).
 TEST_SRC    = $(PRE_PATH)../test
 SRC_DIR     = build/src
@@ -37,6 +38,12 @@ OPTFLAGS		= -dumpmachine
 
 #------------------------------------------------
 
+# add the prng driver files here
+PRNG_C    = prng.c
+PRNG_HDRS = 
+
+#------------------------------------------------
+
 TARGETS    =monitor.bin bootmain.64.bin
 PRE_TARG   =monitor.elf
 
@@ -47,9 +54,9 @@ COMMON_HDRS=common.h lnkr.cmd
 
 BUILD_ASM  =$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
-BUILD_C    =$(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C)
+BUILD_C    =$(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C) $(PRNG_C)
 HDRS_ASM   =$(HDRS_SOC) $(HDRS_PSCI) $(HDRS_ARMV8) $(HDRS_PLAT) $(COMMON_HDRS) \
-	    $(HDRS_MNTR) $(DRIVER_HDRS) $(DDR_HDRS)
+	    $(HDRS_MNTR) $(DRIVER_HDRS) $(DDR_HDRS) $(PRNG_HDRS)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 
 #------------------------------------------------
@@ -162,6 +169,12 @@ $(DRIVER_C): $(DRIVER_HDRS) src
 
 $(DRIVER_HDRS): src
 	@cp $(CMMN_SRC)/$@ $(SRC_DIR)/$@
+
+$(PRNG_C): $(PRNG_HDRS) src
+	@cp $(DRVR_SRC)/$@ $(SRC_DIR)/$@
+
+$(PRNG_HDRS): src
+	@cp $(DRVR_SRC)/$@ $(SRC_DIR)/$@
 
 #------------------------------------------------
 

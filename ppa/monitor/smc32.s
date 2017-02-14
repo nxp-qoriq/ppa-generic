@@ -44,6 +44,9 @@
 
 .equ SIP32_FUNCTION_COUNT, 0x3
 
+.equ SIP_PRNG_32BIT,  0
+.equ SIP_PRNG_64BIT,  1
+
 //-----------------------------------------------------------------------------
 
 smc32_handler:
@@ -127,6 +130,11 @@ smc32_sip_svc:
     cmp  w10, w11
     b.eq smc32_sip_REVISION
 
+     // SIP service call PRNG_32
+    mov  w10, #SIP_PRNG
+    cmp  w10, w11
+    b.eq smc32_sip_PRNG
+
      // if we are here then we have an unimplemented/unrecognized function
     b    _smc_unimplemented
 
@@ -160,6 +168,47 @@ smc32_sip_REVISION:
 
      //------------------------------------------
 
+ // this is the 32-bit interface to the PRNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit PRNG requested
+ //      x1 = 1, 64-bit PRNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-bit PRNG, or hi-order 32-bits of 64-bit PRNG
+ //      x2 = lo-order 32-bits of 64-bit PRNG
+smc32_sip_PRNG:
+     // make sure bits 63:32 in the registers containing input parameters
+     // are zeroed-out (input parameters are in x0-x1)
+    lsl  x0, x0, #32
+    lsl  x1, x1, #32
+    lsr  x0, x0, #32
+    lsr  x1, x1, #32
+    mov  x12, x30
+
+    cbz  x1, 1f
+     // 64-bit PRNG
+    mov  x0, #SIP_PRNG_64BIT
+    bl   _get_PRNG
+     // hi-order bits in w1
+    and  x1, xzr, x0, lsr #32
+     // lo-order bits in w2
+    mov  w2, w0
+    b    2f
+
+1:   // 32-bit PRNG
+    mov  x0, #SIP_PRNG_32BIT
+    bl   _get_PRNG
+     // result in w1
+    mov  w1, w0
+
+2:
+    mov  x30, x12
+    mov  x3,  xzr
+    mov  x4,  xzr
+    b    _smc_success
+
+     //------------------------------------------
+
 smc32_no_services:
      // w11 contains the requested function id
      // w10 contains the call count function id
@@ -172,6 +221,10 @@ smc32_no_services:
      // Note: fall-thru condition, if you insert code after this line,
      //       then uncomment the branch above
 
+_smc_failure:
+    mov   x0, #SMC_FAILURE
+    b     _smc_completed
+    
 _smc_success:
     mov   x0, #SMC_SUCCESS
     b     _smc_completed

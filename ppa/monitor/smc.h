@@ -28,6 +28,12 @@
 #define  SMC_INVALID        -2
 #define  SMC_BAD_PARM       -3
 #define  SMC_INVALID_EL     -4
+#define  SMC_FAILURE        -5
+
+#define  SIP_PRNG           0xFF10
+
+.equ SIP_PRNG_32BIT,  0
+.equ SIP_PRNG_64BIT,  1
 
 //-----------------------------------------------------------------------------
 
@@ -49,6 +55,25 @@
  //      x4 = 0, EL2 in LE (little-endian)
  //      x4 = 1, EL2 in BE (big-endian)
 #define  ARCH_EL2_2_AARCH32_ID  0xC000FF04
+
+ // this is the 32-bit interface to the PRNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit PRNG requested
+ //      x1 = 1, 64-bit PRNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-bit PRNG, or hi-order 32-bits of 64-bit PRNG
+ //      x2 = lo-order 32-bits of 64-bit PRNG
+#define  SIP_PRNG_32 0x8200FF10
+
+ // this is the 64-bit interface to the PRNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit PRNG requested
+ //      x1 = 1, 64-bit PRNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-or-64-bit PRNG
+#define  SIP_PRNG_64 0xC200FF10
 
 //-----------------------------------------------------------------------------
 
