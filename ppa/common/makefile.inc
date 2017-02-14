@@ -156,19 +156,19 @@ $(DDR_HDRS): src
 	@cp $(DDR_PATH)/$@ $(SRC_DIR)/$@
 
 $(COMMON_ASM): $(HDRS_ARMV8) $(HDRS_PSCI) src
-	@cp $(CMMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
 
 $(COMMON_C): $(COMMON_HDRS) src
-	@cp $(CMMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
 
 $(COMMON_HDRS): src
-	@cp $(CMMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
 
 $(DRIVER_C): $(DRIVER_HDRS) src
-	@cp $(CMMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
 
 $(DRIVER_HDRS): src
-	@cp $(CMMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
 
 $(PRNG_C): $(PRNG_HDRS) src
 	@cp $(DRVR_SRC)/$@ $(SRC_DIR)/$@
