@@ -58,7 +58,7 @@ PLAT_ASM =
 
 # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h
+HDRS_PLAT  =policy.h config.h
 
 # add platform-test-specific asm files here
 TEST_ASM =$(TEST_FILE)
@@ -82,3 +82,4 @@ endif
 
 # -----------------------------------------------------------------------------
 
+MSCRIPT = -Ttext=0x20100000
