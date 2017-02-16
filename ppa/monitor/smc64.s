@@ -33,7 +33,7 @@
 .equ  SMC64_TRSTD_APP,  0xF0
 .equ  SMC64_TRSTD_APP2, 0xF1
 
-.equ  SIP64_FUNCTION_COUNT,  0x3
+.equ  SIP64_FUNCTION_COUNT,  0x5
 .equ  ARCH64_FUNCTION_COUNT, 0x2
 
 //-----------------------------------------------------------------------------
@@ -131,6 +131,11 @@ smc64_sip_svc:
     cmp  w10, w11
     b.eq smc64_sip_PRNG
 
+     // SIP service call RNG_64
+    mov  w10, #SIP_RNG
+    cmp  w10, w11
+    b.eq smc64_sip_RNG
+
     b    _smc_unimplemented 
 
      //------------------------------------------
@@ -167,6 +172,36 @@ smc64_sip_PRNG:
 1:   // 32-bit PRNG
     mov  x0, #SIP_PRNG_32BIT
     bl   _get_PRNG
+    mov  x1, x0
+
+2:
+    mov  x30, x12
+    mov  x3,  xzr
+    mov  x4,  xzr
+    b    _smc_success
+
+     //------------------------------------------
+
+ // this is the 64-bit interface to the hw RNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit hw RNG requested
+ //      x1 = 1, 64-bit hw RNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-bit RNG, or 64-bit RNG
+smc64_sip_RNG:
+    mov  x12, x30
+
+    cbz  x1, 1f
+     // 64-bit hw RNG
+    mov  x0, #SIP_RNG_64BIT
+//    bl   _get_RNG
+    mov  x1, x0
+    b    2f
+
+1:   // 32-bit hw RNG
+    mov  x0, #SIP_RNG_32BIT
+//    bl   _get_RNG
     mov  x1, x0
 
 2:

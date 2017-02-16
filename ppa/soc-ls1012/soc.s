@@ -78,6 +78,8 @@
 .global _soc_init_percpu
 .global _set_platform_security
 
+.global _soc_exit_boot_svcs
+
 //-----------------------------------------------------------------------------
 
 .equ  RESTART_RETRY_CNT,  3000
@@ -921,6 +923,14 @@ _soc_init_finish:
  // this function sets the security mechanisms in the SoC to implement the
  // Platform Security Policy
 _set_platform_security:
+
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function makes any needed soc-specific configuration changes when boot
+ // services end
+_soc_exit_boot_svcs:
 
     ret
 

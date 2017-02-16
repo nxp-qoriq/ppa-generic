@@ -42,8 +42,13 @@ ifeq  ($(TEST), aarch32BE)
 	TEST_PSCI=1
     TEST_FILE=test_aarch32_2coreBE.s
 else
+ifeq  ($(TEST), prng)
+	TEST_PSCI=1
+    TEST_FILE=test_prng.s
+else
 	TEST_PSCI=0
     TEST_FILE=
+endif
 endif
 endif
 endif

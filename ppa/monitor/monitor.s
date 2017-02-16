@@ -25,6 +25,7 @@
 .global _cpu_off_exit
 .global _start_monitor_el3
 .global _mon_core_restart
+.global _exit_boot_svcs
 
 //-----------------------------------------------------------------------------
 
@@ -403,6 +404,35 @@ _mon_core_restart:
 
 //-----------------------------------------------------------------------------
 
+ // this function makes any needed changes to the configuration when the end of
+ // boot services is triggered.
+ // in:  none
+ // out: none
+ // uses x0, x1, x11
+_exit_boot_svcs:
+    mov  x11, x30
+
+     // read the boot services flag
+    adr  x0, boot_services_flag
+    ldr  w1, [x0]
+     // if we have already executed this service, don't execute again
+    cbnz w1, 1f
+
+     // set the flag
+    mov  w1, #1
+    str  w1, [x0]
+
+     // put any global changes needed at end of boot services here
+    
+     // call into the soc-specific code for any soc configuration changes needed
+    bl  _soc_exit_boot_svcs
+
+1:
+    mov  x30, x11
+    ret
+
+//-----------------------------------------------------------------------------
+
  // this function sets up the C runtime env
  // in:   none
  // out:  none
@@ -426,6 +456,9 @@ set_runtime_env:
     ret
 
 //-----------------------------------------------------------------------------
+
+boot_services_flag:
+    .4byte 0x0
 
 PPA_VERSION:
     .4byte  0x00040000

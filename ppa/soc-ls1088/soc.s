@@ -59,6 +59,8 @@
 .global _get_gic_rd_base
 .global _get_gic_sgi_base
 
+.global _soc_exit_boot_svcs
+
 //-----------------------------------------------------------------------------
 
 .equ RESET_RETRY_CNT,      800
@@ -1602,7 +1604,23 @@ _set_platform_security:
 
      //   configure EL3 mmu
 
+     // initialize secmon
+    bl  initSecMon
+
     mov  x30, x8
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function makes any needed soc-specific configuration changes when boot
+ // services end
+_soc_exit_boot_svcs:
+    mov  x10, x30
+
+     // reset secmon
+    bl  resetSecMon
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
@@ -1811,6 +1829,36 @@ _setCoreData:
     isb  
     ret
     
+//-----------------------------------------------------------------------------
+
+ // this function performs any needed initialization on SecMon for boot services
+initSecMon:
+
+     // read the register hpcomr
+    ldr  x1, =SECMON_BASE_ADDR
+    ldr  w0, [x1, #SECMON_HPCOMR_OFFSET]
+     // turn off secure access for the privileged registers
+    orr  w0, w0, #SECMON_HPCOMR_NPSWAEN
+     // write back
+    str  w0, [x1, #SECMON_HPCOMR_OFFSET]
+
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function resets SecMon after boot services are completed
+resetSecMon:
+
+     // read the register hpcomr
+    ldr  x1, =SECMON_BASE_ADDR
+    ldr  w0, [x1, #SECMON_HPCOMR_OFFSET]
+     // re-enable secure access for the privileged registers
+    bic  w0, w0, #SECMON_HPCOMR_NPSWAEN
+     // write back
+    str  w0, [x1, #SECMON_HPCOMR_OFFSET]
+
+    ret
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

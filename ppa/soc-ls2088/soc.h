@@ -32,6 +32,11 @@
 #define DCFG_BASE_ADDR     0x01E00000
 #define TIMER_BASE_ADDR    0x023E0000
 #define RESET_BASE_ADDR    0x01E60000
+#define SECMON_BASE_ADDR   0x01E90000
+
+ // secmon register offsets and bitfields
+#define SECMON_HPCOMR_OFFSET  0x4
+#define SECMON_HPCOMR_NPSWAEN 0x80000000
 
 #define TIMER_CNTCR_OFFSET 0x0
 

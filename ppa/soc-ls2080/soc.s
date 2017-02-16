@@ -60,6 +60,8 @@
 .global _get_gic_rd_base
 .global _get_gic_sgi_base
 
+.global _soc_exit_boot_svcs
+
 //-----------------------------------------------------------------------------
 
  // register offsets
@@ -1362,6 +1364,14 @@ _set_platform_security:
      //   configure EL3 mmu
 
     mov  x30, x8
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function makes any needed soc-specific configuration changes when boot
+ // services end
+_soc_exit_boot_svcs:
+
     ret
 
 //-----------------------------------------------------------------------------

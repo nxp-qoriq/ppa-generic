@@ -42,10 +42,7 @@
 .equ SIP_ROMUUID_PART3,  0x1A7841A7    // bytes [11:8]
 .equ SIP_ROMUUID_PART4,  0xD3205C97    // bytes [15:12]
 
-.equ SIP32_FUNCTION_COUNT, 0x3
-
-.equ SIP_PRNG_32BIT,  0
-.equ SIP_PRNG_64BIT,  1
+.equ SIP32_FUNCTION_COUNT, 0x5
 
 //-----------------------------------------------------------------------------
 
@@ -135,6 +132,11 @@ smc32_sip_svc:
     cmp  w10, w11
     b.eq smc32_sip_PRNG
 
+     // SIP service call RNG_32
+    mov  w10, #SIP_RNG
+    cmp  w10, w11
+    b.eq smc32_sip_RNG
+
      // if we are here then we have an unimplemented/unrecognized function
     b    _smc_unimplemented
 
@@ -198,6 +200,47 @@ smc32_sip_PRNG:
 1:   // 32-bit PRNG
     mov  x0, #SIP_PRNG_32BIT
     bl   _get_PRNG
+     // result in w1
+    mov  w1, w0
+
+2:
+    mov  x30, x12
+    mov  x3,  xzr
+    mov  x4,  xzr
+    b    _smc_success
+
+     //------------------------------------------
+
+ // this is the 32-bit interface to the hw RNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit hw RNG requested
+ //      x1 = 1, 64-bit hw RNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-bit RNG, or hi-order 32-bits of 64-bit RNG
+ //      x2 = lo-order 32-bits of 64-bit RNG
+smc32_sip_RNG:
+     // make sure bits 63:32 in the registers containing input parameters
+     // are zeroed-out (input parameters are in x0-x1)
+    lsl  x0, x0, #32
+    lsl  x1, x1, #32
+    lsr  x0, x0, #32
+    lsr  x1, x1, #32
+    mov  x12, x30
+
+    cbz  x1, 1f
+     // 64-bit RNG
+    mov  x0, #SIP_RNG_64BIT
+//    bl   _get_RNG
+     // hi-order bits in w1
+    and  x1, xzr, x0, lsr #32
+     // lo-order bits in w2
+    mov  w2, w0
+    b    2f
+
+1:   // 32-bit RNG
+    mov  x0, #SIP_RNG_32BIT
+//    bl   _get_RNG
      // result in w1
     mov  w1, w0
 
