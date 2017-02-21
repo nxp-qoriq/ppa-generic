@@ -48,24 +48,26 @@ _test_psci:
      // call the prng 64-bit interface for a 32-bit seed
      // x0 = function id
      // x1 = 0, 32-bit seed returned
+     // 32-bit prng seed is returned in x1
     ldr  x0, =SIP_PRNG_64
     mov  x1, xzr
     smc  0x0
     nop
     nop
     nop
-     // test for return value in x0
+     // test for return value in x1
 
      // call the prng 64-bit interface for a 64-bit seed
      // x0 = function id
      // x1 = 1, 64-bit seed returned
+     // 64-bit prng seed is returned in x1
     ldr  x0, =SIP_PRNG_64
     mov  x1, #1
     smc  0x0
     nop
     nop
     nop
-     // test for return value in x0
+     // test for return value in x1
 
 end_test:
     b  end_test

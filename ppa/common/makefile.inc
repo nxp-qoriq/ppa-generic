@@ -28,6 +28,7 @@ LD64		= $(CROSS_COMPILE)ld
 OBJ64		= $(CROSS_COMPILE)objcopy
 MKIMAGE		= mkimage
 MAKE        = @make --no-print-directory
+GENITS      = $(CMN_SRC)/gen_its
 
 GIT_VERSION    := $(shell git describe --dirty --always 2>/dev/null)
 CFLAGS		    = -fno-builtin -ggdb -mstrict-align -DVERSION=\"$(GIT_VERSION)\"
@@ -73,7 +74,7 @@ cleanout:
 
 #------------------------------------------------
 
-monitor.bin: monitor.elf
+monitor.bin: monitor.elf ppa.its
 monitor.elf: $(BUILD_C) $(BUILD_ASM) $(HDRS_ASM) $(COMMON_HDRS) $(OBJECTS)
 bootmain.64.bin: bootmain.64.elf
 bootmain.64.elf: $(BUILD_C) $(BUILD_ASM) $(HDRS_ASM) $(COMMON_HDRS) $(OBJECTS)
@@ -101,8 +102,8 @@ ppa.ld: ppa.ld.s lnkr.cmd src obj
 .c.o: $(BUILD_C)
 	$(CC64) $(CFLAGS64) $(PLATFLAGS) $(SRC_DIR)/$< -o $(OBJ_DIR)/$@
 
-ppa.its: src
-	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
+ppa.its: $(GENITS) src
+	$(GENITS) $(SRC_DIR)/ppa.its
 
 $(SRC_SOC): $(HDRS_SOC) $(LINK_ASM) src
 	cp $(SOC_SRC)/$@ $(SRC_DIR)/$@

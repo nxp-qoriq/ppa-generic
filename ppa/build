@@ -3,7 +3,7 @@ echo Multi-Device build
 echo 
 
 # initialize device and target lists --
-device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 ua all"
+device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 la1575 all"
 device_all=" all"
 target_list="clean rdb rdb-fit qds qds-fit generic generic-fit sim"
 option_list="DBG=on DBG=off TEST=smp_boot TEST=hotplug TEST=suspend TEST=off_abort TEST=aarch32"
@@ -43,7 +43,7 @@ if [ "$1" = "help" ]; then
     echo "          ls1088  - build for the LS1088 device"
     echo "          ls2080  - build for the LS2080 device"
     echo "          ls2088  - build for the LS2088 device"
-    echo "          ua      - build for the UA device"
+    echo "          la1575  - build for the LA1575 device"
     echo "          all     - build for ALL of the above devices"
     echo
     echo "examples:"
