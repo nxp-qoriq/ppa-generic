@@ -12,7 +12,7 @@ printf "	description = \"PPA Firmware\";\n" >> $1
 printf "	#address-cells = <1>;\n" >> $1
 printf "	images {\n" >> $1
 printf "		firmware@1 {\n" >> $1
-printf "			description = \"PPA Firmware: Version %s\";\n", $VERSION >> $1
+printf "			description = \"PPA Firmware: Version %s\";\n" $VERSION >> $1
 printf "			data = /incbin/(\"../obj/monitor.bin\");\n" >> $1
 printf "			type = \"firmware\";\n" >> $1
 printf "			arch = \"arm64\";\n" >> $1
