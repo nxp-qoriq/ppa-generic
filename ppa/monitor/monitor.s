@@ -141,7 +141,7 @@ _secondary_core_init:
      // since this is a secondary core function, we
      // must be finished boot - trigger the exit
      // boot services call
-    bl   exit_boot_services
+    bl   exit_boot_svcs
 
      // perform any secondary-core platform security setup here
      //   configure secure mmu
