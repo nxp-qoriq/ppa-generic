@@ -911,10 +911,6 @@ smc32_psci_version:
      // save the LR
     mov  x12, x30
 
-     // psci_version is normally the first call made by the OS - this
-     // signals the end of boot services
-    bl   _exit_boot_svcs
-
     ldr  x0, =PSCI_VERSION
     b    psci_completed
 

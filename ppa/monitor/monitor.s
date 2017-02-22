@@ -25,7 +25,6 @@
 .global _cpu_off_exit
 .global _start_monitor_el3
 .global _mon_core_restart
-.global _exit_boot_svcs
 
 //-----------------------------------------------------------------------------
 
@@ -139,6 +138,11 @@ _secondary_core_init:
      // soc-specific init on secondary core
     bl   _soc_init_percpu
 
+     // since this is a secondary core function, we
+     // must be finished boot - trigger the exit
+     // boot services call
+    bl   exit_boot_services
+
      // perform any secondary-core platform security setup here
      //   configure secure mmu
      //   configure gic
@@ -146,7 +150,7 @@ _secondary_core_init:
     bl   _gic_init_percpu
 
      // configure c-runtime support for this core
-    bl set_runtime_env
+    bl   set_runtime_env
 
      // exit the EL3 area
     b    _secondary_exit
@@ -409,7 +413,7 @@ _mon_core_restart:
  // in:  none
  // out: none
  // uses x0, x1, x11
-_exit_boot_svcs:
+exit_boot_svcs:
     mov  x11, x30
 
      // read the boot services flag
