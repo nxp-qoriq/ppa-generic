@@ -117,4 +117,6 @@ static inline void panic(char *s)
 	hang();
 }
 
+void memcpy(void *dest, const void *src, register unsigned long count);
+
 #endif /* __LIB_H__ */

@@ -67,32 +67,6 @@ unsigned char get_spd_addr(int ctrl, int dimm)
 	return spd_addr[ctrl][dimm];	
 }
 
-void memcpy(void *dest, const void *src,
-			  register unsigned long count)
-{
-	register unsigned long *dest_long = dest;
-	register unsigned long *src_long = (void *)src;
-	register unsigned char *dest_u8;
-	register unsigned char *src_u8;
-
-	if (dest == src)
-		return;
-
-	/* First copy aligned unsigned long data if aligned */
-	if (((sizeof(unsigned long) - 1) &
-	    ((unsigned long)dest | (unsigned long)src)) == 0) {
-		while (count >= sizeof(unsigned long)) {
-			*dest_long++ = *src_long++;
-			count -= sizeof(unsigned long);
-		}
-	}
-	/* Then deal with the remaining unaligned data */
-	dest_u8 = (unsigned char *)dest_long;
-	src_u8 = (unsigned char *)src_long;
-	while (count--)
-		*dest_u8++ = *src_u8++;
-}
-
 int read_spd(unsigned char chip, void *buf, int len)
 {
 	unsigned char dummy = 0;

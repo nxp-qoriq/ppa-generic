@@ -110,7 +110,6 @@ bool run_bist(void)
 }
 
 extern long long dram_init(struct sysinfo *sys);
-extern void memcpy(void *dest, const void *src, register unsigned long count);
 
 void copy_run_uboot(void)
 {
