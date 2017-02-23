@@ -58,7 +58,7 @@ PLAT_ASM =
 
 # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h
+HDRS_PLAT  =policy.h config.h
 
 # add platform-test-specific asm files here
 TEST_ASM =$(TEST_FILE)
@@ -68,7 +68,7 @@ ifeq ($(DDR_BLD), 1)
   DDR_C    =ddr_init.c
   DDR_HDRS =plat.h
 
-  DRIVER_C = utility.c regs.c ddr.c ddrc.c dimm.c opts.c debug.c crc32.c spd.c \
+  DRIVER_C = utility.c regs.c ddr.c ddrc.c opts.c debug.c crc32.c spd.c \
 	addr.c uart.c i2c.c timer.c
   DRIVER_HDRS = utility.h lsch2.h immap.h ddr.h dimm.h opts.h regs.h debug.h \
 	errno.h io.h i2c.h lib.h timer.h uart.h
@@ -81,3 +81,4 @@ endif
 
 # -----------------------------------------------------------------------------
 
+MSCRIPT = -Ttext=0x60100000

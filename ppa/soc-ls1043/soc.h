@@ -35,6 +35,7 @@
 #define RCPM_BASE_ADDR            0x01EE2000
 #define DCSR_RCPM2_BASE           0x20170000
 #define SYS_COUNTER_BASE          0x02b00000
+#define TIMER_BASE_ADDR           0x02B00000
 #define WDT1_BASE                 0x02AD0000
 #define WDT3_BASE                 0x02A70000  
 #define WDT4_BASE                 0x02A80000

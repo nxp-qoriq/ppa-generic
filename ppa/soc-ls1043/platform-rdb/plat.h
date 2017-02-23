@@ -32,42 +32,35 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LSCH2_H_
-#define __LSCH2_H_
+#ifndef __LS1043ARDB_DDR_H__
+#define __LS1043ARDB_DDR_H__
 
-#define CONFIG_SYS_FSL_CCSR_GUR_BE
-#define CONFIG_SYS_FSL_CCSR_DDR_BE
-
-#define CONFIG_CHIP_SELECTS_PER_CTRL		4
-
-#define CONFIG_SYS_FSL_DDR_ADDR		0x01080000
-#define CONFIG_SYS_I2C_BASE		0x02180000
-
-#if defined(CONFIG_ARCH_LS1046A)
-#define CONFIG_SYS_FSL_ERRATUM_A008511
-#define CONFIG_SYS_FSL_ERRATUM_A009803
-#define CONFIG_SYS_FSL_ERRATUM_A009942
-#define CONFIG_SYS_FSL_ERRATUM_A010165
-#elif defined(CONFIG_ARCH_LS1043A)
-#define CONFIG_SYS_FSL_ERRATUM_A009942
-#define CONFIG_SYS_FSL_ERRATUM_A009663
-#endif
-
-
-struct sysinfo {
-	unsigned long freq_platform;
-	unsigned long freq_ddr_pll0;
-	unsigned long freq_ddr_pll1;
+struct board_specific_parameters {
+	unsigned int n_ranks;
+	unsigned int datarate_mhz_high;
+	unsigned int rank_gb;
+	unsigned int clk_adjust;
+	unsigned int wrlvl_start;
+	unsigned int wrlvl_ctl_2;
+	unsigned int wrlvl_ctl_3;
 };
 
-#define FSL_CHASSIS_RCWSR0			0x01ee0100
-#define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_SHIFT	25
-#define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_MASK	0x1f
-#define FSL_CHASSIS_RCWSR0_MEM_PLL_RAT_SHIFT	16
-#define FSL_CHASSIS_RCWSR0_MEM_PLL_RAT_MASK	0x3f
-#define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_SHIFT	8
-#define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_MASK	0x3f
+/*
+ * These tables contain all valid speeds we want to override with board
+ * specific parameters. datarate_mhz_high values need to be in ascending order
+ * for each n_ranks group.
+ */
 
-void get_clocks(struct sysinfo *sys);
+static const struct board_specific_parameters udimm[] = {
+	/*
+	 * memory controller 0
+	 *   num|  hi| rank|  clk| wrlvl |   wrlvl   |  wrlvl
+	 * ranks| mhz| GB  |adjst| start |   ctl2    |  ctl3
+	 */
+	{1,  1666, 0, 12,     7, 0x07090800, 0x00000000,},
+	{1,  1900, 0, 12,     7, 0x07090800, 0x00000000,},
+	{1,  2200, 0, 12,     7, 0x07090800, 0x00000000,},
+	{}
+};
 
-#endif /* __LSCH2_H_ */
+#endif /* __LS1043ARDB_DDR_H__ */

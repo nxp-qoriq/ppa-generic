@@ -61,7 +61,7 @@ endif
 
 # select if ddr is initialized
 ifeq ($(DDR), on)
-    $(error -> DDR init not [yet] supported on this platform!)
+    DDR_BLD=1
 else
     DDR_BLD=0
 endif
