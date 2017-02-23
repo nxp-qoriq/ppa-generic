@@ -37,6 +37,11 @@
 #include "i2c.h"
 #include "debug.h"
 
+#ifdef CONFIG_SYS_DDR_RAW_TIMING
+extern int fsl_ddr_get_dimm_params(struct dimm_params *pdimm,
+				   unsigned int ctl, unsigned int dimm);
+#endif
+
 #define CONFIG_CS_PER_SLOT (CONFIG_CHIP_SELECTS_PER_CTRL / CONFIG_SYS_DIMM_SLOTS_PER_CTLR)
 
 int parse_spd(struct ddr_info *priv)
@@ -48,6 +53,21 @@ int parse_spd(struct ddr_info *priv)
 	int spd_checksum[CONFIG_SYS_DIMM_SLOTS_PER_CTLR];
 
 	for (i = priv->first_ctrl; i < priv->first_ctrl + priv->num_ctrls; i++) {
+#ifdef CONFIG_SYS_DDR_RAW_TIMING
+		for (j = 0; j < priv->dimm_slots_per_ctrl; j++) {
+			ret = fsl_ddr_get_dimm_params(&priv->dimms[i], i, j);
+			if (!ret) {
+				priv->conf[i].in_use = 1;
+				priv->conf[i].dimm_in_use[j] = 1;
+			} else if (ret == -EINVAL) {
+				puts("Error: RAW timing error on DDR ");
+				print_uint(i);
+				puts("\n");
+				priv->conf[i].in_use = 0;
+				break;
+			}
+		}
+#else
 		/* Read in SPD */
 		for (j = 0; j < priv->dimm_slots_per_ctrl; j++) {
 			spd_addr = get_spd_addr(i, j);	/* return 0 on error */
@@ -100,6 +120,7 @@ int parse_spd(struct ddr_info *priv)
 			priv->conf[i].in_use = 0;
 			continue;
 		}
+#endif	/* CONFIG_SYS_DDR_RAW_TIMING */
 		for (j = 0; j < priv->dimm_slots_per_ctrl; j++) {
 			if (!priv->conf[i].dimm_in_use[j])
 				continue;
