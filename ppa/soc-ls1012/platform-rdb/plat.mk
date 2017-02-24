@@ -67,12 +67,10 @@ TEST_ASM =$(TEST_FILE)
 ifeq ($(DDR_BLD), 1)
   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
-  DDR_HDRS =plat.h
+  DDR_HDRS =config.h
 
-  DRIVER_C = utility.c regs.c ddr.c ddrc.c dimm.c opts.c debug.c crc32.c spd.c \
-	addr.c uart.c i2c.c timer.c
-  DRIVER_HDRS = utility.h lsch2.h immap.h ddr.h dimm.h opts.h regs.h debug.h \
-	errno.h io.h i2c.h lib.h timer.h uart.h
+  DRIVER_C = fsl_mmdc.c uart.c timer.c
+  DRIVER_HDRS = fsl_mmdc.h lsch2.h errno.h io.h lib.h timer.h uart.h
 else
   DDR_C       =
   DDR_HDRS    =
@@ -82,3 +80,4 @@ endif
 
 # -----------------------------------------------------------------------------
 
+MSCRIPT = -Ttext=0x40100000

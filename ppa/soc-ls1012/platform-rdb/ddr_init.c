@@ -32,44 +32,27 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LSCH2_H_
-#define __LSCH2_H_
+#include "fsl_mmdc.h"
+#include "uart.h"
 
-#define CONFIG_SYS_FSL_CCSR_GUR_BE
-#define CONFIG_SYS_FSL_CCSR_DDR_BE
+void _init_ddr(void)
+{
+	static const struct fsl_mmdc_info mparam = {
+		.mdctl = 0x05180000,
+		.mdpdc = 0x00030035,
+		.mdotc = 0x12554000,
+		.mdcfg0 = 0xbabf7954,
+		.mdcfg1 = 0xdb328f64,
+		.mdcfg2 = 0x01ff00db,
+		.mdmisc = 0x00001680,
+		.mdref = 0x0f3c8000,
+		.mdrwd = 0x00002000,
+		.mdor = 0x00bf1023,
+		.mdasp = 0x0000003f,
+		.mpodtctrl = 0x0000022a,
+		.mpzqhwctrl = 0xa1390003,
+	};
 
-#ifndef CONFIG_CHIP_SELECTS_PER_CTRL
-#define CONFIG_CHIP_SELECTS_PER_CTRL		4
-#endif
-
-#define CONFIG_SYS_FSL_DDR_ADDR		0x01080000
-#define CONFIG_SYS_I2C_BASE		0x02180000
-
-#if defined(CONFIG_ARCH_LS1046A)
-#define CONFIG_SYS_FSL_ERRATUM_A008511
-#define CONFIG_SYS_FSL_ERRATUM_A009803
-#define CONFIG_SYS_FSL_ERRATUM_A009942
-#define CONFIG_SYS_FSL_ERRATUM_A010165
-#elif defined(CONFIG_ARCH_LS1043A)
-#define CONFIG_SYS_FSL_ERRATUM_A009942
-#define CONFIG_SYS_FSL_ERRATUM_A009663
-#endif
-
-
-struct sysinfo {
-	unsigned long freq_platform;
-	unsigned long freq_ddr_pll0;
-	unsigned long freq_ddr_pll1;
-};
-
-#define FSL_CHASSIS_RCWSR0			0x01ee0100
-#define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_SHIFT	25
-#define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_MASK	0x1f
-#define FSL_CHASSIS_RCWSR0_MEM_PLL_RAT_SHIFT	16
-#define FSL_CHASSIS_RCWSR0_MEM_PLL_RAT_MASK	0x3f
-#define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_SHIFT	8
-#define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_MASK	0x3f
-
-void get_clocks(struct sysinfo *sys);
-
-#endif /* __LSCH2_H_ */
+	mmdc_init(&mparam);
+	puts("Done\n");
+}
