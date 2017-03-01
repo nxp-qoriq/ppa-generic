@@ -33,6 +33,7 @@
  */
 
 #define CONFIG_SYS_LSCH3
+#define CONFIG_ARCH_LS2088A
 #define TOP_OF_OCRAM		0x1801ffff      /* 128K */
 #define DDR_TEST_TABLE		(TOP_OF_OCRAM - 4096 * 3 + 1)
 #define TOP_OF_STACK		(DDR_TEST_TABLE - 1)
