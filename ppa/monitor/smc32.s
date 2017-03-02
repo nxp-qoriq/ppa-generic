@@ -23,14 +23,6 @@
 .global _smc_unimplemented
 .global _smc_invalid
 .global _smc_invalid_el
-.global _smc_completed
-
-.global _init_smc_percpu
-.global _save_smc_volatile
-.global _restore_smc_volatile
-.global _save_aarch32_nvolatile
-.global _restore_aarch32_nvolatile
-.global _get_aarch_flag
 
 //-----------------------------------------------------------------------------
 
@@ -146,7 +138,7 @@ smc32_sip_svc:
  // the count includes *this* function
 smc32_sip_count:
     mov  x0, #SIP32_FUNCTION_COUNT
-    b    _smc_completed
+    b    _smc_exit
 
      //------------------------------------------
 
@@ -157,7 +149,7 @@ smc32_sip_UUID:
     ldr  x1, =SIP_ROMUUID_PART2
     ldr  x2, =SIP_ROMUUID_PART3
     ldr  x3, =SIP_ROMUUID_PART4
-    b    _smc_completed
+    b    _smc_exit
 
      //------------------------------------------
 
@@ -166,7 +158,7 @@ smc32_sip_UUID:
 smc32_sip_REVISION:
     ldr  x0, =SIP_REVISION_MAJOR
     ldr  x1, =SIP_REVISION_MINOR
-    b    _smc_completed
+    b    _smc_exit
 
      //------------------------------------------
 
@@ -205,8 +197,6 @@ smc32_sip_PRNG:
 
 2:
     mov  x30, x12
-    mov  x3,  xzr
-    mov  x4,  xzr
     b    _smc_success
 
      //------------------------------------------
@@ -246,8 +236,6 @@ smc32_sip_RNG:
 
 2:
     mov  x30, x12
-    mov  x3,  xzr
-    mov  x4,  xzr
     b    _smc_success
 
      //------------------------------------------
@@ -266,48 +254,23 @@ smc32_no_services:
 
 _smc_failure:
     mov   x0, #SMC_FAILURE
-    b     _smc_completed
+    b     _smc_exit
     
 _smc_success:
     mov   x0, #SMC_SUCCESS
-    b     _smc_completed
+    b     _smc_exit
     
 _smc_unimplemented:
     mov   x0, #SMC_UNIMPLEMENTED
-    mov   x1, #0
-    mov   x2, #0
-    mov   x3, #0
-    mov   x4, #0
-    b     _smc_completed
+    b     _smc_exit
     
 _smc_invalid:
     mov   x0, #SMC_INVALID
-    mov   x1, #0
-    mov   x2, #0
-    mov   x3, #0
-    mov   x4, #0
-    b     _smc_completed
+    b     _smc_exit
     
 _smc_invalid_el:
     mov   x0, #SMC_INVALID_EL
-    mov   x1, #0
-    mov   x2, #0
-    mov   x3, #0
-    mov   x4, #0
-    b     _smc_completed
-
-_smc_completed:
-     // zero-out the scratch registers
-    mov  x5,  #0
-    mov  x6,  #0
-    mov  x7,  #0
-    mov  x8,  #0
-    mov  x9,  #0
-    mov  x10, #0
-    mov  x11, #0
-    mov  x12, #0
-     // return from exception
-    eret
+    b     _smc_exit
 
      //------------------------------------------
 
@@ -316,107 +279,6 @@ __dead_loop:
     b __dead_loop
 
 //-----------------------------------------------------------------------------
-
- // this function initializes the per-core smc data area, and sets SP_EL3 to
- // point to the start of this area
- // in:  x0 = core mask lsb
- // out: none
- // uses x0, x1
-_init_smc_percpu:
-
-     // x0 = core mask
-
-     // generate a 0-based core number from the input mask
-    clz   x1, x0
-    mov   x0, #63
-    sub   x0, x0, x1
-
-     // x0 = core number (0-based)
-
-     // calculate the offset to the start of the core data area
-    mov   x1, #SMC_DATA_OFFSET
-    mul   x1, x1, x0
-
-     // x1 = offset to start of core data area
-
-     // get the base address of the data areas
-    adr   x0, _smc0_data
-
-     // add offset to this core's data area
-    add   x1, x1, x0
-
-     // set the stack pointer
-    mov  sp, x1
-
-     // initialize the data area
-    str   xzr, [sp, #0x0]
-    str   xzr, [sp, #0x8]
-    str   xzr, [sp, #0x10]
-    str   xzr, [sp, #0x18]
-    str   xzr, [sp, #0x20]
-    str   xzr, [sp, #0x28]
-    str   xzr, [sp, #0x30]
-    str   xzr, [sp, #0x38]
-    str   xzr, [sp, #0x40]
-    str   xzr, [sp, #0x48]
-    str   xzr, [sp, #0x50]
-    str   xzr, [sp, #0x58]
-    str   xzr, [sp, #0x60]
-    str   xzr, [sp, #0x68]
-    str   xzr, [sp, #0x70]
-    str   xzr, [sp, #0x78]
-
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function saves registers (0-3) for the smc32/64 interface
- // Note: this function is not valid until _init_smc_percpu() has been run
- //       on this core
- // in:  none
- // out: none
- // uses none
-_save_smc_volatile:
-
-     // save registers
-    str   x0,  [sp, #0x8]
-    str   x1,  [sp, #0x10]
-    str   x2,  [sp, #0x18]
-    str   x3,  [sp, #0x20]
-    dsb   sy
-    isb
-
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function restores registers (0-3) for the smc32/64 interface
- // Note: this function is not valid until _init_smc_percpu() has been run
- //       on this core
- // in:  none
- // out: none
- // uses none
-_restore_smc_volatile:
-
-     // restore registers
-    ldr   x0,  [sp, #0x8]
-    ldr   x1,  [sp, #0x10]
-    ldr   x2,  [sp, #0x18]
-    ldr   x3,  [sp, #0x20]
-    dsb   sy
-    isb
-
-    ret
-
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
- // include the data areas
-#include "smc_data.h"
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

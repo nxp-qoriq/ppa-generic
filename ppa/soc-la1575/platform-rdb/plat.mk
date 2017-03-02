@@ -47,7 +47,7 @@ HDRS_ARMV8 =aarch64.h
 
 # add security-monitor source and headers here
 SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
-HDRS_MNTR  =smc.h smc_data.h
+HDRS_MNTR  =smc.h
 
 # add platform-specific asm here
 PLAT_ASM =

@@ -18,6 +18,7 @@
 #include "psci.h"
 #include "soc.mac"
 #include "policy.h"
+#include "smc.h"
 
 //-----------------------------------------------------------------------------
 
@@ -83,17 +84,22 @@ debug_stop:
      // setup the interconnect
     bl   _init_interconnect
  
-     // initialize the Platform Security Policy here
-    bl   _set_platform_security  
-
      // configure GIC
     bl   _gic_init_common
     bl   _get_current_mask
+    mov  x8, x0
     bl   _gic_init_percpu
 
-     // configure the c-runtime
-    bl   set_runtime_env
+     // x8 = core mask
+
+     // setup the stack
+    mov  x0, x8
+    bl   init_stack_percpu
+    
     bl   _ppa_main
+
+     // initialize the Platform Security Policy here
+    bl   _set_platform_security  
 
      // exit the monitor
     b    monitor_exit_EL3
@@ -110,10 +116,10 @@ _secondary_core_init:
 
      // get this cores bit mask
     bl   _get_current_mask
-    mov  x6, x0
+    mov  x8, x0
 
      // x0 = core mask lsb
-     // x6 = core mask lsb
+     // x8 = core mask lsb
 
      // perform EL3 init on secondary core
     bl   _init_secondary_EL3
@@ -124,12 +130,12 @@ _secondary_core_init:
      // x0 = EL2 support (0=none)
     cbz  x0, 1f
      // perform EL2 init on secondary core
-    mov  x0, x6
+    mov  x0, x8
     bl   _init_secondary_EL2
     b    2f
 1:
      // perform EL1 init on secondary core
-    mov  x0, x6
+    mov  x0, x8
     bl   _init_secondary_EL1
 2:
      // set CNTVOFF to 0
@@ -146,11 +152,12 @@ _secondary_core_init:
      // perform any secondary-core platform security setup here
      //   configure secure mmu
      //   configure gic
-    mov  x0, x6
+    mov  x0, x8
     bl   _gic_init_percpu
 
-     // configure c-runtime support for this core
-    bl   set_runtime_env
+     // setup runtime stack
+    mov  x0, x8
+    bl   init_stack_percpu
 
      // exit the EL3 area
     b    _secondary_exit
@@ -182,10 +189,6 @@ monitor_exit_EL3:
 
      // set the spsr value for exit
     bl   _set_spsr_4_exit
-
-     // setup sp_el3
-    bl   _get_current_mask
-    bl   _init_smc_percpu
 
      // flush dcache
     mov x0, #1
@@ -268,10 +271,6 @@ _secondary_exit:
     mov  x0, x6
     bl   _set_spsr_4_startup
 
-     // setup sp_el3
-    mov  x0, x6
-    bl   _init_smc_percpu
-
      // x6 = core mask lsb
 
      // get the context id into x0
@@ -312,10 +311,10 @@ _mon_core_restart:
 
      // get this cores bit mask
     bl   _get_current_mask
-    mov  x6, x0
+    mov  x8, x0
 
      // x0 = core mask (lsb)
-     // x6 = core mask (lsb)
+     // x8 = core mask (lsb)
 
      // perform EL3 init on secondary core
     bl   _init_secondary_EL3
@@ -326,54 +325,54 @@ _mon_core_restart:
      // x0 = EL2 support (0=none)
     cbz  x0, 1f
      // perform EL2 init on core
-    mov  x0, x6
+    mov  x0, x8
     bl   _init_secondary_EL2
     b    2f
 1:
      // perform EL1 init on core
-    mov  x0, x6
+    mov  x0, x8
     bl   _init_secondary_EL1
 2:
      // get the start addr
-    mov  x0, x6
+    mov  x0, x8
     mov  x1, #START_ADDR_DATA
     bl   _getCoreData
 
      // x0 = start address
-     // x6 = core mask (lsb)
+     // x8 = core mask (lsb)
 
      // load start addr in ELR_EL3
     msr  elr_el3, x0
 
      // set the core state to released
-    mov  x0, x6
+    mov  x0, x8
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_RELEASED
     bl   _setCoreData
 
-     // x6 = core mask (lsb)
+     // x8 = core mask (lsb)
 
      // setup the spsr
-    mov  x0, x6
+    mov  x0, x8
     bl   _set_spsr_4_startup
 
-     // setup the smc data structures, and sp_el3
-    mov  x0, x6
-    bl   _init_smc_percpu
+     // setup the stack
+    mov  x0, x8
+    bl   init_stack_percpu
 
-     // x6 = core mask lsb
+     // x8 = core mask lsb
 
      // get the saved link reg
-    mov  x0, x6
+    mov  x0, x8
     mov  x1, #LINK_REG_DATA
     bl   _getCoreData
     mov  x12, x0
 
-     // x6  = core mask (lsb)
+     // x8  = core mask (lsb)
      // x12 = saved link reg
 
      // get the context id into x0
-    mov  x0, x6
+    mov  x0, x8
     mov  x1, #CNTXT_ID_DATA
     bl   _getCoreData
 
@@ -397,6 +396,8 @@ _mon_core_restart:
     mov  x4,  #0
     mov  x5,  #0
     mov  x6,  #0
+    mov  x7,  #0
+    mov  x8,  #0
 
      // restore the LR
     mov  x30, x12
@@ -437,6 +438,8 @@ exit_boot_svcs:
 
 //-----------------------------------------------------------------------------
 
+#if 0
+
  // this function sets up the C runtime env
  // in:   none
  // out:  none
@@ -457,6 +460,87 @@ set_runtime_env:
     mov sp, x0
 #endif
 
+    ret
+
+#endif
+
+//-----------------------------------------------------------------------------
+
+ // this function initializes the per-core stack area, and sets SP_EL3 to
+ // point to the start of this area
+ // Note: stack is full-descending
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2
+init_stack_percpu:
+
+     // x0 = core mask
+
+     // generate a 0-based core number from the input mask
+    clz   x1, x0
+    mov   x0, #63
+    sub   x0, x0, x1
+
+     // x0 = current core number (0-based)
+
+     // calculate the maximum core number
+    mov   x1, #CPU_MAX_COUNT
+    sub   x1, x1, #1
+
+     // x0 = core number (0-based)
+     // x1 = max core number (0-based)
+
+     // get the offset factor
+    sub   x1, x1, x0
+     // get the absolute offset
+    mov   x2, #STACK_OFFSET
+    mul   x2, x2, x1
+
+     // x0 = current core number (0-based)
+     // x2 = absolute stack offset
+
+     // get the top of the stack area
+    mov   x1, #OCRAM_BASE_ADDR
+    add   x1, x1, #OCRAM_SIZE_IN_BYTES
+
+     // x0 = current core number (0-based)
+     // x1 = address of top of stack
+     // x2 = absolute stack offset
+
+     // get start of this cores stack
+    sub   x1, x1, x2
+
+     // x0 = current core number (0-based)
+     // x1 = start of current cores stack
+
+     // align to a quad-word boundary
+    bic   x1, x1, #0xf
+
+     // set the stack pointer
+    mov   sp, x1
+
+     // x0 = current core number (0-based)
+     // x1 = start of current cores stack
+
+     // initialize the stack area
+    mov   x2, #STACK_OFFSET
+     // if this is core 0, give it twice as much stack space
+    cbnz  x0, 1f
+    lsl   x2, x2, #1
+
+     // x2 = size of stack area in bytes
+
+    lsr   x2, x2, #3
+
+     // x1 = start of current cores stack
+     // x2 = size of stack area in 64-bit chunks
+2:
+     // descending-full stack - use pre-indexed addressing
+    str   xzr, [x1, #-8]!
+    sub   x2, x2, #1
+    cbz   x2, 1f
+    b     2b
+1:
     ret
 
 //-----------------------------------------------------------------------------

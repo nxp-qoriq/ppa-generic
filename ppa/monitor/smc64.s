@@ -293,7 +293,7 @@ smc64_no_services:
     b.ne  _smc_unimplemented
      // call count is zero
     mov   w0, #0
-    b     _smc_completed
+    b     _smc_exit
 
 //-----------------------------------------------------------------------------
 

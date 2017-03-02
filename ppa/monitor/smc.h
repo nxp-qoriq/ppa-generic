@@ -18,9 +18,8 @@
 #define SMC_AARCH32_MODE  0x1
 #define SMC_AARCH64_MODE  0x0
 
- // must be kept in synch with SmcDataStruc
- // Note: size must be a quad-word multiple
-#define SMC_DATA_OFFSET   0xc0
+ // Note: offset must be a quadword multiple
+#define STACK_OFFSET   0x400
 
  // function return values
 #define  SMC_SUCCESS         0
