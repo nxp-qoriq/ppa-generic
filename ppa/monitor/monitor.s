@@ -525,11 +525,11 @@ init_stack_percpu:
      // initialize the stack area
     mov   x2, #STACK_OFFSET
      // if this is core 0, give it twice as much stack space
-    cbnz  x0, 1f
+    cbnz  x0, 3f
     lsl   x2, x2, #1
-
+3:
      // x2 = size of stack area in bytes
-
+     // convert bytes to 64-byte chunks
     lsr   x2, x2, #3
 
      // x1 = start of current cores stack
@@ -537,10 +537,9 @@ init_stack_percpu:
 2:
      // descending-full stack - use pre-indexed addressing
     str   xzr, [x1, #-8]!
-    sub   x2, x2, #1
-    cbz   x2, 1f
-    b     2b
-1:
+    subs  x2, x2, #1
+    b.gt  2b
+
     ret
 
 //-----------------------------------------------------------------------------
