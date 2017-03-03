@@ -61,6 +61,7 @@
 .global _soc_sys_exit_stdby
 .global _soc_sys_entr_pwrdn
 .global _soc_sys_exit_pwrdn
+.global _soc_sys_off
 .global _soc_core_entr_off
 .global _soc_core_exit_off
 .global _soc_core_phase1_off
@@ -548,6 +549,20 @@ _soc_sys_exit_pwrdn:
     mrs  x0, SCR_EL3
     bic  x0, x0, #0x2
     msr  SCR_EL3, x0
+
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // part of SYSTEM_OFF
+ // this function turns off the SoC clocks
+ // Note: this function is not intended to return, and the only allowable
+ //       recovery is POR
+ // in:  x0 = core mask lsb
+ // out: x0 = 0, success
+ //      x0 < 0, failure
+ // uses 
+_soc_sys_off:
 
     ret
 

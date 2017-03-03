@@ -22,7 +22,7 @@
 #define SOC_CLUSTER_PWR_DWN    0x1  
 #define SOC_SYSTEM_STANDBY     0x1
 #define SOC_SYSTEM_PWR_DWN     0x1 
-#define SOC_SYSTEM_OFF         0x0 
+#define SOC_SYSTEM_OFF         0x1 
 #define SOC_SYSTEM_RESET       0x1 
 
  // set this switch to 1 if you need to keep the debug block

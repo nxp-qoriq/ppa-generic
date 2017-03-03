@@ -50,6 +50,9 @@
 #define ERROR_DDR_WAKE        -2
 #define ERROR_NO_QUIESCE      -3
 
+#define CORE_RESTARTABLE     0
+#define CORE_NOT_RESTARTABLE 1
+
 //-----------------------------------------------------------------------------
 
 .global _soc_sys_reset
@@ -70,6 +73,7 @@
 .global _soc_sys_exit_stdby
 .global _soc_sys_entr_pwrdn
 .global _soc_sys_exit_pwrdn
+.global _soc_sys_off
 .global _soc_core_entr_off
 .global _soc_core_exit_off
 .global _soc_core_phase1_off
@@ -715,6 +719,7 @@ _soc_sys_entr_pwrdn:
      // w17 = DEVDISR5 saved value
 
      // enter the cache-only sequence
+    mov  x9, #CORE_RESTARTABLE
     bl   final_shutdown
     
      // when we are here, the core has come out of wfi and the SoC is back up
@@ -739,6 +744,349 @@ _soc_sys_exit_pwrdn:
     bic  x0, x0, #0x2
     msr  SCR_EL3, x0
 
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // part of SYSTEM_OFF
+ // this function turns off the SoC clocks
+ // Note: this function is not intended to return, and the only allowable
+ //       recovery is POR
+ // in:  x0 = core mask lsb
+ // out: x0 = 0, success
+ //      x0 < 0, failure
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x13, x14, x15, x16, x17
+_soc_sys_off:
+    mov  x10, x30
+
+     // x0 = core mask lsb
+
+     // save DAIF
+    mrs  x2, DAIF
+    mov  x6, x2
+    mov  x1, #DAIF_DATA
+    bl   _setCoreData
+
+     // x6 = DAIF
+
+     // mask interrupts at the core
+    ldr  x0, =DAIF_SET_MASK
+    orr  x6, x6, x0
+    msr  DAIF, x6
+
+     // disable icache, dcache, mmu @ EL1
+    mov  x1, #SCTLR_I_C_M_MASK
+    mrs  x0, sctlr_el1
+    bic  x0, x0, x1
+    msr  sctlr_el1, x0
+
+     // disable dcache for EL3
+    mrs x1, SCTLR_EL3
+    bic x1, x1, #SCTLR_C_MASK
+     // make sure icache is enabled
+    orr x1, x1, #SCTLR_I_MASK      
+    msr SCTLR_EL3, x1 
+    isb
+
+     // clean and invalidate all levels of dcache
+    mov x0, #1
+    bl  _cln_inv_all_dcache
+
+     // set WFIL2_EN in SCFG_COREPMCR
+    ldr  x0, =SCFG_COREPMCR_OFFSET
+    ldr  x1, =COREPMCR_WFIL2
+    bl   write_reg_scfg
+
+     // set OVRD_EN in RCPM2_POWMGTDCR
+    ldr  x0, =RCPM2_POWMGTDCR_OFFSET
+    ldr  x1, =POWMGTDCR_OVRD_EN
+    bl   write_reg_rcpm2
+
+     // read IPPDEXPCR0 @ RCPM_IPPDEXPCR0
+    ldr  x0, =RCPM_IPPDEXPCR0_OFFSET
+    bl   read_reg_rcpm
+    mov  x7, x0
+
+     // build an override mask for IPSTPCR4/IPSTPACK4/DEVDISR5
+    mov  x5, xzr
+    ldr  x6, =IPPDEXPCR_MASK2
+    and  x6, x6, x7
+    cbz  x6, 1f
+
+     // x5 = override mask
+     // x6 = IPPDEXPCR bits for DEVDISR5
+     // x7 = IPPDEXPCR
+
+     // get the overrides
+    orr  x4, x5, #DEVDISR5_I2C_1
+    tst  x6, #IPPDEXPCR_I2C1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR5_LPUART1
+    tst  x6, #IPPDEXPCR_LPUART1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR5_FLX_TMR
+    tst  x6, #IPPDEXPCR_FLX_TMR1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR5_OCRAM1
+    tst  x6, #IPPDEXPCR_OCRAM1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR5_GPIO
+    tst  x6, #IPPDEXPCR_GPIO1
+    csel x5, x5, x4, EQ
+1:    
+     // store the DEVDISR5 override mask
+    adr  x2, soc_data_area
+    str  w5, [x2, #DEVDISR5_MASK_OFFSET]
+
+     // build an override mask for IPSTPCR1/IPSTPACK1/DEVDISR2
+    mov  x5, xzr
+    ldr  x6, =IPPDEXPCR_MASK1
+    and  x6, x6, x7
+    cbz  x6, 2f
+
+     // x5 = override mask
+     // x6 = IPPDEXPCR bits for DEVDISR2
+
+     // get the overrides
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC1
+    tst  x6, #IPPDEXPCR_MAC1_1
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC2
+    tst  x6, #IPPDEXPCR_MAC1_2
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC3
+    tst  x6, #IPPDEXPCR_MAC1_3
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC4
+    tst  x6, #IPPDEXPCR_MAC1_4
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC5
+    tst  x6, #IPPDEXPCR_MAC1_5
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC6
+    tst  x6, #IPPDEXPCR_MAC1_6
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1_MAC9
+    tst  x6, #IPPDEXPCR_MAC1_9
+    csel x5, x5, x4, EQ
+    
+    orr  x4, x5, #DEVDISR2_FMAN1
+    tst  x6, #IPPDEXPCR_FM1
+    csel x5, x5, x4, EQ
+    
+2:
+     // store the DEVDISR2 override mask
+    adr  x2, soc_data_area
+    str  w5, [x2, #DEVDISR2_MASK_OFFSET]
+
+     // x5 = DEVDISR2 override mask
+
+     // write IPSTPCR0 - no overrides
+    ldr  x0, =RCPM2_IPSTPCR0_OFFSET
+    ldr  x1, =IPSTPCR0_VALUE
+    bl   write_reg_rcpm2
+
+     // x5 = DEVDISR2 override mask
+
+     // write IPSTPCR1 - overrides possible
+    ldr  x0, =RCPM2_IPSTPCR1_OFFSET
+    ldr  x1, =IPSTPCR1_VALUE
+    bic  x1, x1, x5
+    bl   write_reg_rcpm2
+
+     // write IPSTPCR2 - no overrides
+    ldr  x0, =RCPM2_IPSTPCR2_OFFSET
+    ldr  x1, =IPSTPCR2_VALUE
+    bl   write_reg_rcpm2
+
+     // write IPSTPCR3 - no overrides
+    ldr  x0, =RCPM2_IPSTPCR3_OFFSET
+    ldr  x1, =IPSTPCR3_VALUE
+    bl   write_reg_rcpm2
+
+     // write IPSTPCR4 - overrides possible
+    adr  x2, soc_data_area
+    ldr  w6, [x2, #DEVDISR5_MASK_OFFSET]
+    ldr  x0, =RCPM2_IPSTPCR4_OFFSET
+    ldr  x1, =IPSTPCR4_VALUE
+    bic  x1, x1, x6
+    bl   write_reg_rcpm2
+
+     // x5 = DEVDISR2 override mask
+     // x6 = DEVDISR5 override mask
+
+     // poll on IPSTPACK0
+    ldr  x3, =RCPM2_IPSTPACKR0_OFFSET
+    ldr  x4, =IPSTPCR0_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+3:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 14f
+    sub  x7, x7, #1
+    cbnz x7, 3b
+
+14:
+     // poll on IPSTPACK1
+    ldr  x3, =IPSTPCR1_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+    bic  x4, x3, x5
+    ldr  x3, =RCPM2_IPSTPACKR1_OFFSET
+4:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 15f
+    sub  x7, x7, #1
+    cbnz x7, 4b
+
+15:
+     // poll on IPSTPACK2
+    ldr  x3, =RCPM2_IPSTPACKR2_OFFSET
+    ldr  x4, =IPSTPCR2_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+5:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 16f
+    sub  x7, x7, #1
+    cbnz x7, 5b
+
+16:
+     // poll on IPSTPACK3
+    ldr  x3, =RCPM2_IPSTPACKR3_OFFSET
+    ldr  x4, =IPSTPCR3_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+6:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 17f
+    sub  x7, x7, #1
+    cbnz x7, 6b
+
+17:
+     // poll on IPSTPACK4
+    ldr  x3, =IPSTPCR4_VALUE
+    ldr  x7, =IPSTPACK_RETRY_CNT
+    bic  x4, x3, x6
+    ldr  x3, =RCPM2_IPSTPACKR4_OFFSET
+7:
+    mov  x0, x3
+    bl   read_reg_rcpm2
+    cmp  x0, x4
+    b.eq 18f
+    sub  x7, x7, #1
+    cbnz x7, 7b
+
+18:
+    adr  x7, soc_data_area
+
+     // x5 = DEVDISR2 override mask
+     // x6 = DEVDISR5 override mask
+     // x7 = [soc_data_area]
+
+     // save DEVDISR1 and load new value
+    mov  x0, #DCFG_DEVDISR1_OFFSET
+    bl   read_reg_dcfg
+    mov  w13, w0
+    mov  x0, #DCFG_DEVDISR1_OFFSET
+    ldr  x1, =DEVDISR1_VALUE
+    bl   write_reg_dcfg
+
+     // save DEVDISR2 and load new value
+    mov  x0, #DCFG_DEVDISR2_OFFSET
+    bl   read_reg_dcfg
+    mov  w14, w0
+    mov  x0, #DCFG_DEVDISR2_OFFSET
+    ldr  x1, =DEVDISR2_VALUE
+    bic  x1, x1, x5
+    bl   write_reg_dcfg
+
+     // x6 = DEVDISR5 override mask
+     // x7 = [soc_data_area]
+
+     // save DEVDISR3 and load new value
+    mov  x0, #DCFG_DEVDISR3_OFFSET
+    bl   read_reg_dcfg
+    mov  w15, w0
+    mov  x0, #DCFG_DEVDISR3_OFFSET
+    ldr  x1, =DEVDISR3_VALUE
+    bl   write_reg_dcfg
+
+     // save DEVDISR4 and load new value
+    mov  x0, #DCFG_DEVDISR4_OFFSET
+    bl   read_reg_dcfg
+    mov  w16, w0
+    mov  x0, #DCFG_DEVDISR4_OFFSET
+    ldr  x1, =DEVDISR4_VALUE
+    bl   write_reg_dcfg
+
+     // save DEVDISR5 and load new value
+    mov  x0, #DCFG_DEVDISR5_OFFSET
+    bl   read_reg_dcfg
+    mov  w17, w0
+    mov  x0, #DCFG_DEVDISR5_OFFSET
+    ldr  x1, =DEVDISR5_VALUE
+    bic  x1, x1, x6
+    bl   write_reg_dcfg
+
+     // x7 = [soc_data_area]
+
+     // save cpuactlr and disable data prefetch
+    mrs  x0, CPUACTLR_EL1
+    str  w0, [x7, #CPUACTLR_DATA_OFFSET]
+    bic  x0, x0, #CPUACTLR_L1PCTL_MASK
+    msr  CPUACTLR_EL1, x0
+
+     // x6 = DEVDISR5 override mask
+
+     // setup registers for cache-only execution
+    ldr  x5, =IPSTPCR4_VALUE
+    bic  x5, x5, x6
+    mov  x6, #DDR_CNTRL_BASE_ADDR
+    mov  x7, #DCSR_RCPM2_BASE
+    mov  x8, #DCFG_BASE_ADDR
+    dsb sy
+    isb
+
+     // set the DLL_LOCK cycle count
+    ldr  w1, [x6, #DDR_TIMING_CFG_4_OFFSET]
+    rev  w2, w1
+    bic  w2, w2, #DLL_LOCK_MASK
+    orr  w2, w2, #DLL_LOCK_VALUE
+    rev  w1, w2
+    str  w1, [x6, #DDR_TIMING_CFG_4_OFFSET]
+
+     // x5  = ipstpcr4 (IPSTPCR4_VALUE bic DEVDISR5_MASK)
+     // x6  = DDR_CNTRL_BASE_ADDR
+     // x7  = DCSR_RCPM2_BASE
+     // x8  = DCFG_BASE_ADDR
+     // w13 = DEVDISR1 saved value
+     // w14 = DEVDISR2 saved value
+     // w15 = DEVDISR3 saved value
+     // w16 = DEVDISR4 saved value
+     // w17 = DEVDISR5 saved value
+
+     // enter the cache-only sequence
+    mov  x9, #CORE_NOT_RESTARTABLE
+    bl   final_shutdown
+    
+     // execution should not return to here
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
@@ -2299,13 +2647,15 @@ prep_init_ocram_lo:
  //      x6  = DDR_CNTRL_BASE_ADDR
  //      x7  = DCSR_RCPM2_BASE
  //      x8  = DCFG_BASE_ADDR
+ //      x9  = 0, restartable
+ //          = 1, non-restartable
  //      w13 = DEVDISR1 saved value
  //      w14 = DEVDISR2 saved value
  //      w15 = DEVDISR3 saved value
  //      w16 = DEVDISR4 saved value
  //      w17 = DEVDISR5 saved value
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x13, x14, x15, x16, x17
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x13, x14, x15, x16, x17
 
  // 4Kb aligned
 .align 12
@@ -2345,12 +2695,13 @@ start_line_1:
     b    2f
 1:
     str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // disable ddr cntrlr clk in devdisr5
+5:
     wfi                                     // stop the final core
 
+    cbnz x9, 5b                             // if non-restartable, keep in wfi
     rev  w4, w5
     str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // re-enable ddr in devdisr5
     str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // re-enable ddr clk in ipstpcr4
-    nop
 touch_line_1:
     cbz  x0, touch_line_2
 
@@ -2414,6 +2765,8 @@ continue_restart:
     mov  x0, #0
 4:
     ret
+
+//-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 
