@@ -438,34 +438,6 @@ exit_boot_svcs:
 
 //-----------------------------------------------------------------------------
 
-#if 0
-
- // this function sets up the C runtime env
- // in:   none
- // out:  none
- // uses: x0
-set_runtime_env:
-
-     // set Core Stack - SPSel - EL3
-    mov x0, #1
-    msr spsel, x0
-
-#if (DDR_INIT)
-	 // set stack at the top of ocram
-	ldr	x0, =(OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES)
-	bic	sp, x0, #0xf
-#else
-     // BSS Section need not be zeroized - linker will pad with zero
-    m_get_cur_stack_top x0, x1, x2
-    mov sp, x0
-#endif
-
-    ret
-
-#endif
-
-//-----------------------------------------------------------------------------
-
  // this function initializes the per-core stack area, and sets SP_EL3 to
  // point to the start of this area
  // Note: stack is full-descending
@@ -529,14 +501,14 @@ init_stack_percpu:
     lsl   x2, x2, #1
 3:
      // x2 = size of stack area in bytes
-     // convert bytes to 64-byte chunks
-    lsr   x2, x2, #3
+     // convert bytes to 16-byte chunks
+    lsr   x2, x2, #4
 
      // x1 = start of current cores stack
-     // x2 = size of stack area in 64-bit chunks
+     // x2 = size of stack area in 16-byte chunks
 2:
      // descending-full stack - use pre-indexed addressing
-    str   xzr, [x1, #-8]!
+    stp   xzr, xzr, [x1, #-16]!
     subs  x2, x2, #1
     b.gt  2b
 

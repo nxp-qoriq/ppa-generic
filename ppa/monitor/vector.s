@@ -119,10 +119,10 @@ _el3_vector_base:
   .align 2
 synch_handler:
      // save the volatile registers
-    str   x0,  [sp, #-8]!
-    str   x1,  [sp, #-8]!
-    str   x2,  [sp, #-8]!
-    str   x3,  [sp, #-8]!
+     //  save these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    stp   x0, x1, [sp, #-16]!
+    stp   x2, x3, [sp, #-16]!
     dsb   sy
     isb
 
@@ -159,16 +159,16 @@ a64smc_router:
     cbnz  x1, _smc_unimplemented
 
      // restore the volatile registers
-    ldr   x3,  [sp], #8
-    ldr   x2,  [sp], #8
-    ldr   x1,  [sp], #8
-    ldr   x0,  [sp], #8
+     //  access these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    ldp  x2, x3, [sp], #16
+    ldp  x0, x1, [sp], #16
     dsb   sy
     isb
 
      // set the aarch64 flag
     mov   x5, #SMC_AARCH64_MODE
-    str   x5,  [sp, #-8]!
+    str   x5,  [sp, #-16]!
 
      // test for smc32 or smc64 interface
     mov   x9, xzr
@@ -201,31 +201,26 @@ a32smc_router:
     msr  DAIFset, #0xF
 
      // restore the volatile registers
-    ldr   x3,  [sp], #8
-    ldr   x2,  [sp], #8
-    ldr   x1,  [sp], #8
-    ldr   x0,  [sp], #8
+     //  access these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    ldp  x2, x3, [sp], #16
+    ldp  x0, x1, [sp], #16
 
      // save the non-volatile aarch32 registers
-    str   x4,  [sp, #-8]!
-    str   x5,  [sp, #-8]!
-    str   x6,  [sp, #-8]!
-    str   x7,  [sp, #-8]!
-    str   x8,  [sp, #-8]!
-    str   x9,  [sp, #-8]!
-    str   x10, [sp, #-8]!
-    str   x11, [sp, #-8]!
-    str   x12, [sp, #-8]!
-    str   x13, [sp, #-8]!
-    str   x14, [sp, #-8]!
-    str   x15, [sp, #-8]!
-    str   x16, [sp, #-8]!
-    str   x17, [sp, #-8]!
-    str   x30, [sp, #-8]!
+     //  save these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    stp  x4,  x5,  [sp, #-16]!
+    stp  x6,  x7,  [sp, #-16]!
+    stp  x8,  x9,  [sp, #-16]!
+    stp  x10, x11, [sp, #-16]!
+    stp  x12, x13, [sp, #-16]!
+    stp  x14, x15, [sp, #-16]!
+    stp  x16, x17, [sp, #-16]!
+    stp  x18, x30, [sp, #-16]!
 
      // set the aarch32 flag
     mov   x5, #SMC_AARCH32_MODE
-    str   x5,  [sp, #-8]!
+    str   x5,  [sp, #-16]!
 
     dsb  sy
     isb
@@ -245,7 +240,7 @@ _smc_exit:
 
      // called from aarch32 or aarch64? - get the flag off the
      // stack
-    ldr   x4,  [sp], #8
+    ldr   x4,  [sp], #16
     cbnz  x4, 1f
 
      // called from aarch64 -----------
@@ -269,22 +264,14 @@ _smc_exit:
 1:   // called from aarch32 -----------
 
      // restore the aarch32 non-volatile registers
-    ldr   x30, [sp], #8
-    ldr   x17, [sp], #8
-    ldr   x16, [sp], #8
-    ldr   x15, [sp], #8
-    ldr   x14, [sp], #8
-    ldr   x13, [sp], #8
-    ldr   x12, [sp], #8
-    ldr   x11, [sp], #8
-    ldr   x10, [sp], #8
-    ldr   x9,  [sp], #8
-    ldr   x8,  [sp], #8
-    ldr   x7,  [sp], #8
-    ldr   x6,  [sp], #8
-    ldr   x5,  [sp], #8
-    ldr   x4,  [sp], #8
-
+    ldp  x18, x30, [sp], #16
+    ldp  x16, x17, [sp], #16
+    ldp  x14, x15, [sp], #16
+    ldp  x12, x13, [sp], #16
+    ldp  x10, x11, [sp], #16
+    ldp  x8,  x9,  [sp], #16
+    ldp  x6,  x7,  [sp], #16
+    ldp  x4,  x5,  [sp], #16
 2:
     dsb  sy
     isb
