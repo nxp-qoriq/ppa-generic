@@ -25,6 +25,8 @@
 .equ  PSCI_V_MAJOR,   0x00000000
 .equ  PSCI_V_MINOR,   0x00000002
 
+.equ  PSCI_V_MASK,    0xFFFF
+
 //-----------------------------------------------------------------------------
 
   .section .text, "ax"
@@ -64,6 +66,46 @@ _test_psci:
     isb
     nop
 
+     // test PSCI_VERSION
+    ldr  x0, =PSCI_VERSION_ID
+    smc  0x0
+    nop
+    nop
+    nop
+    and  w1, w0, #PSCI_V_MASK
+    cmp  w1, #PSCI_V_MINOR
+    b.ne cpu_0_fail_version
+    lsr  w0, w0, #16
+    and  w0, w0, #PSCI_V_MASK
+    cmp  w0, #PSCI_V_MAJOR
+    b.ne cpu_0_fail_version
+
+     // test AFFINITY_INFO of core 1
+     // x1 = mpidr
+     // x2 = level
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
+    ldr  x1, =MPIDR_CORE_1
+    mov  x2, #0
+    smc  0x0
+    nop
+    nop
+    nop
+     // test the return value
+    ldr  x1, =AFFINITY_LEVEL_OFF
+    cmp  w0, w1
+    b.ne cpu_0_fail_affinity
+
+     // test an unimplemented psci function
+    ldr  x0, =PSCI32_MIGRATE_ID
+    ldr  x1, =MPIDR_CORE_1
+    smc  0x0
+    nop
+    nop
+    nop
+    ldr  x1, =PSCI_NOT_SUPPORTED
+    cmp  w0, w1
+    b.ne cpu_0_fail_unimplemented
+
     // test PSCI_CPU_ON
 
     //-------
@@ -90,7 +132,7 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 1b
 
     //-------
@@ -117,7 +159,7 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 2b
 
     //-------
@@ -144,7 +186,7 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 3b
 
     //-------
@@ -171,7 +213,7 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 4b
 
     //-------
@@ -198,7 +240,7 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 5b
 
     //-------
@@ -225,7 +267,7 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 6b
 
     //-------
@@ -252,11 +294,20 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 7b
 
 cpu_0_stop:
     b  cpu_0_stop
+
+cpu_0_fail_version:
+    b  cpu_0_fail_version
+
+cpu_0_fail_affinity:
+    b  cpu_0_fail_affinity
+
+cpu_0_fail_unimplemented:
+    b  cpu_0_fail_unimplemented
 
 cpu_1_pass:
     b cpu_1_pass

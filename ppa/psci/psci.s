@@ -53,6 +53,18 @@ _smc64_std_svc:
     cmp  w10, w11
     b.eq smc64_psci_affinity_info
 
+     // is this MIGRATE
+    ldr  x10, =PSCI64_MIGRATE_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
+    cmp  w10, w11
+    b.eq smc64_psci_migrate
+
+     // is this MIGRATE_INFO_UP_CPU
+    ldr  x10, =PSCI64_MIGRATE_INFO_UPCPU_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
+    cmp  w10, w11
+    b.eq smc32_psci_migrate_info_upcpu
+
      // if we are here then we have an unimplemented/unrecognized function
     b _smc_unimplemented
 
@@ -111,8 +123,59 @@ _smc32_std_svc:
     cmp  w10, w11
     b.eq smc32_psci_affinity_info
 
+     // is this MIGRATE
+    ldr  x10, =PSCI32_MIGRATE_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
+    cmp  w10, w11
+    b.eq smc32_psci_migrate
+
+     // is this MIGRATE_INFO
+    ldr  x10, =PSCI32_MIGRATE_INFO_TYPE_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
+    cmp  w10, w11
+    b.eq smc32_psci_migrate_info
+
+     // is this MIGRATE_INFO_UP_CPU
+    ldr  x10, =PSCI32_MIGRATE_INFO_UPCPU_ID
+    and  w10, w10, #PSCI_FUNCTION_MASK
+    cmp  w10, w11
+    b.eq smc32_psci_migrate_info_upcpu
+
      // if we are here then we have an unimplemented/unrecognized function
     b _smc_unimplemented
+
+//-----------------------------------------------------------------------------
+
+ // this is the 32-bit interface to the 64-bit migrate function
+ // Note that this interface falls directly thru to the 64-bit entry
+smc32_psci_migrate:
+     // make sure bits 63:32 in the registers containing input parameters
+     // are zeroed-out
+     // for this function, input parameters are in x1
+    lsl  x1, x1, #32
+    lsr  x1, x1, #32
+
+smc64_psci_migrate:
+
+     // the return value of this function must be in synch with the
+     // return value of migrate_info
+    b  psci_unimplemented
+
+//-----------------------------------------------------------------------------
+
+smc32_psci_migrate_info:
+
+     // migrate not needed when Trusted OS not installed
+    mov  w0, #MIGRATE_TYPE_NMIGRATE
+    b    psci_completed
+
+//-----------------------------------------------------------------------------
+
+smc32_psci_migrate_info_upcpu:
+
+     // the return value of this function must be in synch with the
+     // return value of migrate_info
+    b  psci_unimplemented
 
 //-----------------------------------------------------------------------------
 

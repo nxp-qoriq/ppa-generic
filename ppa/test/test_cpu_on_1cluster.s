@@ -38,6 +38,8 @@
 .equ  PSCI_V_MAJOR,   0x00000000
 .equ  PSCI_V_MINOR,   0x00000002
 
+.equ  PSCI_V_MASK,    0xFFFF
+
 //-----------------------------------------------------------------------------
 
 .ltorg
@@ -47,6 +49,57 @@
 _test_psci:
 
  //------------------------------------
+
+     // test PSCI_VERSION
+    ldr  x0, =PSCI_VERSION_ID
+    smc  0x0
+    nop
+    nop
+    nop
+    and  w1, w0, #PSCI_V_MASK
+    cmp  w1, #PSCI_V_MINOR
+    b.ne cpu_0_fail_version
+    lsr  w0, w0, #16
+    and  w0, w0, #PSCI_V_MASK
+    cmp  w0, #PSCI_V_MAJOR
+    b.ne cpu_0_fail_version
+
+     // test AFFINITY_INFO of core 1
+     // x1 = mpidr
+     // x2 = level
+    ldr  x0, =PSCI64_AFFINITY_INFO_ID
+    ldr  x1, =MPIDR_CORE_1
+    mov  x2, #0
+    smc  0x0
+    nop
+    nop
+    nop
+     // test the return value
+    ldr  x1, =AFFINITY_LEVEL_OFF
+    cmp  w0, w1
+    b.ne cpu_0_fail_affinity
+
+     // test MIGRATE_INFO
+    ldr  x0, =PSCI32_MIGRATE_INFO_TYPE_ID
+    smc  0x0
+    nop
+    nop
+    nop
+    ldr  x1, =MIGRATE_TYPE_NMIGRATE
+    cmp  w0, w1
+    b.ne cpu_0_fail_migrate_info
+
+     // test an unimplemented psci function
+    ldr  x0, =PSCI32_MIGRATE_ID
+    ldr  x1, =MPIDR_CORE_1
+    smc  0x0
+    nop
+    nop
+    nop
+    ldr  x1, =PSCI_NOT_SUPPORTED
+    cmp  w0, w1
+    b.ne cpu_0_fail_unimplemented
+
      // test PSCI_CPU_ON (core 1)
      // x0 = function id = 0xC4000003
      // x1 = mpidr       = 0x0001
@@ -77,7 +130,7 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 1b
 
 .if (CPU_MAX_COUNT > 2)
@@ -110,7 +163,7 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 2b
 
  //------------------------------------
@@ -142,13 +195,25 @@ _test_psci:
     nop
      // test the return value
     ldr  x1, =AFFINITY_LEVEL_ON
-    cmp  x0, x1
+    cmp  w0, w1
     b.ne 3b
 
 .endif
 
 core_0_stop:
     b  core_0_stop
+
+cpu_0_fail_version:
+    b  cpu_0_fail_version
+
+cpu_0_fail_affinity:
+    b  cpu_0_fail_affinity
+
+cpu_0_fail_unimplemented:
+    b  cpu_0_fail_unimplemented
+
+cpu_0_fail_migrate_info:
+    b  cpu_0_fail_migrate_info
 
  //------------------------------------
 

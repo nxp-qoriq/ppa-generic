@@ -60,6 +60,11 @@
 .equ AFFINITY_LEVEL_OFF,  0x1
 .equ AFFINITY_LEVEL_PEND, 0x2
 
+ // migrate_info returns
+.equ MIGRATE_TYPE_UNI_CPBL,  0x0
+.equ MIGRATE_TYPE_UNI_NCPBL, 0x1
+.equ MIGRATE_TYPE_NMIGRATE,  0x2
+
  // mask for testing address alignment
 .equ ALIGNED_32BIT_MASK,  0x3
 
@@ -113,6 +118,13 @@
 .equ POWER_LEVEL_MASK,		0x03000000
 .equ STATE_TYPE_MASK,		0x00010000
 .equ POWER_STATE_MASK,		(POWER_LEVEL_MASK | STATE_TYPE_MASK)
+
+ //unimplemented psci function ids
+.equ PSCI64_MIGRATE_ID,            0xC4000005
+.equ PSCI32_MIGRATE_ID,            0x84000005
+.equ PSCI32_MIGRATE_INFO_TYPE_ID,  0x84000006
+.equ PSCI64_MIGRATE_INFO_UPCPU_ID, 0xC4000007
+.equ PSCI32_MIGRATE_INFO_UPCPU_ID, 0x84000007
 
  // psci function id's for smc64 interface
  // these functions are callable only from Aarch64
