@@ -2,6 +2,7 @@
 // ARM v8 AArch64 Secure FW
 //
 // Copyright (c) 2013-2016, Freescale Semiconductor, Inc. All rights reserved.
+// Copyright (c) 2017, NXP Semiconductors, Inc. All rights reserved.
 //
 
 // This code includes:
@@ -143,6 +144,8 @@ smc64_sip_svc:
  // this function returns the number of smc64 SIP functions implemented
  // the count includes *this* function
 smc64_sip_count:
+    mov  x12, x30
+
     mov  x0, #SIP64_FUNCTION_COUNT
     mov  x4,  #0
     mov  x3,  #0
@@ -215,6 +218,8 @@ smc64_sip_RNG:
  // this function returns the number of smc64 SIP functions implemented
  // the count includes *this* function
 smc64_arch_count:
+    mov  x12, x30
+
     mov  x0, #ARCH64_FUNCTION_COUNT
     mov  x4,  #0
     mov  x3,  #0
@@ -286,14 +291,8 @@ smc64_arch_el2_2_aarch32:
      //------------------------------------------
 
 smc64_no_services:
-     // w11 contains the requested function id
-     // w10 contains the call count function id
-    mov   w10, #0xFF00
-    cmp   w10, w11
-    b.ne  _smc_unimplemented
-     // call count is zero
-    mov   w0, #0
-    b     _smc_exit
+    mov   x12, x30
+    b     _smc_unimplemented
 
 //-----------------------------------------------------------------------------
 

@@ -2,6 +2,7 @@
 // ARM v8 AArch64 Bootrom 
 //
 // Copyright (c) 2013-2016, Freescale Semiconductor, Inc. All rights reserved.
+// Copyright (c) 2017, NXP Semiconductors, Inc. All rights reserved.
 //
 
 // This romcode includes:
@@ -137,6 +138,9 @@ smc32_sip_svc:
  // this function returns the number of smc32 SIP functions implemented
  // the count includes *this* function
 smc32_sip_count:
+     // save link register
+    mov  x12, x30
+
     mov  x0, #SIP32_FUNCTION_COUNT
     b    _smc_exit
 
@@ -145,6 +149,9 @@ smc32_sip_count:
  // this function returns the SIP UUID for the secure monitor
  // resident in the bootrom
 smc32_sip_UUID:
+     // save link register
+    mov  x12, x30
+
     ldr  x0, =SIP_ROMUUID_PART1
     ldr  x1, =SIP_ROMUUID_PART2
     ldr  x2, =SIP_ROMUUID_PART3
@@ -156,6 +163,9 @@ smc32_sip_UUID:
  // this function returns the major and minor revision numbers
  // of this secure monitor
 smc32_sip_REVISION:
+     // save link register
+    mov  x12, x30
+
     ldr  x0, =SIP_REVISION_MAJOR
     ldr  x1, =SIP_REVISION_MINOR
     b    _smc_exit
@@ -241,16 +251,8 @@ smc32_sip_RNG:
      //------------------------------------------
 
 smc32_no_services:
-     // w11 contains the requested function id
-     // w10 contains the call count function id
-    mov   w10, #0xFF00
-    cmp   w10, w11
-    b.ne  _smc_unimplemented
-     // call count is zero
-    mov   w0, #0
-     // b     smc32_func_completed
-     // Note: fall-thru condition, if you insert code after this line,
-     //       then uncomment the branch above
+    mov   x12, x30
+    b    _smc_unimplemented
 
 _smc_failure:
     mov   x0, #SMC_FAILURE
@@ -258,10 +260,6 @@ _smc_failure:
     
 _smc_success:
     mov   x0, #SMC_SUCCESS
-    b     _smc_exit
-    
-_smc_unimplemented:
-    mov   x0, #SMC_UNIMPLEMENTED
     b     _smc_exit
     
 _smc_invalid:
@@ -272,6 +270,10 @@ _smc_invalid_el:
     mov   x0, #SMC_INVALID_EL
     b     _smc_exit
 
+_smc_unimplemented:
+    mov   x0, #SMC_UNIMPLEMENTED
+    b     _smc_exit
+    
      //------------------------------------------
 
 __dead_loop:

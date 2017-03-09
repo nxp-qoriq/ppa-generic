@@ -1,7 +1,8 @@
 // 
 // ARM v8 AArch64 PSCI v1.0
 //
-// Copyright (c) 2013-2015 Freescale Semiconductor, Inc. All rights reserved.
+// Copyright (c) 2013-2016 Freescale Semiconductor, Inc. All rights reserved.
+// Copyright (c) 2017 NXP Semiconductors, Inc. All rights reserved.
 //
 
 // This file includes:
@@ -156,6 +157,7 @@ smc32_psci_migrate:
     lsr  x1, x1, #32
 
 smc64_psci_migrate:
+    mov   x12, x30
 
      // the return value of this function must be in synch with the
      // return value of migrate_info
@@ -164,6 +166,7 @@ smc64_psci_migrate:
 //-----------------------------------------------------------------------------
 
 smc32_psci_migrate_info:
+    mov   x12, x30
 
      // migrate not needed when Trusted OS not installed
     mov  w0, #MIGRATE_TYPE_NMIGRATE
@@ -172,6 +175,7 @@ smc32_psci_migrate_info:
 //-----------------------------------------------------------------------------
 
 smc32_psci_migrate_info_upcpu:
+    mov   x12, x30
 
      // the return value of this function must be in synch with the
      // return value of migrate_info
@@ -1121,12 +1125,12 @@ smc32_psci_system_off:
 //-----------------------------------------------------------------------------
 
 smc32_psci_system_reset:
+     // save link register
+    mov  x12, x30
+
      // see if the soc-specific module supports this op
     ldr  x7, =SOC_SYSTEM_RESET
     cbz  x7, psci_unimplemented
-
-     // save link register
-    mov  x12, x30
 
      // system reset is soc-specific
     bl   _soc_sys_reset
