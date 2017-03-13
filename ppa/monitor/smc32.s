@@ -252,7 +252,14 @@ smc32_sip_RNG:
 
 smc32_no_services:
     mov   x12, x30
-    b    _smc_unimplemented
+     // w11 contains the requested function id
+    mov   w10, #0xFF00
+     // w10 contains the call count function id
+    cmp   w10, w11
+    b.ne  _smc_unimplemented
+     // call count is zero
+    mov   w0, #0
+    b     _smc_exit
 
 _smc_failure:
     mov   x0, #SMC_FAILURE
@@ -260,6 +267,10 @@ _smc_failure:
     
 _smc_success:
     mov   x0, #SMC_SUCCESS
+    b     _smc_exit
+    
+_smc_unimplemented:
+    mov   x0, #SMC_UNIMPLEMENTED
     b     _smc_exit
     
 _smc_invalid:
@@ -270,10 +281,6 @@ _smc_invalid_el:
     mov   x0, #SMC_INVALID_EL
     b     _smc_exit
 
-_smc_unimplemented:
-    mov   x0, #SMC_UNIMPLEMENTED
-    b     _smc_exit
-    
      //------------------------------------------
 
 __dead_loop:

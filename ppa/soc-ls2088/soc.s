@@ -2,10 +2,11 @@
 // ARM v8 AArch64
 //
 // Copyright (c) 2015-2016 Freescale Semiconductor, Inc. All rights reserved.
+// Copyright (c) 2017 NXP Semiconductors, Inc. All rights reserved.
 //
 
 // This file includes:
-// functions pertaining to the LS2080 SOC
+// functions pertaining to the LS2088 SOC
 
 //-----------------------------------------------------------------------------
 
@@ -62,6 +63,12 @@
 .global _get_gic_sgi_base
 
 .global _soc_exit_boot_svcs
+
+ // only valid if ddr is being initialized
+#if (DDR_INIT)
+.global _membank_count_addr
+.global _membank_data_addr
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -120,6 +127,10 @@ _soc_init_start:
      // make sure the personality has been established by releasing cores
      // that are marked "to-be-disabled" from reset
     bl  release_disabled  // 0-3
+
+     // zero-out the membank global vars
+    adr   x2, _membank_count_addr
+    stp   xzr, xzr, [x2]
 
      // init the task flags
     bl  init_task_flags   // 0-1
@@ -2036,6 +2047,22 @@ init_task3_flags:
     .4byte  0x0  // begin flag
     .4byte  0x0  // completed flag
     .4byte  0x0  // core mask
+
+//-----------------------------------------------------------------------------
+
+ // only used if ddr is being initialized
+ // Note: keep these two locations contiguous
+.align 4
+
+ // address in memory of number of memory banks
+ // this is a pointer-to-a-pointer (**)
+_membank_count_addr:
+    .8byte  0x0
+ // address in memory of start of memory bank data structures
+ // Note: number of valid structures determined by value found
+ //       at **_membank_count_addr
+_membank_data_addr:
+    .8byte  0x0
 
 //-----------------------------------------------------------------------------
 

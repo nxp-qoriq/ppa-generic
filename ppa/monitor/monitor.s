@@ -26,6 +26,10 @@
 .global _cpu_off_exit
 .global _start_monitor_el3
 .global _mon_core_restart
+.global _init_membank_data
+#if (PSCI_TEST)
+.global _populate_membank_data
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -472,8 +476,7 @@ init_stack_percpu:
      // x2 = absolute stack offset
 
      // get the top of the stack area
-    mov   x1, #OCRAM_BASE_ADDR
-    add   x1, x1, #OCRAM_SIZE_IN_BYTES
+    mov   x1, #STACK_BASE_ADDR
 
      // x0 = current core number (0-based)
      // x1 = address of top of stack
@@ -513,6 +516,151 @@ init_stack_percpu:
     b.gt  2b
 
     ret
+
+//-----------------------------------------------------------------------------
+
+ // this function sets up the memory bank info data areas in memory
+ // Note: this function MUST be called before initializing ddr
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3
+_init_membank_data:
+
+ // only valid if ddr is being initialized
+#if (DDR_INIT)
+
+     // we want to allocate this data area directly below the EL3
+     // stacks - calculate the size of the stack space
+    mov   x0, #CPU_MAX_COUNT
+    mov   x1, #STACK_OFFSET
+    mul   x0, x0, x1
+     // the bootcore is allocated 2x the normal stack size
+    add   x0, x0, x1
+
+     // x0 = total stack space
+
+    mov   x1, #STACK_BASE_ADDR
+
+     // find the bottom of the stack space
+    sub   x0, x1, x0
+
+     // x0 = bottom of stack
+
+     // find bottom of memory bank data area
+    mov   x1, #MEMBANK_REGION_MAX_SIZE
+    sub   x0, x0, x1
+
+     // x0 = bottom of memory bank data area
+     // x1 = size of memory bank data area
+
+     // store address of the memory bank count data
+    adr  x3, _membank_count_addr
+    bic  x0, x0, #0x7
+    str  x0, [x3]
+
+     // store address of the memory bank info data
+    adr  x3, _membank_data_addr
+    add  x2, x0, #0x8
+    str  x2, [x3]
+
+     // x0 = bottom of memory bank data area
+     // x1 = size of memory bank data area
+
+     // initialize the data area
+    lsr   x1, x1, #3
+     // x1 = number of double-words in region
+1:
+    str   xzr, [x0], #8
+    sub   x1, x1, #1
+    cbnz  x1, 1b
+
+#endif
+
+    ret
+
+//-----------------------------------------------------------------------------
+
+#if DDR_INIT
+#if PSCI_TEST
+
+#define  MEMBANK_COUNT  4
+#define  BANK1_ADDR     0x0080000000
+#define  BANK2_ADDR     0x8000000000
+#define  BANK3_ADDR     OCRAM_BASE_ADDR
+#define  BANK4_ADDR     0x00F0000000
+#define  BANK1_SIZE     0x080000000       // 2GB
+#define  BANK2_SIZE     0x200000000       // 8GB
+#define  BANK3_SIZE     OCRAM_SIZE_IN_BYTES
+#define  BANK4_SIZE     0x080000000       // 2GB
+
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3
+_populate_membank_data:
+
+     // get the address of the bank count var
+    adr  x1, _membank_count_addr
+    ldr  x2, [x1]
+
+     // x2 = address of membank count data
+
+     // store the number of banks
+    mov  x1, #MEMBANK_COUNT
+    str  x1, [x2] 
+
+     // get the address of the first bank info struc
+    adr  x1, _membank_data_addr
+    ldr  x2, [x1]
+
+     // x2 = address of first membank info struc
+
+     // populate the first structure
+    mov   w1, #MEMBANK_STATE_VALID
+    str   w1, [x2, #MEMDATA_STATE_OFFSET]
+    mov   w3, #MEMBANK_TYPE_DDR
+    str   w3, [x2, #MEMDATA_TYPE_OFFSET]
+    mov   x0, #BANK1_ADDR
+    str   x0, [x2, #MEMDATA_ADDR_OFFSET]
+    mov   x1, #BANK1_SIZE
+    str   x1, [x2, #MEMDATA_SIZE_OFFSET]
+   
+     // move to the next data structure
+    add   x2, x2, #MEMBANK_DATA_SIZE
+
+     // populate the second structure
+    mov   w1, #MEMBANK_STATE_VALID
+    str   w1, [x2, #MEMDATA_STATE_OFFSET]
+    mov   w3, #MEMBANK_TYPE_DDR
+    str   w3, [x2, #MEMDATA_TYPE_OFFSET]
+    mov   x0, #BANK2_ADDR
+    str   x0, [x2, #MEMDATA_ADDR_OFFSET]
+    mov   x1, #BANK2_SIZE
+    str   x1, [x2, #MEMDATA_SIZE_OFFSET]
+   
+     // move to the next data structure
+    add   x2, x2, #MEMBANK_DATA_SIZE
+
+     // populate the third structure
+    mov   w1, #MEMBANK_STATE_VALID
+    str   w1, [x2, #MEMDATA_STATE_OFFSET]
+    mov   w3, #MEMBANK_TYPE_DDR
+    str   w3, [x2, #MEMDATA_TYPE_OFFSET]
+    mov   x0, #BANK3_ADDR
+    str   x0, [x2, #MEMDATA_ADDR_OFFSET]
+    mov   x1, #BANK3_SIZE
+    str   x1, [x2, #MEMDATA_SIZE_OFFSET]
+   
+     // move to the next data structure
+    add   x2, x2, #MEMBANK_DATA_SIZE
+
+     // populate the fourth structure
+    mov   w1, #MEMBANK_STATE_INVALID
+    str   w1, [x2, #MEMDATA_STATE_OFFSET]
+
+    ret
+
+#endif
+#endif
 
 //-----------------------------------------------------------------------------
 

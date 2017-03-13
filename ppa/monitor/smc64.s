@@ -137,6 +137,11 @@ smc64_sip_svc:
     cmp  w10, w11
     b.eq smc64_sip_RNG
 
+     // SIP service call MEMBANK_64
+    mov  w10, #SIP_MEMBANK
+    cmp  w10, w11
+    b.eq smc64_membank_data
+
     b    _smc_unimplemented 
 
      //------------------------------------------
@@ -290,9 +295,113 @@ smc64_arch_el2_2_aarch32:
 
      //------------------------------------------
 
+ // this function returns data about the memory banks on this platform
+ // Note: memory bank numbering is 0-based (bank 0, bank 1, etc)
+ // in:  x0 = function id
+ //      x1 = memory bank requested (0, 1, 2, etc)
+ // out: x0 [0] =  1, valid bank
+ //             =  0, invalid bank
+ //       [1:2] =  1, ddr  
+ //             =  2, sram
+ //             =  3, special
+ //         [3] =  1, not the last bank
+ //             =  0, last bank
+ //      x1     =  physical start address (not valid unless x0[0]=1)
+ //      x2     =  size in bytes (not valid unless x0[0]=1)
+ // uses x0, x1, x2, x3, x4
+smc64_membank_data:
+    mov   x12, x30
+
+     // initialize the return value
+    mov   x0, #MEMBANK_INVALID
+
+ // only valid if ddr is being initialized
+#if (DDR_INIT)
+
+     // get the number of memory banks installed
+    adr   x3, _membank_count_addr
+    ldr   x4, [x3]
+     // the value read is an address...get the data found at that address
+    ldr   x2, [x4]
+
+     // x1 = memory bank requested
+     // x2 = number of membanks installed
+
+     // validate the memory bank requested
+    sub   x2, x2, #1
+    cmp   x2, x1
+    b.lt  5f
+    b.eq  3f
+     // not the last bank
+    orr   x0, x0, #MEMBANK_NOT_LAST
+3:
+     // get the offset to this bank's structure
+    mov   x2, #MEMBANK_DATA_SIZE
+    mul   x3, x1, x2
+
+     // x3 = offset
+
+     // get the start address of the memory bank data area
+    adr   x1, _membank_data_addr
+    ldr   x4, [x1]
+
+     // x3 = offset
+     // x4 = base address of membank data structures
+
+     // get the address to this bank's structure
+    add   x3, x3, x4
+
+     // x3 = start address of data structure
+
+     // get the bank state
+    ldr   w4, [x3, #MEMDATA_STATE_OFFSET]
+    cmp   w4, #MEMBANK_STATE_INVALID
+    b.eq  5f
+
+     // this is a valid bank
+    orr   x0, x0, #MEMBANK_VALID
+
+     // get the bank type
+    ldr   w4, [x3, #MEMDATA_TYPE_OFFSET]
+    cmp   w4, #MEMBANK_TYPE_DDR
+    b.ne  1f
+     // memory bank is ddr
+    orr   x0, x0, #MEMBANK_DDR
+    b     4f
+1:
+    cmp   w4, #MEMBANK_TYPE_SRAM
+    b.ne  2f
+     // memory bank is sram
+    orr   x0, x0, #MEMBANK_SRAM
+    b     4f
+2:
+     // memory bank is special
+    orr   x0, x0, #MEMBANK_SPECIAL
+4:
+     // get the start address
+    ldr   x1, [x3, #MEMDATA_ADDR_OFFSET]
+    
+     // get the size
+    ldr   x2, [x3, #MEMDATA_SIZE_OFFSET]
+5:
+
+    mov   x3, xzr
+#endif
+
+    b     _smc_exit
+
+     //------------------------------------------
+
 smc64_no_services:
     mov   x12, x30
-    b     _smc_unimplemented
+     // w11 contains the requested function id
+     // w10 contains the call count function id
+    mov   w10, #0xFF00
+    cmp   w10, w11
+    b.ne  _smc_unimplemented
+     // call count is zero
+    mov   w0, #0
+    b     _smc_exit
 
 //-----------------------------------------------------------------------------
 

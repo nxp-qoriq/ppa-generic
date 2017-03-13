@@ -46,6 +46,10 @@ ifeq  ($(TEST), prng)
 	TEST_PSCI=1
     TEST_FILE=test_prng.s
 else
+ifeq  ($(TEST), membank)
+	TEST_PSCI=1
+    TEST_FILE=test_membank_data.s
+else
 ifeq  ($(TEST), sys_off)
 	TEST_PSCI=1
     ifeq ($(NUMBER_OF_CORES), 1)
@@ -56,6 +60,7 @@ ifeq  ($(TEST), sys_off)
 else
 	TEST_PSCI=0
     TEST_FILE=
+endif
 endif
 endif
 endif

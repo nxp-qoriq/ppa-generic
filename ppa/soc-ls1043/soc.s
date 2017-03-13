@@ -95,6 +95,12 @@
 
 .global _soc_exit_boot_svcs
 
+ // only valid if ddr is being initialized
+#if (DDR_INIT)
+.global _membank_count_addr
+.global _membank_data_addr
+#endif
+
 //-----------------------------------------------------------------------------
 
 .equ  RESTART_RETRY_CNT,  3000
@@ -1755,7 +1761,9 @@ _get_current_mask:
 _soc_init_start:
     mov   x10, x30
 
-     //---------------------------
+     // zero-out the membank global vars
+    adr   x2, _membank_count_addr
+    stp   xzr, xzr, [x2]
 
      // get the address of the gic base address area
     adr   x5, _gic_base_addr
@@ -2816,6 +2824,21 @@ init_task3_flags:
     .4byte  0x0  // core mask
 
 //-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
+
+ // only used if ddr is being initialized
+ // Note: keep these two locations contiguous
+.align 4
+
+ // address in memory of number of memory banks
+ // this is a pointer-to-a-pointer (**)
+_membank_count_addr:
+    .8byte  0x0
+ // address in memory of start of memory bank data structures
+ // Note: number of valid structures determined by value found
+ //       at **_membank_count_addr
+_membank_data_addr:
+    .8byte  0x0
+
+
 //-----------------------------------------------------------------------------
 
