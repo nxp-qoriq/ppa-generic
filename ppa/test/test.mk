@@ -11,15 +11,19 @@ ifeq ($(TEST), smp_boot)
     ifeq ($(NUMBER_OF_CLUSTERS), 1)
         TEST_FILE=test_cpu_on_1cluster.s
     else
-        ifeq ($(NUMBER_OF_CLUSTERS), 2)
-            TEST_FILE=test_cpu_on_2cluster.s
-        else
-            ifeq ($(NUMBER_OF_CLUSTERS), 4)
-                TEST_FILE=test_cpu_on_4cluster.s
-            else
-                $(error -> Number of Clusters not set!)
-            endif
-        endif
+    ifeq ($(NUMBER_OF_CLUSTERS), 2)
+        TEST_FILE=test_cpu_on_2cluster.s
+    else
+    ifeq ($(NUMBER_OF_CLUSTERS), 4)
+        TEST_FILE=test_cpu_on_4cluster.s
+    else
+    ifeq ($(NUMBER_OF_CLUSTERS), 8)
+        TEST_FILE=test_cpu_on_8cluster.s
+    else
+        $(error -> Number of Clusters not set!)
+    endif
+    endif
+    endif
     endif
 else
 ifeq ($(TEST), hotplug)

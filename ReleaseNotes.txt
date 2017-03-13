@@ -11,6 +11,7 @@ Services provided:
     Secure Monitor gateway
     PSCI v0.2
     Aarch32 kernel support
+    Memory Bank query when secure fw initializes ddr
 
 Devices Supported:
     LS1012A
@@ -20,14 +21,47 @@ Devices Supported:
     LS1088A
     LS2080A/2085A
     LS2088A
-    UA
+    LA1575
+    LX2160
+
+Date: 03/13/2017 --------------------------------------------------------------
+
+1) Added support for SoC LX2160. This is a preliminary version with only
+   smp boot (CPU_ON) support. Added an smp_boot test for an 8-cluster,
+   16-core device (LX2160).
+
+2) Added smc function smc64_membank_data. This function implements an interface
+   between the bootloader and the secure fw. When the secure fw initializes ddr,
+   the bootloader calls this function to determine the memory banks installed.
+   The call interface is:
+        in:  x0 = function id
+             x1 = memory bank requested (0, 1, 2, etc)
+        out: x0 [0] =  1, valid bank
+                    =  0, invalid bank
+              [1:2] =  1, ddr  
+                    =  2, sram
+                    =  3, special
+                [3] =  1, not the last bank
+                    =  0, last bank
+             x1     =  physical start address (not valid unless x0[0]=1)
+             x2     =  size in bytes (not valid unless x0[0]=1)
+
+   The bootloader will call this function with an initiali value of 0 in
+   register x1, for memory bank 0. If x0 [3] is 'b1, then increment the
+   memory bank number and call again. Repeat until x0 [3] comes back 'b0,
+   indicating that the last bank has been queried.
+
+3) Fixed problems with saving/restoring the link register with some smc
+   functions.
+
+//- end 03/13/2017 update -----------------------------------------------------
 
 Date: 11/16/2016 --------------------------------------------------------------
 
 1) Added support for parallel builds, at all levels.
    The .NOTPARALLEL pseudo-target has been removed from the makefiles, and
    make -j24 is supported for builds at all levels. The "-j24" parameter has also
-   been added to the make coomands in the top level "build" script.
+   been added to the make commands in the top level "build" script.
 
 2) For devices with CCI-400 intercnnects, clearing the "terminate barriers" bit
    in the Control Override register. This bit is set by bootloader as a WA for
