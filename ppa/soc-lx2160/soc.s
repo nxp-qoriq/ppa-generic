@@ -472,10 +472,12 @@ _soc_core_rls_wait:
     mov  x0, xzr
     b.eq 2f
 
+#if 0
      // see if we used up our retries
     sub  x3, x3, #1
     mov  x0, #1
     cbz  x3, 2f
+#endif
 
      // loop back and try again
     b    1b
