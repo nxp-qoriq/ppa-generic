@@ -377,29 +377,6 @@ _set_spsr_4_exit:
     isb
     ret
 
-//--------------------------------
-
-     // determine if we have hw support for EL2
-    ldr  x1, =ID_AA64PFR0_MASK_EL2
-    mrs  x0, id_aa64pfr0_el1
-    and  x0, x0, x1
-
-     // x0 = hw support for EL2 (0 means no support)
-
-    cbz  x0, 1f
-    mov  x1, #SPSR_FOR_EL2H
-    mov  x0, #CORE_EL2
-    b    2f
-
-1:   // setup for exit to EL1
-    mov  x1, #SPSR_FOR_EL1H
-    mov  x0, #CORE_EL1
-2:
-     // set SPSR_EL3
-    msr  spsr_el3, x1
-    isb
-    ret
-
 //-----------------------------------------------------------------------------
 
  // this function sets the spsr value for a core exiting

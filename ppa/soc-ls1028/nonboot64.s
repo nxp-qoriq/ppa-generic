@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2013-2016, Freescale Semiconductor, Inc.
+// Copyright (c) 2015-2016, Freescale Semiconductor, Inc.
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -59,10 +59,12 @@ non_boot_core:
     tst   w0, w3
     b.ne  core_disable
 
+#if (!SIMULATOR_BUILD)
      // see if this core has been released via core_hold
     mov   x0, x3
     bl    is_core_released_tester
     cbnz  x0, fast_path
+#endif
 
      // see if this core has been released via mpidr
     bl    is_core_released_mpidr

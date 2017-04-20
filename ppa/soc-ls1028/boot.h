@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2015, 2016 Freescale Semiconductor, Inc.
+// Copyright (c) 2015-2016, Freescale Semiconductor, Inc.
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -101,6 +101,20 @@
 .equ SNOOP_CNTRL_DVM_SUPP, 0x80000000  // interface supports dvm messaging
 .equ STATUS_PENDING,       0x1
 
+ // bit masks
+.equ L2CTRL_RAM_LATENCY_MASK, 0x1C7
+.equ L2CTRL_TAG_LATENCY_3,    0x080
+.equ L2CTRL_DATA_LATENCY_3,   0x2
+
+.equ SCTLR_EL3_RES1,          0x30C50830       
+.equ SCTLR_SA_MASK,           0x00000008
+.equ SCTLR_I_MASK,            0x00001000
+
+.equ CPUECTLR_SMPEN_EN,       0x40
+.equ HCR_EL2_RW_AARCH64,      0x80000000
+.equ CPTR_EL2_NO_TRAP,        0x33FF
+
+
 //-----------------------------------------------------------------------------
 
  // this macro reads MPIDR_EL1 and extracts the lo-order 16 bits
@@ -116,4 +130,4 @@
 
 //-----------------------------------------------------------------------------
 
-#endif // _SOC_H
+#endif // _BOOT_H

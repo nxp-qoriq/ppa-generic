@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2013-2016, Freescale Semiconductor, Inc.
+// Copyright (c) 2015-2016, Freescale Semiconductor, Inc.
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,8 @@
 
 //-----------------------------------------------------------------------------
 
-#define L2CTLR_EL1 S3_1_c11_c0_2
+#define L2CTLR_EL1   S3_1_c11_c0_2
+#define CPUECTLR_EL1 S3_1_c15_c2_1
 
 //-----------------------------------------------------------------------------
 
@@ -52,7 +53,13 @@
 
 //-----------------------------------------------------------------------------
 
+#if (SIMULATOR_BUILD)
+.global _reset_vector_el3
 _reset_vector_el3:
+#else
+.global reset_vector_el3
+reset_vector_el3:
+#endif
 
      // perform any critical init that must occur early
     bl   early_init
@@ -83,8 +90,14 @@ _reset_vector_el3:
     cbz  x0, __dead_loop
 
 boot_core_exit:
+
+#if (SIMULATOR_BUILD)
      // branch to the ppa start
     b    _start_monitor_el3
+#else
+     // branch to the boot loader addr
+    br   x0
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -113,23 +126,20 @@ get_exec_addr:
  // uses: x0, x1
 init_EL3:
      // initialize SCTLR_EL3
-     // M,   bit [0]  = 0
-     // A,   bit [1]  = 0
-     // C,   bit [2]  = 0
-     // SA,  bit [3]  = 1
-     // I,   bit [12] = 1
-     // WXN, bit [19] = 0
-     // EE,  bit [25] = 0
-    mov  x0, #0x8
-     // turn on the icache
-    orr  x0, x0, #0x1000
+     // set the reserved bits
+    ldr  x0, =SCTLR_EL3_RES1
+     // turn on stack alignment
+    orr  x0, x0, #SCTLR_SA_MASK
+     // turn on icache
+    orr  x0, x0, #SCTLR_I_MASK
+     // writeback
     msr  SCTLR_EL3, x0
 
      // initialize CPUECTLR
      // SMP, bit [6] = 1
-    mrs  x0, S3_1_c15_c2_1
-    orr  x0, x0, #0x40
-    msr S3_1_c15_c2_1, x0
+    mrs  x0, CPUECTLR_EL1
+    orr  x0, x0, #CPUECTLR_SMPEN_EN
+    msr  CPUECTLR_EL1, x0
 
      // initialize CPTR_EL3
     msr  CPTR_EL3, xzr
@@ -174,12 +184,12 @@ init_EL3:
  // uses x0, x1
 init_EL2:
 
-    mov  x1, #0x80000000
+    mov  x1, #HCR_EL2_RW_AARCH64
     msr  hcr_el2, x1
 
     msr  sctlr_el2, xzr
 
-    mov  x0, #0x33FF
+    mov  x0, #CPTR_EL2_NO_TRAP
     msr  cptr_el2, x0
     isb
     ret
@@ -199,12 +209,13 @@ early_init:
      // initialize the L2 ram latency
     mrs   x1, L2CTLR_EL1
     mov   x2, x1
-    mov   x0, #0x1C7
+     // clear data ram and tag ram bits
+    mov   x0, #L2CTRL_RAM_LATENCY_MASK
     bic   x1, x1, x0
      // set L2 data ram latency bits [2:0]
-    orr   x1, x1, #0x2
+    orr   x1, x1, #L2CTRL_DATA_LATENCY_3
      // set L2 tag ram latency bits [8:6]
-    orr   x1,  x1, #0x80
+    orr   x1,  x1, #L2CTRL_TAG_LATENCY_3
      // if we changed the register value, write back the new value
     cmp   x2, x1
     b.eq  1f

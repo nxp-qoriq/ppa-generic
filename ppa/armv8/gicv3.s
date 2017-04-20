@@ -146,12 +146,6 @@ _gic_init_percpu:
 	msr   ICC_SRE_EL3, x1
     isb
 
-     // enable system register access @ EL2
-     // disable IRQ/FIQ bypass @ EL2
-     // allow el1 access
-    mov   x1, #0x7
-	msr   ICC_SRE_EL2, x1
-
      // enable system register access @ EL1 (NS)
      // disable IRQ/FIQ bypass @ EL1
      // allow el1 access
@@ -186,6 +180,12 @@ _gic_init_percpu:
     bic   x2, x2, #ICC_CTLR_EL3_EOIMODE_EL3
     orr   x2, x2, #ICC_CTLR_EL3_PMHE
     msr   ICC_CTLR_EL3, x2
+
+     // enable system register access @ EL2
+     // disable IRQ/FIQ bypass @ EL2
+     // allow el1 access
+    mov   x1, #0x7
+	msr   ICC_SRE_EL2, x1
 
     isb
     mov  x30, x7
