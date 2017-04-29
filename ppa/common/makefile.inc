@@ -50,7 +50,7 @@ OBJ_DIR     = build/obj
 BMAP   = -Map $(OBJ_DIR)/bootmain.64.map
 BENTRY = --entry=0 -Ttext=0x0
 MMAP   = -Map $(OBJ_DIR)/monitor.map
-MSCRIPT += --script $(OBJ_DIR)/ppa.ld
+MSCRIPT += --script $(OBJ_DIR)/ppa.ld -pie
 
 CROSS_COMPILE	?= $(ARMV8_TOOLS_DIR)/$(ARMV8_TOOLS_PREFIX)
 

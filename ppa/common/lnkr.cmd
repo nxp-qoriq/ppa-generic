@@ -46,57 +46,51 @@ ENTRY(_start_monitor_el3)
 
 SECTIONS
 {
-    .text . : {
-        __PPA_PROG_START__ = .;
+	.text . : {
+	__PPA_PROG_START__ = .;
 #if (SIMULATOR_BUILD)
-        *bootmain.64.o(.text*)
+		*bootmain.64.o(.text*)
 #else
-        *monitor.o(.text*)
+		*monitor.o(.text*)
 #endif
-        *(.text*)
-        *(.rodata*)
-        __PPA_PROG_END__ = .;
-    }
+		*(.text*)
+		*(.rodata*)
+	__PPA_PROG_END__ = .;
+	}
 
-    .data . : {
-        __DATA_START__ = .;
-        *(.data*)
-        __DATA_END__ = .;
-    }
+	.data . : {
+	__DATA_START__ = .;
+		*(.data*)
+	__DATA_END__ = .;
+	}
 
-    .bss : ALIGN(16) {
-     // Fill unused section with zero
-    FILL(0) ;
-        __BSS_START__ = .;
-        *(.bss*)
-        __BSS_END__ = .;
-    }
+	. = ALIGN(8);
+	.rel_dyn_start :
+	{
+	__REL_DYN_START__ = .;
+		*(.__rel_dyn_start)
+	}
 
-     // Stack must be last section
-    stacks (NOLOAD) : {
-        __STACKS_BASE__ = .;
-    }
+	.rela.dyn : {
+		*(.rela*)
+	}
 
-     // Place Stack End at PPA Limit to allow max Stack Depth
+	.rel_dyn_end :
+	{
+		*(.__rel_dyn_end)
+	__REL_DYN_END__ = .;
+	}
 
-//    ASSERT(. <= PPA_SIZE, "Not sufficient space") . = PPA_SIZE ;
+	_end = .;
 
-    __PPA_END__ = PPA_SIZE;
-
-    __STACKS_TOP__ = ROUNDDOWN(__PPA_END__, CORE_SP_ALIGNMENT);
-
-    __STACK_SIZE__ = __STACKS_TOP__ - __STACKS_BASE__ ;
-
-     // Divide Stack Equally Between Cores.
-     // Exact integer division is not neccesary.
-     // STACK PER CPU must be CORE_SP_ALIGNMENT to avoid
-     // Stack alignment fault.
-
-    __STACK_SIZE_PER_CPU_ = ROUNDDOWN((__STACK_SIZE__ / CPU_MAX_COUNT), CORE_SP_ALIGNMENT);
-
-     // Actual stack size must be g/e than required
-    ASSERT( __STACK_SIZE_PER_CPU_ >= REQ_CORE_STACK_SIZE , "Not enough space left for minimum required stack") __BSS_SIZE__ = SIZEOF(.bss);
-
+	. = ALIGN(8);
+	.bss : {
+	__BSS_START__ = .;
+		*(.bss*)
+		*(COMMON)
+	. = ALIGN(8);
+	__BSS_END__ = .;
+	}
 }
 
 //-----------------------------------------------------------------------------

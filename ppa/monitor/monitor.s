@@ -61,6 +61,8 @@
 
 .align 16
 _start_monitor_el3:
+     //Save the address where execution starts in x13
+    ADR   x13, .
      // save the LR
     mov   x12, x30
 
@@ -68,6 +70,14 @@ _start_monitor_el3:
 debug_stop:
     b  debug_stop
 #endif
+
+    mov x0, x13
+     // Relocate the rela_dyn sections
+    bl _relocate_rela
+
+    mov x0, x13
+     // Clear the bss
+    bl _zeroize_bss
 
      // clean/invalidate the dcache
     mov x0, #0

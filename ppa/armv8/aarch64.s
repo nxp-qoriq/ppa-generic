@@ -57,6 +57,8 @@
 .global _cln_inv_all_dcache
 .global _cln_inv_L3_dcache
 .global _getCallerEL
+.global _relocate_rela
+.global _zeroize_bss
 
 //-----------------------------------------------------------------------------
 
@@ -814,6 +816,62 @@ _getCallerEL:
     mov   x0, #SPSR_EL1
 
 4:
+    ret
+
+ //----------------------------------------------------------------------------
+
+ // this function relocates the rela_dyn sections
+ // in:  x0 = Base addr where PPA has been loaded
+ // out: None
+ // uses x0, x1, x2, x3, x4, x5
+_relocate_rela:
+     // Find relative load address
+    ldr  x1,=__PPA_PROG_START__
+    subs  x5, x0, x1
+
+     // Fix .rela.dyn relocations
+    ldr  x0, =__REL_DYN_START__
+    add  x0, x0, x5
+    ldr  x1, =__REL_DYN_END__
+    add  x1, x1, x5
+relfix:
+     // x2,x3 --> SRC, info
+    ldp   x2, x3, [x0], #16
+     // x4 <- addend
+    ldr   x4, [x0], #8
+    and   x3, x3, #0xffffffff
+    cmp   x3, #1027
+    bne   relnext
+
+     //rela fix: store addend plus offset at dest location
+    add   x2, x2, x5
+    add   x4, x4, x5
+    str   x4, [x2]
+relnext:
+    cmp   x0, x1
+    b.lo  relfix
+
+    ret
+
+ //----------------------------------------------------------------------------
+
+ // this function zeroizes the bss section
+ // in: x0 - Base address where PPA has been loaded
+ // out: None
+ // uses x1, x2, x5
+_zeroize_bss:
+    ldr  x1,=__PPA_PROG_START__
+    subs x5, x0, x1
+     //Load start and end of bss
+    ldr   x1, =__BSS_START__
+    ldr   x2, =__BSS_END__
+    add   x1, x1, x5
+    add   x2, x2, x5
+1:
+    str   xzr, [x1], #8
+    cmp   x1, x2
+    b.lo  1b
+
     ret
 
  //----------------------------------------------------------------------------
