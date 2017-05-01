@@ -33,92 +33,20 @@
 // 
 //-----------------------------------------------------------------------------
 
-#include "lib.h"
-#include "io.h"
-#include "uart.h"
+#define CONFIG_SYS_LSCH3
+#define CONFIG_ARCH_LS1088A
+#define TOP_OF_OCRAM		0x1801ffff      /* 128K */
+#define DDR_TEST_TABLE		(TOP_OF_OCRAM - 4096 * 3 + 1)
+#define TOP_OF_STACK		(DDR_TEST_TABLE - 1)
 
-#if DDR_INIT
-static void uart_setbaudrate(struct uart *ccsr_uart, int divisor)
-{
-    uart_out(&ccsr_uart->lcr, UART_LCR_DLAB | UART_LCR_INIT);
-    uart_out(&ccsr_uart->dlb, divisor & 0xff);
-    uart_out(&ccsr_uart->dmb, divisor >> 8);
-    uart_out(&ccsr_uart->lcr, UART_LCR_INIT);
-}
-void print_version(void)
-{
-    puts("\nPPA git-" VERSION "\n");
-}
+#define CONFIG_SYSCLK_FREQ	100000000
+#define CONFIG_DDRCLK_FREQ	100000000
 
-void uart_init(void)
-{
-    struct uart *ccsr_uart = (void *)UART_BASE;
+#define CONFIG_SPD_EEPROM0	0x51
 
-    /* Wait for transitter empty */
-    while (!(uart_in(&ccsr_uart->lsr) & UART_LSR_TEMT_MASK))
-        ;
+#define CONFIG_SYS_NUM_DDR_CTLRS	1
+#define CONFIG_SYS_DIMM_SLOTS_PER_CTLR	1
+#define CONFIG_FSL_DDR_BIST
 
-    uart_out(&ccsr_uart->ier, UART_IER_INIT);
-    uart_out(&ccsr_uart->mcr, UART_MCR_INIT);
-    uart_out(&ccsr_uart->fcr, UART_FCR_INIT);
-    uart_setbaudrate(ccsr_uart, UART_BAUD_DIV);
-
-    print_version();
-}
-#endif
-
-void putc(const char c)
-{
-    struct uart *ccsr_uart = (void *)UART_BASE;
-
-    while(!(uart_in(&ccsr_uart->lsr) & UART_LSR_THRE_MASK))
-        ;
-
-    if (c == '\n')
-        uart_out(&ccsr_uart->thr, '\r');
-    uart_out(&ccsr_uart->thr, c);
-}
-
-void puts(const char *s)
-{
-    while(*s)
-        putc(*s++);
-}
-
-#define PRINTF_BUF_LEN 65    /* max 64-bit data */
-static void u64_to_asc(unsigned long long n, int base)
-{
-    char buf[PRINTF_BUF_LEN];
-    char *ptr;
-    unsigned long long r;
-
-    if (base != 10 && base != 16)
-        return;
-
-    if (n == 0) {
-        buf[0] = '0';
-        buf[1] = '\0';
-        puts(buf);
-        return;
-    }
-
-    /* process backward */
-    ptr = buf + PRINTF_BUF_LEN - 1;
-    *ptr = '\0';
-    while (n) {
-        r = n % base;
-        *--ptr = ((base == 16 && r > 9) ? 'A' - 10 : '0') + r;
-        n /= base;
-    }
-    puts(ptr);
-}
-
-void print_uint(unsigned long long n)
-{
-    u64_to_asc(n, 10);
-}
-
-void print_hex(unsigned long long n)
-{
-    u64_to_asc(n, 16);
-}
+#define UART_BASE	0x21c0500
+#define UART_BAUD_DIV	190     /* 115200 from 700MHz plat clk */

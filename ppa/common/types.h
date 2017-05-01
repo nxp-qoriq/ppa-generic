@@ -1,6 +1,5 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2016, NXP Semiconductors
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -28,50 +27,39 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-//
-// Author York Sun <york.sun@nxp.com>
 // 
+// Authors:
+//  Ruchika Gupta <ruchika.gupta@nxp.com> 
+//
 //-----------------------------------------------------------------------------
 
-#include "io.h"
-#include "i2c.h"
-#include "types.h"
-#include "config.h"
-#ifdef CONFIG_SYS_LSCH3
-#include "lsch3.h"
-#elif defined(CONFIG_SYS_LSCH2)
-#include "lsch2.h"
-#else
-#error "Unknown chassis"
+#ifndef __TYPES__
+#define __TYPES__
+
+#define NULL ((void *)0)
+#define WORD_SIZE 4
+#define WORD_BITS 32
+
+ // data types
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+typedef unsigned long long u64;
+typedef unsigned int bool;
+typedef unsigned long register_t;
+typedef unsigned int size_t;
+typedef signed long long int64_t;
+
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+typedef signed char int8_t;
+typedef unsigned long phys_size_t;
+typedef uint32_t dma_addr_t;
+
+#define true	1
+#define false	0
+#define NULL ((void *)0)
+
 #endif
-
-#define SVR			0x01e000a4
-#define SVR_WO_E		0xFFFFFE
-#define SVR_LS2088		0x870900
-#define SVR_LS2084		0x870910
-#define SVR_SOC_VER(svr)	(((svr) >> 8) & SVR_WO_E)
-
-/* Fix me: shall avoid setting register for disabled DDR controller */
-static void erratum_a008336(void)
-{
-	unsigned int *eddrtqcr1;
-
-	eddrtqcr1 = (void *)0x70012c000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
-
-	eddrtqcr1 = (void *)0x70012d000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
-}
-
-static void erratum_a009203(void)
-{
-	struct ls_i2c *ccsr_i2c = (void *)CONFIG_SYS_I2C_BASE;
-
-	i2c_out(&ccsr_i2c->dbg, I2C_GLITCH_EN);
-}
-
-void soc_errata(void)
-{
-	erratum_a008336();
-	erratum_a009203();
-}

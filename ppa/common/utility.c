@@ -43,6 +43,7 @@
 #define UL_2POW13	(1UL << 13)
 #define ULL_8FS		0xFFFFFFFFULL
 
+#if 0
 void memcpy(void *dest, const void *src,
 			  register unsigned long count)
 {
@@ -68,6 +69,7 @@ void memcpy(void *dest, const void *src,
 	while (count--)
 		*dest_u8++ = *src_u8++;
 }
+#endif
 
 #define do_div(n, base) ({			\
 	unsigned int __base = (base);		\

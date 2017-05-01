@@ -73,7 +73,7 @@ PLAT_ASM =
 
 # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h
+HDRS_PLAT  =config.h policy.h
 
  # add platform-test-specific asm sources here
 TEST_ASM =$(TEST_FILE)
@@ -85,7 +85,7 @@ ifeq ($(DDR_BLD), 1)
 
   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
-  DDR_HDRS =config.h plat.h
+  DDR_HDRS =plat.h
 
   # add sources for the ddr, i2c, and uart drivers here
   DRIVER_C = utility.c regs.c ddr.c ddrc.c dimm.c opts.c debug.c crc32.c spd.c \

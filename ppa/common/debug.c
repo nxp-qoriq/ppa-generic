@@ -32,6 +32,7 @@
 //-----------------------------------------------------------------------------
 
 #include "lib.h"
+#include "io.h"
 #include "dimm.h"
 #include "opts.h"
 #include "regs.h"

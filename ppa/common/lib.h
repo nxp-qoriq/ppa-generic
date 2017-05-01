@@ -36,22 +36,9 @@
 #ifndef __LIB_H__
 #define __LIB_H__
 
-#include "config.h"
+#include "types.h"
 #include "errno.h"
 #include "uart.h"
-
-#ifdef CONFIG_SYS_LSCH3
-#include "lsch3.h"
-#elif defined(CONFIG_SYS_LSCH2)
-#include "lsch2.h"
-#else
-#error "Unknown chassis"
-#endif
-
-typedef int bool;
-#define true	1
-#define false	0
-#define NULL ((void *)0)
 
 #define offsetof(type, member) ((unsigned long)&((type *)0)->member)
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -119,5 +106,15 @@ static inline void panic(char *s)
 }
 
 void memcpy(void *dest, const void *src, register unsigned long count);
+void *memset(void *dest, uint8_t ch, size_t n);
+size_t strlen(const char *str);
+int strcmp(const char *s1, const char *s2);
+char *strncpy(char *dest, const char *src, size_t n);
+int strncmp(const char *s1, const char *s2, size_t n);
+int memcmp(const void *s1, const void *s2, size_t n);
+size_t strnlen(const char *s, size_t maxlen);
+int isxdigit(int c);
+int isdigit(int c);
+int tolower(int c);
 
 #endif /* __LIB_H__ */

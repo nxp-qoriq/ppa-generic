@@ -1,5 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
+// Copyright (C) 2015 Freescale Semiconductor
 // Copyright (c) 2016, NXP Semiconductors
 // Copyright 2017 NXP Semiconductors
 // 
@@ -28,50 +29,64 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-//
-// Author York Sun <york.sun@nxp.com>
 // 
+// Authors:
+//  Tom Tkacik <tom.tkacik@nxp.com>
+//  Ruchika Gupta <ruchika.gupta@nxp.com> 
+//
 //-----------------------------------------------------------------------------
+#ifndef _SHA256_H_
+#define _SHA256_H_
 
-#include "io.h"
-#include "i2c.h"
-#include "types.h"
-#include "config.h"
-#ifdef CONFIG_SYS_LSCH3
-#include "lsch3.h"
-#elif defined(CONFIG_SYS_LSCH2)
-#include "lsch2.h"
-#else
-#error "Unknown chassis"
+#ifdef STDLIB
+#include <stdint.h>
 #endif
+#include "types.h"
 
-#define SVR			0x01e000a4
-#define SVR_WO_E		0xFFFFFE
-#define SVR_LS2088		0x870900
-#define SVR_LS2084		0x870910
-#define SVR_SOC_VER(svr)	(((svr) >> 8) & SVR_WO_E)
+ // The context for a SHA-256 hash function
+typedef struct {
+	uint8_t data[64];
+	uint32_t datalen;
+	uint64_t bitlen;
+	uint32_t H[8];
+} SHA256_CTX;
 
-/* Fix me: shall avoid setting register for disabled DDR controller */
-static void erratum_a008336(void)
-{
-	unsigned int *eddrtqcr1;
+ // SHA256 function declarations
+void sha256_init(SHA256_CTX * context);
+void sha256_transform(SHA256_CTX * context);
+void sha256_update(SHA256_CTX * context, const uint8_t * data, uint32_t length);
+int sha256_update_hex(SHA256_CTX * context, const char *hex, uint32_t length);
+void sha256_finalize(SHA256_CTX * context, uint8_t * hash_bytes);
 
-	eddrtqcr1 = (void *)0x70012c000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
+void sha256(const uint8_t * data, uint32_t length, uint8_t * hash_bytes);
+int sha256_hex(const char *hex, uint32_t length, char *hash_string);
 
-	eddrtqcr1 = (void *)0x70012d000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
-}
+ // Self-test functions and declarations
+typedef struct sha_msg_test {
+	uint32_t Bitlen;	// Bit length of the test messasge 
+	const char *Msg;	// Test message as a hex string 
+	const char *MD;		// Resulting message digest, as a hex string 
+} sha_msg_test;
 
-static void erratum_a009203(void)
-{
-	struct ls_i2c *ccsr_i2c = (void *)CONFIG_SYS_I2C_BASE;
+extern const sha_msg_test sha_long[];
+extern const int sha_long_count;
 
-	i2c_out(&ccsr_i2c->dbg, I2C_GLITCH_EN);
-}
+extern const sha_msg_test sha_short[];
+extern const int sha_short_count;
 
-void soc_errata(void)
-{
-	erratum_a008336();
-	erratum_a009203();
-}
+extern const char *sha_monte_seed;
+extern const char *sha_monte[];
+extern const int sha_monte_count;
+
+int sha256_testMsg(const sha_msg_test * x, int count);
+int sha256_ShortMsg();
+int sha256_LongMsg();
+int sha256_Monte();
+
+ // Utility functions
+int hex_to_bytes(const char *in, uint32_t inlen, uint8_t * out,
+		 uint32_t outlen);
+int bytes_to_hex(const uint8_t * in, uint32_t inlen, char *out,
+		 uint32_t outlen);
+
+#endif // _SHA256_H_ 

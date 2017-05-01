@@ -1,5 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
+// Copyright (c) 2016, NXP Semiconductors
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -27,29 +28,35 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
+// 
+// Authors:
+//  Ruchika Gupta <ruchika.gupta@nxp.com> 
 //
 //-----------------------------------------------------------------------------
 
-unsigned long long 
-_get_PRNG(
-    int  prngWidth
-    )
+#include "entropy.h"
+
+ //
+ // Get entropy by reading SERDES Registers - TBD 
+ // Parameters:
+ // uint8_t* entropy     - byte buffer to store entropy
+ // uint32_t entropy_len - number of bytes of entropy to return
+ //
+ // Return code:
+ // 0 - All is well
+ //
+ // Currently this is a dmmy function returning some value based on the
+ //  value of static variable i
+ //
+int get_entropy(uint8_t * entropy, uint32_t entropy_len)
 {
+     // TBD - Add support for SERDES
 
-    unsigned long long  result = 0;
-
-    if (0 == prngWidth) {
-         // return a 32-bit prng
-        result = 0x12345678;
-    }
-    else {
-         // return a 64-bit prng
-        result = 0x0123456789ABCDEF;
+    static int i = 0;
+    int j = 0;
+    for (j = 0; j < entropy_len; j++) {
+        entropy[j] = i++;
     }
 
-    return (result);
-
-}  // _get_PRNG()
-
-//-----------------------------------------------------------------------------
-
+    return 0;
+} //get_entropy

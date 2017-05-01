@@ -34,6 +34,7 @@
 //-----------------------------------------------------------------------------
 
 #include "lib.h"
+#include "io.h"
 #include "ddr.h"
 #include "i2c.h"
 #include "debug.h"

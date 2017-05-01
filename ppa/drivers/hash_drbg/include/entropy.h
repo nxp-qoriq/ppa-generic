@@ -1,5 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
+// Copyright (C) 2015 Freescale Semiconductor
 // Copyright (c) 2016, NXP Semiconductors
 // Copyright 2017 NXP Semiconductors
 // 
@@ -28,50 +29,18 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-//
-// Author York Sun <york.sun@nxp.com>
 // 
+// Authors:
+//  Tom Tkacik <tom.tkacik@nxp.com>
+//  Ruchika Gupta <ruchika.gupta@nxp.com> 
+//
 //-----------------------------------------------------------------------------
 
-#include "io.h"
-#include "i2c.h"
+#ifndef _ENTROPY_H_
+#define _ENTROPY_H_
+
 #include "types.h"
-#include "config.h"
-#ifdef CONFIG_SYS_LSCH3
-#include "lsch3.h"
-#elif defined(CONFIG_SYS_LSCH2)
-#include "lsch2.h"
-#else
-#error "Unknown chassis"
-#endif
 
-#define SVR			0x01e000a4
-#define SVR_WO_E		0xFFFFFE
-#define SVR_LS2088		0x870900
-#define SVR_LS2084		0x870910
-#define SVR_SOC_VER(svr)	(((svr) >> 8) & SVR_WO_E)
+int get_entropy(uint8_t* entropy, uint32_t entropy_len);
 
-/* Fix me: shall avoid setting register for disabled DDR controller */
-static void erratum_a008336(void)
-{
-	unsigned int *eddrtqcr1;
-
-	eddrtqcr1 = (void *)0x70012c000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
-
-	eddrtqcr1 = (void *)0x70012d000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
-}
-
-static void erratum_a009203(void)
-{
-	struct ls_i2c *ccsr_i2c = (void *)CONFIG_SYS_I2C_BASE;
-
-	i2c_out(&ccsr_i2c->dbg, I2C_GLITCH_EN);
-}
-
-void soc_errata(void)
-{
-	erratum_a008336();
-	erratum_a009203();
-}
+#endif  // _ENTROPY_H_

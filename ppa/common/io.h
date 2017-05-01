@@ -36,6 +36,15 @@
 #ifndef __IO_H__
 #define __IO_H__
 
+#include "config.h"
+#ifdef CONFIG_SYS_LSCH3
+#include "lsch3.h"
+#elif defined(CONFIG_SYS_LSCH2)
+#include "lsch2.h"
+#else
+#error "Unknown chassis"
+#endif
+
 /*
  * These macros are for ARM-based SoCs.
  * Raw IO access is presumed to be in little-endian.
@@ -88,6 +97,7 @@
 #define i2c_in		in8
 #define i2c_out		out8
 
+#if DDR_INIT
 #ifdef CONFIG_SYS_FSL_CCSR_DDR_BE
 #define ddr_in32(a)			in_be32(a)
 #define ddr_out32(a, v)			out_be32(a, v)
@@ -112,6 +122,7 @@
 #define gur_out32(a, v)	out_le32(a, v)
 #else
 #error Please define CCSR GUR register endianness
+#endif
 #endif
 
 #define mb()		asm volatile("dsb sy" : : : "memory")

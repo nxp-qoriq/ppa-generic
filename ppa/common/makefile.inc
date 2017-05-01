@@ -73,7 +73,7 @@ GENITS      = $(CMN_SRC)/gen_its
 
 GIT_VERSION    := $(shell git describe --dirty --always 2>/dev/null)
 CFLAGS		    = -fno-builtin -ggdb -mstrict-align -DVERSION=\"$(GIT_VERSION)\"
-CFLAGS64		= $(CFLAGS) -Wa,-march=armv8-a -Wa,-EL -c
+CFLAGS64		= $(CFLAGS) -Wa,-march=armv8-a -Wa,-EL -c -fno-stack-protector
 LDFLAGS64		= --oformat=elf64-littleaarch64
 ASFLAGS64		= -Wa,-march=armv8-a -Wa,-EL -x assembler-with-cpp -c
 OPTFLAGS		= -dumpmachine
@@ -81,8 +81,10 @@ OPTFLAGS		= -dumpmachine
 #------------------------------------------------
 
 # add the prng driver files here
-PRNG_C    = prng.c
-PRNG_HDRS = 
+HASH_DRBG_HDRS =  $(wildcard  $(DRVR_SRC)/hash_drbg/include/*.h) 
+HASH_DRBG_HDRS := $(notdir $(HASH_DRBG_HDRS))
+HASH_DRBG_C =  $(wildcard  $(DRVR_SRC)/hash_drbg/src/*.c) 
+HASH_DRBG_C := $(notdir $(HASH_DRBG_C))
 
 #------------------------------------------------
 
@@ -91,14 +93,14 @@ PRE_TARG   =monitor.elf
 
 LINK_ASM   =ppa.ld.s
 COMMON_ASM =utils.s
-COMMON_C   =ppa_main.c
-COMMON_HDRS=common.h lnkr.cmd
+COMMON_C   =ppa_main.c uart.c lib.c
+COMMON_HDRS=common.h types.h io.h uart.h lib.h errno.h lnkr.cmd
 
 BUILD_ASM  =$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
-BUILD_C    =$(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C) $(PRNG_C)
+BUILD_C    =$(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C) $(HASH_DRBG_C)
 HDRS_ASM   =$(HDRS_SOC) $(HDRS_PSCI) $(HDRS_ARMV8) $(HDRS_PLAT) $(COMMON_HDRS) \
-	    $(HDRS_MNTR) $(DRIVER_HDRS) $(DDR_HDRS) $(PRNG_HDRS)
+	    $(HDRS_MNTR) $(DRIVER_HDRS) $(DDR_HDRS) $(HASH_DRBG_HDRS)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 
 #------------------------------------------------
@@ -226,11 +228,11 @@ $(DRIVER_C): $(DRIVER_HDRS) src
 $(DRIVER_HDRS): src
 	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
 
-$(PRNG_C): $(PRNG_HDRS) src
-	@cp $(DRVR_SRC)/$@ $(SRC_DIR)/$@
+$(HASH_DRBG_C): $(HASH_DRBG_HDRS) src
+	@cp $(DRVR_SRC)/hash_drbg/src/$@ $(SRC_DIR)/$@
 
-$(PRNG_HDRS): src
-	@cp $(DRVR_SRC)/$@ $(SRC_DIR)/$@
+$(HASH_DRBG_HDRS): src
+	@cp $(DRVR_SRC)/hash_drbg/include/$@ $(SRC_DIR)/$@
 
 #------------------------------------------------
 

@@ -1,6 +1,5 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2016, NXP Semiconductors
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -28,50 +27,58 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-//
-// Author York Sun <york.sun@nxp.com>
 // 
+// Authors:
+//  Ruchika Gupta <ruchika.gupta@nxp.com> 
+//
 //-----------------------------------------------------------------------------
 
-#include "io.h"
-#include "i2c.h"
 #include "types.h"
-#include "config.h"
-#ifdef CONFIG_SYS_LSCH3
-#include "lsch3.h"
-#elif defined(CONFIG_SYS_LSCH2)
-#include "lsch2.h"
-#else
-#error "Unknown chassis"
+#include "get_rand.h"
+#include "lib.h"
+
+ // this function returns a random number using HASH DRBG algorithm
+ // In case of failure, random number returned is 0
+ // prngWidth = 0 - 32 bit random number
+ // prngWidth > 0 means 64 bit random number
+unsigned long long _get_PRNG(int prngWidth)
+{
+    unsigned long long result;
+    uint8_t rand_byte[8];
+    uint8_t rand_byte_swp[8];
+    int bytes = 0;
+    int i = 0;
+    int ret = 0;
+
+#ifdef TEST
+    rand_byte[0] = 0x12;
+    rand_byte[1] = 0x34;
+    rand_byte[2] = 0x56;
+    rand_byte[3] = 0x78;
+    rand_byte[4] = 0x9a;
+    rand_byte[5] = 0xbc;
+    rand_byte[6] = 0xde;
+    rand_byte[7] = 0xf1;
 #endif
 
-#define SVR			0x01e000a4
-#define SVR_WO_E		0xFFFFFE
-#define SVR_LS2088		0x870900
-#define SVR_LS2084		0x870910
-#define SVR_SOC_VER(svr)	(((svr) >> 8) & SVR_WO_E)
+    if (prngWidth == 0)
+        bytes = 4;
+    else
+        bytes = 8;
 
-/* Fix me: shall avoid setting register for disabled DDR controller */
-static void erratum_a008336(void)
-{
-	unsigned int *eddrtqcr1;
+    ret = get_rand_bytes(rand_byte, bytes);
 
-	eddrtqcr1 = (void *)0x70012c000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
+    for (i = 0; i < bytes; i++) {
+	if (ret) {
+	     // Return 0 in case of failure
+            rand_byte_swp[i] = 0;
+	} else {
+            rand_byte_swp[i] = rand_byte[bytes - i - 1];
+        }
+    } 
 
-	eddrtqcr1 = (void *)0x70012d000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
-}
+    result = *(unsigned long long *)&rand_byte_swp[0];
 
-static void erratum_a009203(void)
-{
-	struct ls_i2c *ccsr_i2c = (void *)CONFIG_SYS_I2C_BASE;
+    return result;
 
-	i2c_out(&ccsr_i2c->dbg, I2C_GLITCH_EN);
-}
-
-void soc_errata(void)
-{
-	erratum_a008336();
-	erratum_a009203();
-}
+}  // _get_PRNG()

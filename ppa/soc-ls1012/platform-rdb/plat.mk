@@ -86,7 +86,7 @@ PLAT_ASM =
 
 # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h
+HDRS_PLAT  =policy.h config.h
 
 # add platform-test-specific asm files here
 TEST_ASM =$(TEST_FILE)
@@ -95,15 +95,15 @@ TEST_ASM =$(TEST_FILE)
 ifeq ($(DDR_BLD), 1)
   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
-  DDR_HDRS =config.h
+  DDR_HDRS =
 
-  DRIVER_C = fsl_mmdc.c uart.c timer.c
-  DRIVER_HDRS = fsl_mmdc.h lsch2.h errno.h io.h lib.h timer.h uart.h
+  DRIVER_C = fsl_mmdc.c timer.c
+  DRIVER_HDRS = fsl_mmdc.h lsch2.h timer.h
 else
   DDR_C       =
   DDR_HDRS    =
   DRIVER_C    =
-  DRIVER_HDRS =
+  DRIVER_HDRS = lsch2.h
 endif
 
 # -----------------------------------------------------------------------------

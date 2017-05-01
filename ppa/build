@@ -177,7 +177,7 @@ fi
 
 if [ "$target" = "clean" ]; then
 	cd ../tools
-	make clean  >>../ppa/bldlog.txt
+	make clean 
 	cd -
 else
 	cd ../tools
