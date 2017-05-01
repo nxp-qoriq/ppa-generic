@@ -44,13 +44,21 @@ CMN_SRC     = $(PRE_PATH)../common
 DRVR_SRC    = $(PRE_PATH)../drivers
 SOC_SRC     = $(PRE_PATH).
 TEST_SRC    = $(PRE_PATH)../test
+TOOL_SRC    = $(PRE_PATH)../../tools
 SRC_DIR     = build/src
 OBJ_DIR     = build/obj
 
 BMAP   = -Map $(OBJ_DIR)/bootmain.64.map
 BENTRY = --entry=0 -Ttext=0x0
 MMAP   = -Map $(OBJ_DIR)/monitor.map
-MSCRIPT += --script $(OBJ_DIR)/ppa.ld -pie
+
+ifneq ($(TEXTBASE),)
+MSCRIPT += -Ttext $(TEXTBASE)
+else
+TEXTBASE = 0
+endif
+
+MSCRIPT += --script $(OBJ_DIR)/ppa.ld -pie -Bsymbolic
 
 CROSS_COMPILE	?= $(ARMV8_TOOLS_DIR)/$(ARMV8_TOOLS_PREFIX)
 
@@ -58,6 +66,8 @@ CC64		= $(CROSS_COMPILE)gcc
 LD64		= $(CROSS_COMPILE)ld
 OBJ64		= $(CROSS_COMPILE)objcopy
 MKIMAGE		= mkimage
+NM		= $(CROSS_COMPILE)nm
+
 MAKE        = @make --no-print-directory
 GENITS      = $(CMN_SRC)/gen_its
 
@@ -104,6 +114,19 @@ cleanout:
 	@rm -f build/src/*.*
 
 #------------------------------------------------
+GCC_VERSION_GE_62:=$(shell test `$(CC64) -dumpversion | sed 's/^\([0-9]\)\.\([0-9]\).*/\1\2/'` -ge 62 && echo true || echo false)
+
+# relocate_rela is available in u-boot/tools folder
+
+ifeq ($(GCC_VERSION_GE_62),false)
+DO_STATIC_RELA_RELOC = \
+        start=$$($(NM) $(1) | grep __rel_dyn_start | cut -f 1 -d ' '); \
+        end=$$($(NM) $(1) | grep __rel_dyn_end | cut -f 1 -d ' '); \
+        $(TOOL_SRC)/relocate-rela $(2) $(3) $$start $$end
+else
+DO_STATIC_RELA_RELOC =
+endif
+
 
 monitor.bin: monitor.elf ppa.its
 monitor.elf: $(BUILD_C) $(BUILD_ASM) $(HDRS_ASM) $(COMMON_HDRS) $(OBJECTS)
@@ -112,6 +135,7 @@ bootmain.64.elf: $(BUILD_C) $(BUILD_ASM) $(HDRS_ASM) $(COMMON_HDRS) $(OBJECTS)
 
 $(TARGETS):
 	$(OBJ64) -v -O binary $(OBJ_DIR)/$< $(OBJ_DIR)/$@
+	$(call DO_STATIC_RELA_RELOC,$(OBJ_DIR)/$<,$(OBJ_DIR)/$@,$(TEXTBASE))
 
 $(PRE_TARG):
 	$(LD64) $(MMAP) $(MSCRIPT) $(LDFLAGS64) $(wildcard $(OBJ_DIR)/*.o) -o $(OBJ_DIR)/$@

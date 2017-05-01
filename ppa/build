@@ -175,6 +175,15 @@ fi
 
 #--------------------------------------
 
+if [ "$target" = "clean" ]; then
+	cd ../tools
+	make clean  >>../ppa/bldlog.txt
+	cd -
+else
+	cd ../tools
+	make -j24  >>../ppa/bldlog.txt
+	cd -
+fi
 # process the device list -------------
 if [ "$1" = "all" ]; then
     # remove "all" from the device list

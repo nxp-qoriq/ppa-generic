@@ -31,6 +31,12 @@
 //
 //-----------------------------------------------------------------------------
 
+char __bss_start[0] __attribute__((section(".__bss_start")));
+char __bss_end[0] __attribute__((section(".__bss_end")));
+char __rel_dyn_start[0] __attribute__((section(".__rel_dyn_start")));
+char __rel_dyn_end[0] __attribute__((section(".__rel_dyn_end")));
+
+
 #if (DDR_INIT)
 
 void _init_membank_data(void) __attribute__ ((weak));
