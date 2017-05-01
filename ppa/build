@@ -1,4 +1,5 @@
 #!/bin/bash          
+(set -o igncr) 2>/dev/null && set -o igncr; # comment is needed
 
 #---------------------------------------------------------------------------
 # 
@@ -103,12 +104,20 @@ for temp in $target_list ; do
         break
     fi
 done
+
 if [ "$target" = "clean" ]; then
     action=cleaning
+	cd ../tools
+	make clean >> ../ppa/bldlog.txt
+	cd - >> ../ppa/bldlog.txt
 else
     if [ "$target" = "none" ]; then
         echo Error: no target specified
         exit 1
+    else
+	    cd ../tools
+	    make -j24  >> ../ppa/bldlog.txt
+	    cd - >> ../ppa/bldlog.txt
     fi
 fi
 
@@ -175,15 +184,6 @@ fi
 
 #--------------------------------------
 
-if [ "$target" = "clean" ]; then
-	cd ../tools
-	make clean 
-	cd -
-else
-	cd ../tools
-	make -j24  >>../ppa/bldlog.txt
-	cd -
-fi
 # process the device list -------------
 if [ "$1" = "all" ]; then
     # remove "all" from the device list
