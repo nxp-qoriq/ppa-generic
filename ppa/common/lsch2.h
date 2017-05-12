@@ -46,17 +46,6 @@
 #define CONFIG_SYS_FSL_DDR_ADDR		0x01080000
 #define CONFIG_SYS_I2C_BASE		0x02180000
 
-#if defined(CONFIG_ARCH_LS1046A)
-#define CONFIG_SYS_FSL_ERRATUM_A008511
-#define CONFIG_SYS_FSL_ERRATUM_A009803
-#define CONFIG_SYS_FSL_ERRATUM_A009942
-#define CONFIG_SYS_FSL_ERRATUM_A010165
-#elif defined(CONFIG_ARCH_LS1043A)
-#define CONFIG_SYS_FSL_ERRATUM_A009942
-#define CONFIG_SYS_FSL_ERRATUM_A009663
-#endif
-
-
 struct sysinfo {
 	unsigned long freq_platform;
 	unsigned long freq_ddr_pll0;

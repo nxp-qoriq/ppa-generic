@@ -79,20 +79,26 @@ endif
 endif
 
 # select the debug/release build -
-ifeq ($(DBG), on)
+ifeq ($(dbg), on)
     DBG_BLD=1
     DBG_FLAGS=-Wl,-g -Wa,-g
 else
-    DBG=off
+    dbg=off
     DBG_BLD=0
     DBG_FLAGS=
 endif
 
-# select if ddr is initialized
-ifeq ($(DDR), on)
+# select if ddr/i2c driver(s) are built
+ifeq ($(ddr), on)
     $(error -> DDR init not [yet] supported on this platform!)
+    DDR_BLD=1
+    I2C_BLD=1
+    UART_BLD=1
 else
+    ddr=off
     DDR_BLD=0
+    I2C_BLD=0
+    UART_BLD=0
 endif
 
 # -----------------------------------------------------------------------------
@@ -112,7 +118,11 @@ PLATFLAGS = $(DBG_FLAGS)                   \
 	-DCLUSTER_COUNT=$(NUMBER_OF_CLUSTERS)  \
 	-DCPU_PER_CLUSTER=$(CORES_PER_CLUSTER) \
 	-DSYMMETRICAL_CLUSTERS=$(CLUSTER_SYMMETRY) \
-	-DL3_VIA_CCN504=$(CCN504_L3)           
+	-DL3_VIA_CCN504=$(CCN504_L3)           \
+	-DCNFG_DDR=$(DDR_BLD)                  \
+	-DCNFG_I2C=$(I2C_BLD)                  \
+	-DCNFG_UART=$(UART_BLD)                \
+    -DLSCH=$(CHASSIS)
 
 # -----------------------------------------------------------------------------
 
@@ -190,10 +200,10 @@ endif
 
 # set the path to the ddr-specific sources
 ifeq ($(PLAT_PATH), platform-sim)
-    ifeq ($(PLAT), rdb)
+    ifeq ($(plat), rdb)
         DDR_PATH=platform-rdb
     else
-        ifeq ($(PLAT), qds)
+        ifeq ($(plat), qds)
             DDR_PATH=
             $(error -> qds board not supported!)
         else

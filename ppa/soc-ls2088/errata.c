@@ -33,17 +33,10 @@
 // 
 //-----------------------------------------------------------------------------
 
+#include "soc.h"
 #include "io.h"
 #include "i2c.h"
 #include "types.h"
-#include "config.h"
-#ifdef CONFIG_SYS_LSCH3
-#include "lsch3.h"
-#elif defined(CONFIG_SYS_LSCH2)
-#include "lsch2.h"
-#else
-#error "Unknown chassis"
-#endif
 
 #define SVR			0x01e000a4
 #define SVR_WO_E		0xFFFFFE

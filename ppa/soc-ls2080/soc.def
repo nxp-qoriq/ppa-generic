@@ -52,5 +52,8 @@ GIC=GIC500
  # set to CCI400 or CCN504
 INTERCONNECT=CCN504
 
+ # indicate layerscape chassis level - set to 3=LSCH3 or 2=LSCH2
+CHASSIS=3
+
 # -----------------------------------------------------------------------------
 

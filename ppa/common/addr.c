@@ -33,6 +33,7 @@
 
 #include "lib.h"
 #include "io.h"
+#include "config.h"
 #include "ddr.h"
 
 static unsigned long long assign_intlv_addr(struct dimm_params *pdimm,

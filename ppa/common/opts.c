@@ -34,6 +34,7 @@
 //-----------------------------------------------------------------------------
 
 #include "io.h"
+#include "config.h"
 #include "lib.h"
 #include "ddr.h"
 #include "debug.h"

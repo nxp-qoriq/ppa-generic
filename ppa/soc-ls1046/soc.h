@@ -181,6 +181,12 @@
 #define  OCRAM_SIZE_IN_BYTES 0x20000
 #define  OCRAM_INIT_RETRY    0x2000
 
+ // defines for the ddr driver
+#define CONFIG_SYS_FSL_ERRATUM_A008511
+#define CONFIG_SYS_FSL_ERRATUM_A009803
+#define CONFIG_SYS_FSL_ERRATUM_A009942
+#define CONFIG_SYS_FSL_ERRATUM_A010165
+
 //-----------------------------------------------------------------------------
 
 #define CPUECTLR_EL1		S3_1_C15_C2_1

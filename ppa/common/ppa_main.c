@@ -37,8 +37,7 @@ char __rel_dyn_start[0] __attribute__((section(".__rel_dyn_start")));
 char __rel_dyn_end[0] __attribute__((section(".__rel_dyn_end")));
 
 
-#if (DDR_INIT)
-
+#if (CNFG_DDR)
 void _init_membank_data(void) __attribute__ ((weak));
 void _init_membank_data(void)
 {
@@ -49,18 +48,8 @@ void _init_ddr(void)
 {
 }
 
-void uart_init(void) __attribute__ ((weak));
-void uart_init(void)
-{
-}
-
 void timer_init(void) __attribute__ ((weak));
 void timer_init(void)
-{
-}
-
-void i2c_init(void) __attribute__ ((weak));
-void i2c_init(void)
 {
 }
 
@@ -74,8 +63,21 @@ void _populate_membank_data(void) __attribute__ ((weak));
 void _populate_membank_data(void)
 {
 }
-
 #endif
+#endif
+
+#if (CNFG_DDR) || (CNFG_I2C)
+void i2c_init(void) __attribute__ ((weak));
+void i2c_init(void)
+{
+}
+#endif
+
+#if (CNFG_UART)
+void uart_init(void) __attribute__ ((weak));
+void uart_init(void)
+{
+}
 #endif
 
 //-----------------------------------------------------------------------------
@@ -83,17 +85,23 @@ void _populate_membank_data(void)
 int _ppa_main(void)
 {
 
-#if (DDR_INIT)
+#if (CNFG_UART)
+    uart_init();
+#endif
+
+#if (CNFG_DDR)
     _init_membank_data();
 #if (PSCI_TEST)
     _populate_membank_data();
 #else
-    uart_init();
     soc_errata();
     timer_init();
     i2c_init();
     _init_ddr();
 #endif
+#elif (CNFG_I2C)
+    timer_init();
+    i2c_init();
 #endif
 
 	return 0;

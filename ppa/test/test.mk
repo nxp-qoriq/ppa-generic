@@ -34,7 +34,7 @@
 #------------------------------------------------------------------------------
 
 # select the test files ----------
-ifeq ($(TEST), smp_boot)
+ifeq ($(test), smp_boot)
 	TEST_PSCI=1
     ifeq ($(NUMBER_OF_CLUSTERS), 1)
         TEST_FILE=test_cpu_on_1cluster.s
@@ -54,31 +54,31 @@ ifeq ($(TEST), smp_boot)
     endif
     endif
 else
-ifeq ($(TEST), hotplug)
+ifeq ($(test), hotplug)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_hotplug.s
 else
-ifeq ($(TEST), off_abort)
+ifeq ($(test), off_abort)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_hotplug_abort.s
 else
-ifeq ($(TEST), suspend)
+ifeq ($(test), suspend)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_suspend_1cluster.s
 else
-ifeq ($(TEST), aarch32)
+ifeq ($(test), aarch32)
 	TEST_PSCI=1
     TEST_FILE=test_aarch32_2core.s
 else
-ifeq  ($(TEST), aarch32BE)
+ifeq  ($(test), aarch32BE)
 	TEST_PSCI=1
     TEST_FILE=test_aarch32_2coreBE.s
 else
-ifeq  ($(TEST), prng)
+ifeq  ($(test), prng)
 	TEST_PSCI=1
     TEST_FILE=test_prng.s
 else
-ifeq  ($(TEST), membank)
+ifeq  ($(test), membank)
 	TEST_PSCI=1
     TEST_FILE=test_membank_data.s
 else
@@ -90,6 +90,7 @@ ifeq  ($(TEST), sys_off)
         TEST_FILE=test_sysoff_multi.s
     endif
 else
+    test=none
 	TEST_PSCI=0
     TEST_FILE=
 endif

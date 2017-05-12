@@ -35,6 +35,7 @@
 
 #include "lib.h"
 #include "io.h"
+#include "config.h"
 #include "dimm.h"
 #include "i2c.h"
 

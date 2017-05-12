@@ -46,7 +46,7 @@ rdb:
 	$(MAKE) SIM_BUILD=0 rdb_out
 	$(MAKE) SIM_BUILD=0 rdb_bin
 rdb_out:
-	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
+	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
 	@echo
 rdb_bin: monitor.bin
 
@@ -55,7 +55,7 @@ rdb-fit:
 	$(MAKE) SIM_BUILD=0 rdb_fit_out
 	$(MAKE) SIM_BUILD=0 rdb_fit_bin
 rdb_fit_out:
-	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
+	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
 	@echo
 rdb_fit_bin: ppa.itb
 
@@ -86,25 +86,28 @@ PLAT_ASM =
 
 # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h config.h
+HDRS_PLAT  =policy.h
 
 # add platform-test-specific asm files here
 TEST_ASM =$(TEST_FILE)
 
 ifeq ($(DDR_BLD), 1)
-  # add ddr-specific source and headers here
+   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
-  DDR_HDRS =plat.h
-
-  DRIVER_C = utility.c regs.c ddr.c ddrc.c opts.c debug.c crc32.c spd.c \
-	addr.c i2c.c timer.c
-  DRIVER_HDRS = utility.h lsch2.h immap.h ddr.h dimm.h opts.h regs.h debug.h \
-	i2c.h timer.h
+  DDR_HDRS =plat.h config.h
+  DDR_CMN_C    = ddr.c ddrc.c utility.c regs.c opts.c debug.c crc32.c \
+                 spd.c addr.c timer.c
+  DDR_CMN_HDRS = ddr.h dimm.h utility.h immap.h opts.h regs.h debug.h \
+                 timer.h
+  UART_C = uart.c
+  I2C_C  = i2c.c
 else
-  DDR_C       =
-  DDR_HDRS    =
-  DRIVER_C    = 
-  DRIVER_HDRS = lsch2.h
+  DDR_C        =
+  DDR_HDRS     =
+  DDR_CMN_C    =
+  DDR_CMN_HDRS =
+  UART_C       =
+  I2C_C        =
 endif
 
 # -----------------------------------------------------------------------------

@@ -165,6 +165,14 @@
 #define  ICC_IGRPEN1_EL3 S3_6_C12_C12_7
 #define  ICC_CTLR_EL1    S3_0_C12_C12_4
 
+ // defines for the ddr driver
+#define CONFIG_SYS_FSL_CCSR_GUR_LE
+#define CONFIG_SYS_FSL_CCSR_DDR_LE
+#define CONFIG_SYS_FSL_ERRATUM_A008511
+#define CONFIG_SYS_FSL_ERRATUM_A009803
+#define CONFIG_SYS_FSL_ERRATUM_A009942
+#define CONFIG_SYS_FSL_ERRATUM_A010165
+
 //-----------------------------------------------------------------------------
 
 #endif // _SOC_H

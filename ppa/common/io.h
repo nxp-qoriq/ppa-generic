@@ -36,14 +36,15 @@
 #ifndef __IO_H__
 #define __IO_H__
 
-#include "config.h"
-#ifdef CONFIG_SYS_LSCH3
+#if (LSCH == 3)
 #include "lsch3.h"
-#elif defined(CONFIG_SYS_LSCH2)
+#elif (LSCH == 2)
 #include "lsch2.h"
 #else
 #error "Unknown chassis"
 #endif
+
+#include "soc.h"
 
 /*
  * These macros are for ARM-based SoCs.

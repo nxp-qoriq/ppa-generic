@@ -145,6 +145,17 @@
 #define  ICC_IGRPEN1_EL3 S3_6_C12_C12_7
 #define  ICC_CTLR_EL1    S3_0_C12_C12_4
 
+ // defines for the ddr driver
+#define CONFIG_SYS_FSL_HAS_CCN508
+#define CONFIG_SYS_FSL_CCSR_GUR_LE
+#define CONFIG_SYS_FSL_CCSR_DDR_LE
+#define CONFIG_SYS_FSL_DDR_MAIN_NUM_CTRLS	2
+#define CONFIG_SYS_FSL_DDR_INTLV_256B
+#define CONFIG_SYS_FSL_DDR_SDRAM_BASE_PHY	0
+#define CONFIG_SYS_DP_DDR_BASE_PHY		0
+#define CONFIG_DP_DDR_CTRL			2
+#define CONFIG_DP_DDR_NUM_CTRLS			1
+
 //-----------------------------------------------------------------------------
 
 #endif // _SOC_H

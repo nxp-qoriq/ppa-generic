@@ -46,7 +46,7 @@ rdb:
 	$(MAKE) SIM_BUILD=0 rdb_out
 	$(MAKE) SIM_BUILD=0 rdb_bin
 rdb_out:
-	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
+	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
 	@echo
 rdb_bin: monitor.bin
 
@@ -55,55 +55,55 @@ rdb-fit:
 	$(MAKE) SIM_BUILD=0 rdb_fit_out
 	$(MAKE) SIM_BUILD=0 rdb_fit_bin
 rdb_fit_out:
-	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
+	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
 	@echo
 rdb_fit_bin: ppa.itb
 
 # -----------------------------------------------------------------------------
 
-# add psci-related source and headers here
+ # add psci-related source and headers here
 SRC_PSCI   =psci.s
 HDRS_PSCI  =psci.h psci_data.h
 
-# add soc-specific source and headers here
+ # add soc-specific source and headers here
 SRC_SOC    =soc.s
 HDRS_SOC   =soc.h soc.mac
 
-# add soc-specific C source and headers here
+ # add soc-specific C source and headers here
 CSRC_SOC   =
 CHDRS_SOC  =
 
-# add arm-specific source and headers here
+ # add arm-specific source and headers here
 SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
 HDRS_ARMV8 =aarch64.h
 
-# add security-monitor source and headers here
+ # add security-monitor source and headers here
 SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
 HDRS_MNTR  =smc.h
 
-# add platform-specific asm here
+ # add platform-specific asm here
 PLAT_ASM =
 
-# add platform-specific C source and headers here
+ # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h config.h
+HDRS_PLAT  =policy.h
 
-# add platform-test-specific asm files here
+ # add platform-test-specific asm files here
 TEST_ASM =$(TEST_FILE)
 
-# add platform-specific source and headers here
+ # add platform-specific source and headers here
 ifeq ($(DDR_BLD), 1)
-  # add ddr-specific source and headers here
+   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
-  DDR_HDRS =
+  DDR_HDRS =config.h
 
-  DRIVER_C = fsl_mmdc.c timer.c
-  DRIVER_HDRS = fsl_mmdc.h lsch2.h timer.h
+  DDR_CMN_C    = fsl_mmdc.c timer.c uart.c
+  DDR_CMN_HDRS = fsl_mmdc.h timer.h
 else
-  DDR_C       =
-  DDR_HDRS    =
-  DRIVER_C    =
-  DRIVER_HDRS = lsch2.h
+  DDR_C        =
+  DDR_HDRS     =
+  DDR_CMN_C    =
+  DDR_CMN_HDRS =
 endif
 
 # -----------------------------------------------------------------------------

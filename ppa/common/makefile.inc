@@ -80,11 +80,27 @@ OPTFLAGS		= -dumpmachine
 
 #------------------------------------------------
 
-# add the prng driver files here
-HASH_DRBG_HDRS =  $(wildcard  $(DRVR_SRC)/hash_drbg/include/*.h) 
+ # add the prng driver files here
+HASH_DRBG_HDRS  = $(wildcard  $(DRVR_SRC)/hash_drbg/include/*.h) 
 HASH_DRBG_HDRS := $(notdir $(HASH_DRBG_HDRS))
-HASH_DRBG_C =  $(wildcard  $(DRVR_SRC)/hash_drbg/src/*.c) 
-HASH_DRBG_C := $(notdir $(HASH_DRBG_C))
+HASH_DRBG_C     = $(wildcard  $(DRVR_SRC)/hash_drbg/src/*.c) 
+HASH_DRBG_C    := $(notdir $(HASH_DRBG_C))
+
+#------------------------------------------------
+
+ # select the chassis file ---
+ifeq ($(CHASSIS), 3)
+    CHASSIS_FILE=lsch3
+else
+ifeq ($(CHASSIS), 2)
+    CHASSIS_FILE=lsch2
+else
+    $(error -> Chassis type not set!)
+endif
+endif
+
+DRIVER_C    = $(DDR_CMN_C) $(I2C_C) $(UART_C)
+DRIVER_HDRS = $(DDR_CMN_HDRS) $(I2C_HDRS) $(UART_HDRS)
 
 #------------------------------------------------
 
@@ -93,8 +109,8 @@ PRE_TARG   =monitor.elf
 
 LINK_ASM   =ppa.ld.s
 COMMON_ASM =utils.s
-COMMON_C   =ppa_main.c uart.c lib.c
-COMMON_HDRS=common.h types.h io.h uart.h lib.h errno.h lnkr.cmd
+COMMON_C   =ppa_main.c lib.c
+COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h $(CHASSIS_FILE).h lnkr.cmd
 
 BUILD_ASM  =$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
@@ -171,7 +187,7 @@ $(HDRS_SOC): src
 $(LINK_ASM): $(HDRS_SOC) $(COMMON_HDRS) src
 	cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
 
-$(SRC_PSCI): $(HDRS_PSCI) src
+$(SRC_PSCI): $(HDRS_PSCI) $(HDRS_SOC) src
 	@cp $(PSCI_SRC)/$@ $(SRC_DIR)/$@
 
 $(HDRS_PSCI): src
@@ -189,7 +205,7 @@ $(SRC_ARMV8): $(HDRS_ARMV8) src
 $(HDRS_ARMV8): src
 	@cp $(ARMV8_SRC)/$@ $(SRC_DIR)/$@
 
-$(SRC_MNTR): $(HDRS_MNTR) src
+$(SRC_MNTR): $(HDRS_MNTR) $(HDRS_SOC) src
 	@cp $(MONITOR_SRC)/$@ $(SRC_DIR)/$@
 
 $(HDRS_MNTR): src

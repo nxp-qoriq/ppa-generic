@@ -46,69 +46,60 @@ sim:
 	$(MAKE) SIM_BUILD=1 sim_out
 	$(MAKE) SIM_BUILD=1 sim_bin
 sim_out:
-	@echo 'build: image=sim \ $(GIC_FILE) \ $(INTER_FILE) \ debug $(DBG) \ test "$(TEST)"'
+	@echo 'build: image=sim \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr):$(plat) \ debug $(dbg) \ test "$(test)"'
 	@echo
-sim_bin: bootmain.64.elf.rom.rmh0.rmh
+sim_bin: bootmain.64.bin
 
 # -----------------------------------------------------------------------------
 
-# add psci-related source and headers here
+ # add psci-related source and headers here
 SRC_PSCI   =psci.s
 HDRS_PSCI  =psci.h psci_data.h
 
-# add soc-specific source and headers here
+ # add soc-specific source and headers here
 SRC_SOC    =bootmain.64.s nonboot64.s soc.s
 HDRS_SOC   =soc.h soc.mac
 
-# add soc-specific C source and headers here
+ # add soc-specific C source and headers here
 CSRC_SOC   =
 CHDRS_SOC  =
 
-# add arm-specific source and headers here
+ # add arm-specific source and headers here
 SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
 HDRS_ARMV8 =aarch64.h
 
-# add security-monitor source and headers here
+ # add security-monitor source and headers here
 SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
 HDRS_MNTR  =smc.h
 
  # add platform-specific asm sources here
 PLAT_ASM =
 
-# add platform-specific C source and headers here
+ # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h config.h
+HDRS_PLAT  =policy.h
 
  # add platform-test-specific asm sources here
 TEST_ASM =$(TEST_FILE)
 
 ifeq ($(DDR_BLD), 1)
-  # add soc-specific C source and headers here
-  CSRC_SOC   =
-  CHDRS_SOC  =
-
-  # add ddr-specific source and headers here
+   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
-  DDR_HDRS =plat.h
+  DDR_HDRS =config.h
 
-  # add sources for the ddr, i2c, and uart drivers here
-  DRIVER_C = utility.c regs.c ddr.c ddrc.c dimm.c opts.c debug.c crc32.c spd.c \
-	addr.c i2c.c timer.c
-  DRIVER_HDRS = utility.h lsch2.h immap.h ddr.h dimm.h opts.h regs.h debug.h \
-	i2c.h timer.h
+  DDR_CMN_C    = fsl_mmdc.c timer.c
+  DDR_CMN_HDRS = fsl_mmdc.h timer.h
 else
-  CSRC_SOC    =
-  CHDRS_SOC   =
-  DDR_C       =
-  DDR_HDRS    =
-  DRIVER_C    =
-  DRIVER_HDRS = lsch2.h
+  DDR_C        =
+  DDR_HDRS     =
+  DDR_CMN_C    =
+  DDR_CMN_HDRS =
 endif
 
 # -----------------------------------------------------------------------------
 
-bootmain.64.elf.rom.rmh0.rmh: bootmain.64.elf bootmain.64.bin
-	perl $(CMMN_SRC)/elf-to-rmh.prl -f $(OBJ_DIR)/bootmain.64.elf > $(OBJ_DIR)/log.txt
+#bootmain.64.elf.rom.rmh0.rmh: bootmain.64.elf bootmain.64.bin
+#	perl $(CMMN_SRC)/elf-to-rmh.prl -f $(OBJ_DIR)/bootmain.64.elf > $(OBJ_DIR)/log.txt
 
 # -----------------------------------------------------------------------------
 

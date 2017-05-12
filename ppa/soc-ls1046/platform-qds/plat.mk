@@ -41,71 +41,73 @@
 #
 # -----------------------------------------------------------------------------
 #
-# builds a binary image for the qds board
+ # builds a binary image for the qds board
 qds: 
 	$(MAKE) SIM_BUILD=0 qds_out
 	$(MAKE) SIM_BUILD=0 qds_bin
 qds_out:
-	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
+	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
 	@echo
 qds_bin: monitor.bin
 
-# builds a fit image for the qds board
+ # builds a fit image for the qds board
 qds-fit: 
 	$(MAKE) SIM_BUILD=0 qds_fit_out
 	$(MAKE) SIM_BUILD=0 qds_fit_bin
 qds_fit_out:
-	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(DDR) \ debug $(DBG) \ test "$(TEST)"'
+	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
 	@echo
 qds_fit_bin: ppa.itb
 
 # -----------------------------------------------------------------------------
 
-# add psci-related source and headers here
+ # add psci-related source and headers here
 SRC_PSCI   =psci.s
 HDRS_PSCI  =psci.h psci_data.h
 
-# add soc-specific asm source and headers here
+ # add soc-specific asm source and headers here
 SRC_SOC    =soc.s
 HDRS_SOC   =soc.h soc.mac
 
-# add soc-specific C source and headers here
-CSRC_SOC   =
+ # add soc-specific C source and headers here
+CSRC_SOC   =errata.c
 CHDRS_SOC  =
 
-# add arm-specific source and headers here
+ # add arm-specific source and headers here
 SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
 HDRS_ARMV8 =aarch64.h
 
-# add security-monitor source and headers here
+ # add security-monitor source and headers here
 SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
 HDRS_MNTR  =smc.h
 
-# add platform-specific asm here
+ # add platform-specific asm here
 PLAT_ASM =
 
-# add platform-specific source and headers here
+ # add platform-specific source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h config.h
+HDRS_PLAT  =policy.h
 
-# add platform-test-specific asm files here
+ # add platform-test-specific asm files here
 TEST_ASM =$(TEST_FILE)
 
 ifeq ($(DDR_BLD), 1)
-  # add ddr-specific source and headers here
+   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
-  DDR_HDRS =plat.h
-
-  # add sources for the ddr, i2c, and uart drivers here
-  DRIVER_C = utility.c regs.c ddr.c ddrc.c dimm.c opts.c debug.c crc32.c spd.c \
-	addr.c i2c.c timer.c
-  DRIVER_HDRS = utility.h lsch2.h immap.h ddr.h dimm.h opts.h regs.h debug.h \
-	i2c.h timer.h
+  DDR_HDRS =plat.h config.h
+  DDR_CMN_C    = ddr.c ddrc.c dimm.c utility.c regs.c opts.c debug.c crc32.c \
+                 spd.c addr.c timer.c
+  DDR_CMN_HDRS = ddr.h dimm.h utility.h immap.h opts.h regs.h debug.h \
+                 timer.h
+  UART_C = uart.c
+  I2C_C  = i2c.c
 else
-  DDR_C       =
-  DDR_HDRS    =
-  DRIVER_C    =
-  DRIVER_HDRS = lsch2.h
+  DDR_C        =
+  DDR_HDRS     =
+  DDR_CMN_C    =
+  DDR_CMN_HDRS =
+  UART_C       =
+  I2C_C        =
 endif
 
 # -----------------------------------------------------------------------------

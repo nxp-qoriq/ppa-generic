@@ -36,37 +36,200 @@
 echo Multi-Device build
 echo 
 
-# initialize device and target lists --
+ # delimiter for options list
+delimit=" "
+
+ # initialize device and target lists --
 device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 la1575 lx2160 all"
-device_all=" all"
-target_list="clean rdb rdb-fit qds qds-fit generic generic-fit sim"
-option_list="DBG=on DBG=off TEST=smp_boot TEST=hotplug TEST=suspend TEST=off_abort TEST=aarch32"
+device_found="none"
+target_list="clean rdb rdb-fit qds qds-fit sim"
+
+option_std="dbg dbg=on dbg=off ddr ddr=on ddr=off i2c i2c=on i2c=off"
+option_rest="uart uart=on uart=off"
+option_test="smp_boot hotplug suspend off_abort aarch32"
+option_list="$option_std+$delimit+$option_rest"
+
+mode_list="production prod ret retail development dev"
+
+ # configuration file path/file_name
+cfg_global="./sec_config.txt"
+cfg_soc=""
+cfg_plat=""
+
+ # these options are restricted to development builds only
+restricted_uart="uart"
+
+ # these vars hold the configuration values read in from config files
+cfg_target=""
+cfg_devices=""
+cfg_bld_mode=""
+cfg_bld_opts=""
+cfg_make_opts=""
+cfg_test_opt=""
+
+ # these vars save the config values from a global configuration file
+glbl_bld_mode=""
+glbl_target=""
+glbl_make_opts=""
+glbl_bld_opts=""
+glbl_test_opt=""
+glbl_devices=""
+
+ # these vars save the config values from a soc-level configuration file
+soc_bld_mode=""
+soc_target=""
+soc_make_opts=""
+soc_bld_opts=""
+soc_test_opt=""
+
+ # these vars save the config values from a platform-level configuration file
+plat_bld_mode=""
+plat_make_opts=""
+plat_bld_opts=""
+plat_test_opt=""
+
+ # these vars hold the configuration values read in from the cmd line
+cmd_target=""
+cmd_devices=""
+cmd_bld_mode=""
+cmd_bld_opts=""
+cmd_make_opts=""
+cmd_test_opt=""
+
+ # these are the final vars sent to the makefile
+target=""
+devices=""
+bld_opts=""
+make_opts=""
+test_opt=""
+bld_mode=""
+action=""
+
 #--------------------------------------
 
-# output some friendly help -----------
+ # this function cleans the soc and platform config values
+function cleanSlate {
+
+soc_bld_mode=""
+soc_target=""
+soc_make_opts=""
+soc_bld_opts=""
+soc_test_opt=""
+plat_bld_mode=""
+plat_make_opts=""
+plat_bld_opts=""
+plat_test_opt=""
+
+}
+
+#--------------------------------------
+
+ # this function reads a configuration file and parses it for keyword values
+ # inputs: $1 = config file to read from
+function getInputs {
+
+first_opt="true"
+linetmp2=""
+cfg_target=""
+cfg_devices=""
+cfg_bld_mode=""
+cfg_bld_opts=""
+cfg_make_opts=""
+cfg_test_opt=""
+
+echo " <processing config file $1>"
+echo " <processing config file $1>" >> bldlog.txt
+
+while read line
+do
+
+     # cast the line to lower case
+    linetmp="$(echo $line | tr '[A-Z]' '[a-z]')"
+
+     # extract the first part of the line, looking for keywords
+    if [ "${linetmp:0:6}" == "device" ]; then
+        cfg_devices+=$delimit"${linetmp/"device:"}"
+    else
+    if [ "${linetmp:0:6}" == "target" ]; then
+        cfg_target="${linetmp/"target:"}"
+    else
+    if [ "${linetmp:0:5}" == "build" ]; then
+        cfg_bld_mode="${linetmp/"build:"}"
+    else
+    if [ "${linetmp:0:3}" == "opt" ]; then
+        if [ "$first_opt" == "true" ]; then
+            cfg_bld_opts=""
+            cfg_make_opts=""
+            first_opt="false"
+        fi
+
+        linetmp2="${linetmp/"option:"}"
+        if [ "$linetmp2" == "$linetmp" ]; then
+            linetmp2="${linetmp/"opt:"}"
+        fi
+        if [ "$linetmp2" == "" ]; then
+            continue
+        fi
+
+        if [ "${linetmp2/"=on"}" != "$linetmp2" ]; then
+             # option is "=on"
+            cfg_bld_opts+=$delimit"${linetmp2/"=on"}";
+            cfg_make_opts+=$delimit$linetmp2
+        else
+            if [ "${linetmp2/"=off"}" == "$linetmp2" ]; then
+                 # option is not "=off"
+                cfg_bld_opts+=$delimit$linetmp2
+                cfg_make_opts+=$delimit$linetmp2"=on"
+            else
+                 # option is "=off"
+                cfg_bld_opts+=$delimit$linetmp2
+                cfg_make_opts+=$delimit$linetmp2
+            fi
+        fi
+    else
+    if [ "${linetmp:0:4}" == "test" ]; then
+        cfg_test_opt="test=${linetmp/"test:"}"
+    fi
+    fi
+    fi
+    fi
+    fi
+
+done <"$1"
+
+}
+
+#--------------------------------------
+
+ # output some friendly help -----------
 if [ "$1" = "help" ]; then
-    echo "usage: >build target [option] [option] device_list"
+    echo "usage: >build mode target [option] [option] device_list"
+    echo
+    echo "        mode:"
+    echo "          production/prod - build a production image"
+    echo "          development/dev - build a development image"
+    echo "        if no mode specified, production is default"
     echo
     echo "        target (required):"
-    echo "          rdb         - binary image build for the rdb platform"
-    echo "          rdb-fit     - fit image build for the rdb platform"
-    echo "          qds         - binary image build for the qds platform"
-    echo "          qds-fit     - fit image build for the qds platform"
-    echo "          generic     - generic binary image build"
-    echo "          generic-fit - generic fit image build"
-    echo "          sim         - simulator build with bootrom code"
-    echo "          clean       - clean the build folders"
-    echo "          help        - print this help text"
+    echo "          rdb           - binary image build for the rdb platform"
+    echo "          rdb-fit       - fit image build for the rdb platform"
+    echo "          qds           - binary image build for the qds platform"
+    echo "          qds-fit       - fit image build for the qds platform"
+    echo "          sim           - simulator build with bootrom code"
+    echo "          clean         - clean the build folders"
+    echo "          help          - print this help text"
     echo
     echo "        option(s):"
-    echo "          DBG=on      - build with debug options"
-    echo "          DBG=off     - build w/o debug options (default)"
-    echo "          TEST=<test> - specify test to be included in build,"
-    echo "                        choices are:"
-    echo "                        'smp_boot'"
-    echo "                        'hotplug'"
-    echo "                        'off_abort'"
-    echo "                        'suspend'"
+    echo "          DBG[=on/off]  - build with/without debug options"
+    echo "          DDR[=on/off]  - build with/without ddr driver"
+    echo "          I2C[=on/off]  - build with/without i2c driver (included w/ddr)"
+    echo "          UART[=on/off] - build with/without uart driver (dev"
+    echo "          TEST=<test>   - specify test to be included in build,"
+    echo "                 choices are:"
+    echo "                 'smp_boot'"
+    echo "                 'hotplug'"
+    echo "                 'off_abort'"
+    echo "                 'suspend'"
     echo "          CROSS_COMPILE=<path/prefix>"
     echo
     echo "        device_list (required):"
@@ -85,6 +248,7 @@ if [ "$1" = "help" ]; then
     echo "  >build rdb DBG=on ls1012 ls1088"
     echo "  >build sim DBG=on TEST=smp_boot ls2080 ls2088"
     echo "  >build rdb-fit all"
+    echo "  >build rdb-fit DRVRS=ddr,uart ls1043"
     echo "  >build clean all"
     echo 
     exit 0
@@ -92,139 +256,359 @@ fi
 
 #--------------------------------------
 
-# set the default action
-action=building
-
-# check for a proper target -----------
-target=none
-for temp in $target_list ; do
-    if [ "$1" = "$temp" ]; then
-        target=$temp
+ # check for a cmd line build mode ------------
+tmp1="$(echo $1 | tr '[A-Z]' '[a-z]')"
+for tmp2 in $mode_list ; do
+    if [ "$tmp1" == "$tmp2" ]; then
+        cmd_bld_mode=$tmp2
         shift 1
         break
     fi
 done
 
-if [ "$target" = "clean" ]; then
-    action=cleaning
-	cd ../tools
-	make clean >> ../ppa/bldlog.txt
-	cd - >> ../ppa/bldlog.txt
-else
-    if [ "$target" = "none" ]; then
-        echo Error: no target specified
-        exit 1
-    else
-	    cd ../tools
-	    make -j24  >> ../ppa/bldlog.txt
-	    cd - >> ../ppa/bldlog.txt
-    fi
-fi
-
 #--------------------------------------
 
-# check for make options --------------
-#  do this by finding the start of the device list - anything
-#  that precedes the device list is considered a make option,
-#  and will be passed thru to the make command (limit 4 options)
-options_done="false"
-option1=""
-option2=""
-option3=""
-option4=""
-option_cnt=0
-
-until [ "options_done" = "true" ]; do
-for device in $device_list ; do
-    if [ "$1" = "$device" ]; then
-        options_done=true
+ # check for a cmd-line target
+cmd_target=""
+tmp1="$(echo $1 | tr '[A-Z]' '[a-z]')"
+for tmp2 in $target_list ; do
+    if [ "$tmp1" == "$tmp2" ]; then
+        cmd_target=$tmp2
+        shift 1
         break
     fi
 done
 
-if [ "$options_done" = "false" ]; then
-    if [ "$option_cnt" = "0" ]; then
-        option1=$1
-        option_cnt=1
-    else
-        if [ "$option_cnt" = "1" ]; then
-            option2=$1
-            option_cnt=2
+#--------------------------------------
+
+ # parse the command line options list
+options_done="false"
+
+until [ "options_done" == "true" ]; do
+option=""
+tmp1="$(echo $1 | tr '[A-Z]' '[a-z]')"
+
+get_opt="false"
+
+if [ "$options_done" == "false" ]; then
+if [ "$get_opt" == "false" ]; then
+for option in $option_list ; do
+    if [ "$tmp1" == "$option" ]; then
+
+        if [ "${tmp1/"=on"}" != "$tmp1" ]; then
+             # cmd line has "=on"
+            cmd_bld_opts+=$delimit"${tmp1/"=on"}";
+            cmd_make_opts+=$delimit$tmp1
         else
-            if [ "$option_cnt" = "2" ]; then
-                option3=$1
-                option_cnt=3
+            if [ "${tmp1/"=off"}" == "$tmp1" ]; then
+                 # option does not have "=off"
+                cmd_bld_opts+=$delimit$tmp1;
+                cmd_make_opts+=$delimit$tmp1"=on"
             else
-                if [ "$option_cnt" = "3" ]; then
-                    option4=$1
-                    option_cnt=4
-                else
-                    # exit the until-loop
-                     break
-                fi
+                 # option does have "=off"
+                cmd_bld_opts+=$delimit$tmp1;
+                cmd_make_opts+=$delimit$tmp1
             fi
         fi
+
+        get_opt="true"
+        break
     fi
+done
+
+if [ "$get_opt" == "false" ]; then
+        options_done=true
+        continue
+fi
+fi
     shift 1
+    continue
 else
-    # exit the until-loop
+     # exit the until-loop
     break
 fi
 done
 
 #--------------------------------------
 
-# see if device list specified --------
-if [ "$1" = "" ]; then
+ # parse a test command, if there is one
+tmp1="$(echo $1 | tr '[A-Z]' '[a-z]')"
+
+if [ "${tmp1:0:5}" == "test=" ]; then
+    for test in $option_test ; do
+        if [ "${tmp1/"test="}" == "$test" ]; then
+
+            cmd_test_opt="$tmp1"
+            shift 1
+            break
+        fi
+    done
+fi
+
+#--------------------------------------
+
+ # stuff the cmd line device list into a var
+cmd_devices=("$@")
+if [ "$cmd_devices" != "" ]; then
+    devices="$cmd_devices"
+fi
+
+#--------------------------------------
+
+if [ "$cmd_target" != "clean" ] || [ "$cmd_devices" == "" ]; then
+
+ # at this point, we have parsed all cmd line args
+ # check for a global config file
+if [ -e "$cfg_global" ]; then
+     # parse the config file
+    getInputs "$cfg_global"
+
+     # save the global values
+    glbl_bld_mode="$cfg_bld_mode"
+    glbl_target="$cfg_target"
+    glbl_make_opts="$cfg_make_opts"
+    glbl_bld_opts="$cfg_bld_opts"
+    glbl_test_opt="$cfg_test_opt"
+    glbl_devices="$cfg_devices"
+
+    if [ "$devices" == "" ]; then
+        devices="$glbl_devices"
+    fi
+fi
+fi
+
+#--------------------------------------
+
+ # for convenient processing, plug the device list into the
+ # arg list
+if [ "$devices" == "" ]; then
     echo Error: no devices specified
     exit 1
 else
-    rm -f bldlog.txt
+    set ${devices}
 fi
 
-#--------------------------------------
+device_all="false"
+ # validate the device list - reset if 'all' is found
+until [ "$1" = "" ]; do
+    tmp1="$(echo $1 | tr '[A-Z]' '[a-z]')"
 
-# process the device list -------------
-if [ "$1" = "all" ]; then
-    # remove "all" from the device list
-    device_list=${device_list%$device_all}
+    if [ "$tmp1" == "all" ]; then
+         # remove "all" from the device list
+        set ${device_list/"all"}
+        device_all="true"
+         # exit the outer loop
+        break
+    else
+        known_device="false"
 
-    for device in $device_list ; do
-        if [ "$target" = "clean" ]; then
-            echo $action soc-$device
-        else
-            echo $action $target $option1 $option2 $option3 $option4 for soc-$device
-            echo >> bldlog.txt
-            echo $action $target $option1 $option2 $option3 $option4 for soc-$device >> bldlog.txt
-        fi
-        cd soc-$device
-        make -j24 $target $option1 $option2 $option3 $option4 >> ../bldlog.txt
-        cd ..
-    done
-else
-    until [ "$1" = "" ]; do
         for device in $device_list ; do
-            if [ "$1" = "$device" ]; then
-                if [ "$target" = "clean" ]; then
-                    echo $action soc-$device
-                else
-                    echo $action $target $option1 $option2 $option3 $option4 for soc-$device
-                    echo >> bldlog.txt
-                    echo $action $target $option1 $option2 $option3 $option4 for soc-$device >> bldlog.txt
-                fi
-                cd soc-$device
-                make -j24 $target $option1 $option2 $option3 $option4 >> ../bldlog.txt
-                cd ..
+            if [ "$tmp1" == "$device" ]; then
+                known_device="true"
                 break
             fi
         done
-        shift 1
-    done
+
+        if [ "$known_device" == "false" ]; then
+            echo Error: unknown device specified \("$1"\)
+            exit 1
+        else
+            shift 1
+        fi
+    fi
+done
+
+if [ "$device_all" == "false" ]; then
+     # reload the device list into the arg list
+    set ${devices}
 fi
-#--------------------------------------
 
+ # process the device list -------------
+tools_cleaned="false"
+tools_built="false"
+until [ "$1" = "" ]; do
+    tmp1="$(echo $1 | tr '[A-Z]' '[a-z]')"
 
-    
+    for device in $device_list ; do
+        if [ "$tmp1" == "$device" ]; then
 
+            if [ "$cmd_target" == "clean" ]; then
+                target="$cmd_target"
+            else
+                 # reset the configuration input values
+                cleanSlate
 
+                 # see if there is a soc-level config file
+                cfg_soc="./soc-$device/sec_config.txt"
+                if [ -e "$cfg_soc" ]; then
+
+                     # parse the config file
+                    getInputs "$cfg_soc"
+
+                     # Note: device parameter in soc-level
+                     #       config is ignored
+
+                     # save the soc-level config values
+                    soc_bld_mode="$cfg_bld_mode"
+                    soc_target="$cfg_target"
+                    soc_make_opts="$cfg_make_opts"
+                    soc_bld_opts="$cfg_bld_opts"
+                    soc_test_opt="$cfg_test_opt"
+                fi
+
+                 # determine the target
+                if [ "$cmd_target" != "" ]; then
+                    target="$cmd_target"
+                else
+                    if [ "$soc_target" != "" ]; then
+                        target="$soc_target"
+                    else
+                        target="$glbl_target"
+                    fi
+                fi
+                 # make sure we have a target
+                if [ "$target" == "" ]; then
+                    echo Error: target not specified \(rdb, qds, etc\)
+                    exit 1
+                fi
+            fi
+
+            if [ "$target" == "clean" ]; then
+                action=cleaning
+
+                if [ "$tools_cleaned" == "false" ]; then
+	                cd ../tools
+	                make clean >> ../ppa/bldlog.txt
+	                cd - >> ../ppa/bldlog.txt
+                    tools_cleaned="true"
+                fi
+
+                 # change into the soc directory
+                cd soc-$device
+
+                echo $action soc-$device
+                make -j24 $target >> ../bldlog.txt
+            else
+                action=building
+
+                 # see if there is a platform-level config file
+                targ_name="${target/"-fit"}"
+                cfg_plat="./soc-$device/platform-$targ_name/sec_config.txt"
+                if [ -e "$cfg_plat" ]; then
+
+                     # parse the config file
+                    getInputs "$cfg_plat"
+
+                     # Note: device and target parameters in platform-level
+                     #       config are ignored
+
+                     # save the platform-level config values
+                    plat_bld_mode="$cfg_bld_mode"
+                    plat_make_opts="$cfg_make_opts"
+                    plat_bld_opts="$cfg_bld_opts"
+                    plat_test_opt="$cfg_test_opt"
+                fi
+
+                 # the order of precedence for args is:
+                 #   (1) cmd-line
+                 #   (2) platform config file
+                 #   (3) soc config file
+                 #   (4) global config file
+                 # apply the args in that order:
+
+                 # first, apply the cmd-line args
+                bld_mode="$cmd_bld_mode"
+                bld_opts="$cmd_bld_opts"
+                make_opts="$cmd_make_opts"
+                test_opt="$cmd_test_opt"
+
+                if [ "$bld_mode" == "" ]; then
+                    if [ "$plat_bld_mode" != "" ]; then
+                        bld_mode="$plat_bld_mode"
+                    else
+                        if [ "$soc_bld_mode" != "" ]; then
+                            bld_mode="$soc_bld_mode"
+                        else
+                            if [ "$glbl_bld_mode" != "" ]; then
+                                bld_mode="$glbl_bld_mode"
+                            fi
+                        fi
+                    fi
+                fi
+
+                if [ "$bld_opts" == "" ]; then
+                    if [ "$plat_bld_opts" != "" ]; then
+                        bld_opts="$plat_bld_opts"
+                    else
+                        if [ "$soc_bld_opts" != "" ]; then
+                            bld_opts="$soc_bld_opts"
+                        else
+                            if [ "$glbl_bld_opts" != "" ]; then
+                                bld_opts="$glbl_bld_opts"
+                            fi
+                        fi
+                    fi
+                fi
+
+                if [ "$make_opts" == "" ]; then
+                    if [ "$plat_make_opts" != "" ]; then
+                        make_opts="$plat_make_opts"
+                    else
+                        if [ "$soc_make_opts" != "" ]; then
+                            make_opts="$soc_make_opts"
+                        else
+                            if [ "$glbl_make_opts" != "" ]; then
+                                make_opts="$glbl_make_opts"
+                            fi
+                        fi
+                    fi
+                fi
+
+                if [ "$test_opt" == "" ]; then
+                    if [ "$plat_test_opt" != "" ]; then
+                        test_opt="$plat_test_opt"
+                    else
+                        if [ "$soc_test_opt" != "" ]; then
+                            test_opt="$soc_test_opt"
+                        else
+                            if [ "$glbl_test_opt" != "" ]; then
+                                test_opt="$glbl_test_opt"
+                            fi
+                        fi
+                    fi
+                fi
+
+                if [ "$bld_mode" == "dev" ]; then
+                    bld_mode=development
+                fi
+                if [ $bld_mode != "development" ]; then
+                    bld_mode=production
+                     # remove restricted options
+                    bld_opts=${bld_opts/" uart"}
+                    make_opts=${make_opts/" uart=on"}
+                fi
+
+                if [ "$tools_built" == "false" ]; then
+	                cd ../tools
+	                make -j24  >> ../ppa/bldlog.txt
+	                cd - >> ../ppa/bldlog.txt
+                    tools_built="true"
+                fi
+
+                 # change into the soc directory
+                cd soc-$device
+
+                echo $action $bld_mode $target [$bld_opts $test_opt ] $device
+                #echo $action $bld_mode $target [$make_opts $test_opt ] $device
+                echo >> ../bldlog.txt
+                echo $action $bld_mode $target [$make_opts $test_opt ] $device >> ../bldlog.txt
+
+                make -j24 $target $make_opts $test_opt >> ../bldlog.txt
+            fi
+            cd ..
+            break
+        fi
+    done
+    shift 1
+done
 

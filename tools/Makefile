@@ -10,4 +10,4 @@ relocate-rela: $(OBJ)
 .PHONY: clean
 
 clean:
-	rm -f *.o relocate-rela
+	rm -f *.o *.exe relocate-rela
