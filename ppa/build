@@ -477,9 +477,9 @@ until [ "$1" = "" ]; do
                 action=cleaning
 
                 if [ "$tools_cleaned" == "false" ]; then
-	                cd ../tools
-	                make clean >> ../ppa/bldlog.txt
-	                cd - >> ../ppa/bldlog.txt
+	                cd ./tools
+	                make clean >> ../bldlog.txt
+	                cd - >> ../bldlog.txt
                     tools_cleaned="true"
                 fi
 
@@ -589,9 +589,9 @@ until [ "$1" = "" ]; do
                 fi
 
                 if [ "$tools_built" == "false" ]; then
-	                cd ../tools
-	                make -j24  >> ../ppa/bldlog.txt
-	                cd - >> ../ppa/bldlog.txt
+	                cd ./tools
+	                make -j24  >> ../bldlog.txt
+	                cd - >> ../bldlog.txt
                     tools_built="true"
                 fi
 

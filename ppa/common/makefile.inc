@@ -44,7 +44,7 @@ CMN_SRC     = $(PRE_PATH)../common
 DRVR_SRC    = $(PRE_PATH)../drivers
 SOC_SRC     = $(PRE_PATH).
 TEST_SRC    = $(PRE_PATH)../test
-TOOL_SRC    = $(PRE_PATH)../../tools
+TOOL_SRC    = $(PRE_PATH)../tools
 SRC_DIR     = build/src
 OBJ_DIR     = build/obj
 
@@ -134,7 +134,7 @@ cleanout:
 #------------------------------------------------
 GCC_VERSION_GE_62:=$(shell test `$(CC64) -dumpversion | sed 's/^\([0-9]\)\.\([0-9]\).*/\1\2/'` -ge 62 && echo true || echo false)
 
-# relocate_rela is available in u-boot/tools folder
+# relocate_rela is available in tools folder
 
 ifeq ($(GCC_VERSION_GE_62),false)
 DO_STATIC_RELA_RELOC = \
