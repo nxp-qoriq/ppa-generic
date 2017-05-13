@@ -141,9 +141,12 @@
 
  // dcfg block register offsets
 #define DCFG_SCRATCHRW7_OFFSET  0x218
+#define DCFG_SVR_OFFSET         0x0A4
 #define COREDISABLEDSR_OFFSET   0x990
 #define BOOTLOCPTRL_OFFSET      0x400
 #define BOOTLOCPTRH_OFFSET      0x404
+
+#define SVR_SEC_MASK	          0x100
 
  // retry count for cci400 status bit
 #define CCI400_PEND_CNT      800

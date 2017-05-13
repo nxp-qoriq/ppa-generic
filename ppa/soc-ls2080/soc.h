@@ -104,7 +104,10 @@
 
  // dcfg block register offsets
 #define DCFG_SCRATCHRW7_OFFSET  0x218
+#define DCFG_SVR_OFFSET         0x0A4
 #define DCFG_COREDISR_OFFSET    0x94
+
+#define SVR_SEC_MASK             0x100
 
  // System Counter Offset and Bit Mask
 #define SYS_COUNTER_CNTCR_OFFSET	0x0

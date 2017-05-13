@@ -227,7 +227,15 @@ smc64_sip_PRNG:
  //      x1 = 32-bit RNG, or 64-bit RNG
 smc64_sip_RNG:
     mov  x12, x30
+    mov  x11, x1
 
+     // For NON-E parts return unimplemented
+    bl _soc_check_sec_enabled
+    cmp  x2, #0x0
+    b.eq _smc_unimplemented
+
+     // Restore x1
+    mov x1, x11
     cbz  x1, 1f
      // 64-bit hw RNG
     mov  x0, #SIP_RNG_64BIT

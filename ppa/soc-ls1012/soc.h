@@ -73,6 +73,7 @@
 #define BOOTLOCPTRH_OFFSET        0x600
 
 #define DCFG_BRR_OFFSET           0x00E4
+#define DCFG_SVR_OFFSET           0x00A4
 #define DCFG_RSTCR_OFFSET         0x00B0
 #define DCFG_COREDISR_OFFSET      0x0094
 #define DCFG_RSTRQSR1_OFFSET      0x0C8
@@ -98,6 +99,7 @@
 #define RSTRQSR1_SWRR             0x100000
 #define COREPMCR_WFIL2            0x1
 #define POWMGTDCR_OVRD_EN         0x80000000
+#define SVR_SEC_MASK	          0x100
 
 #define IPPDEXPCR_PFE_MAC1	  0x80000000
 #define IPPDEXPCR_PFE_MAC2	  0x40000000

@@ -87,7 +87,7 @@
 #define BOOTLOCPTRL_OFFSET        0x604
 #define BOOTLOCPTRH_OFFSET        0x600
 
-#define DCFG_SVR_OFFSET           0x0A4
+#define DCFG_SVR_OFFSET           0x00A4
 #define DCFG_BRR_OFFSET           0x00E4
 #define DCFG_RSTCR_OFFSET         0x00B0
 #define DCFG_COREDISR_OFFSET      0x0094
@@ -125,6 +125,7 @@
 #define SVR_MINOR_REV_1           0x01
 #define SVR_MAJOR_REV_MASK        0xF0
 #define SVR_MAJOR_REV_1           0x10
+#define SVR_SEC_MASK	          0x100
 
 #define GIC400_ADDR_ALIGN_4KMODE_MASK  0x80000000
 #define GIC400_ADDR_ALIGN_4KMODE_EN    0x80000000

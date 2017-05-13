@@ -221,6 +221,13 @@ smc32_sip_PRNG:
     and  x1, xzr, x0, lsr #32
      // lo-order bits in w2
     mov  w2, w0
+     // check if hi-order bit is 0
+    cmp w1, #0
+    b.ne    2f
+     // Check if lo-order bits are also 0
+    cmp w2, #0
+     // smc_failure if w1 and w2 are 0
+    b.eq _smc_failure
     b    2f
 
 1:   // 32-bit PRNG
@@ -228,6 +235,9 @@ smc32_sip_PRNG:
     bl   _get_PRNG
      // result in w1
     mov  w1, w0
+     // check if rng number is 0
+    cmp w1, #0
+    b.eq _smc_failure
 
 2:
     mov  x30, x12
@@ -251,22 +261,40 @@ smc32_sip_RNG:
     lsr  x0, x0, #32
     lsr  x1, x1, #32
     mov  x12, x30
+    mov  x11, x1
 
+     // For NON-E parts return unimplemented
+    bl _soc_check_sec_enabled
+    cmp  x2, #0x0
+    b.eq _smc_unimplemented
+
+     // Restore x1
+    mov x1, x11
     cbz  x1, 1f
      // 64-bit RNG
     mov  x0, #SIP_RNG_64BIT
-//    bl   _get_RNG
+    bl   _get_RNG
      // hi-order bits in w1
     and  x1, xzr, x0, lsr #32
      // lo-order bits in w2
     mov  w2, w0
-    b    2f
+     // check if hi-order bit is 0
+    cmp w1, #0
+    b.ne    2f
+     // Check if lo-order bits are also 0
+    cmp w2, #0
+     // smc_failure if w1 and w2 are 0
+    b.eq _smc_failure
+    b   2f
 
 1:   // 32-bit RNG
     mov  x0, #SIP_RNG_32BIT
-//    bl   _get_RNG
+    bl   _get_RNG
      // result in w1
     mov  w1, w0
+     // check if rng number is 0
+    cmp w1, #0
+    b.eq _smc_failure
 
 2:
     mov  x30, x12
