@@ -1,3 +1,5 @@
+
+SHELL := /bin/bash
 #-----------------------------------------------------------------------------
 # 
 # Copyright (C) 2015-2017 Freescale Semiconductor, Inc. All rights reserved.
@@ -92,7 +94,6 @@ SEC_HDRS := $(notdir $(SEC_HDRS))
 SEC_C =  $(wildcard  $(DRVR_SRC)/fsl_sec/src/*.c) 
 SEC_C := $(notdir $(SEC_C))
 
-
 #------------------------------------------------
 
  # select the chassis file ---
@@ -121,9 +122,9 @@ COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h $(CHASSIS_FILE).h 
 
 BUILD_ASM  =$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
-BUILD_C    =$(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C) $(HASH_DRBG_C) $(SEC_C)
-HDRS_ASM   =$(HDRS_SOC) $(HDRS_PSCI) $(HDRS_ARMV8) $(HDRS_PLAT) $(COMMON_HDRS) \
-	    $(HDRS_MNTR) $(DRIVER_HDRS) $(DDR_HDRS) $(HASH_DRBG_HDRS) $(SEC_HDRS)
+BUILD_C    =$(HASH_DRBG_C) $(SEC_C) $(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C)
+HDRS_ASM   =$(HDRS_ARMV8) $(HDRS_PLAT)  $(HDRS_MNTR) $(DRIVER_HDRS) $(DDR_HDRS) $(HDRS_PSCI) \
+			$(HASH_DRBG_HDRS) $(SEC_HDRS) $(HDRS_SOC)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 
 #------------------------------------------------
@@ -151,7 +152,6 @@ DO_STATIC_RELA_RELOC = \
 else
 DO_STATIC_RELA_RELOC =
 endif
-
 
 monitor.bin: monitor.elf ppa.its
 monitor.elf: $(BUILD_C) $(BUILD_ASM) $(HDRS_ASM) $(COMMON_HDRS) $(OBJECTS)
@@ -186,82 +186,82 @@ ppa.its: $(GENITS) src
 	$(GENITS) $(SRC_DIR)/ppa.its
 
 $(SRC_SOC): $(HDRS_SOC) $(LINK_ASM) src
-	cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_SOC): src
-	cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(LINK_ASM): $(HDRS_SOC) $(COMMON_HDRS) src
-	cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(SRC_PSCI): $(HDRS_PSCI) $(HDRS_SOC) src
-	@cp $(PSCI_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(PSCI_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_PSCI): src
-	@cp $(PSCI_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(PSCI_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(CSRC_SOC): $(CHDRS_SOC) src
-	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(CHDRS_SOC): src
-	@cp $(SOC_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(SRC_ARMV8): $(HDRS_ARMV8) src
-	@cp $(ARMV8_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(ARMV8_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_ARMV8): src
-	@cp $(ARMV8_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(ARMV8_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(SRC_MNTR): $(HDRS_MNTR) $(HDRS_SOC) src
-	@cp $(MONITOR_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(MONITOR_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_MNTR): src
-	@cp $(MONITOR_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(MONITOR_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(SRC_PLAT): $(HDRS_PLAT) src
-	@cp $(PLAT_PATH)/$@ $(SRC_DIR)/$@
+	@cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_PLAT): src
-	@cp $(PLAT_PATH)/$@ $(SRC_DIR)/$@
+	@cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(PLAT_ASM): src
-	@cp $(PLAT_PATH)/$@ $(SRC_DIR)/$@
+	@cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(TEST_ASM): src
-	@cp $(TEST_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(TEST_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(DDR_C): $(DDR_HDRS) src
-	@cp $(DDR_PATH)/$@ $(SRC_DIR)/$@
+	@cp -r "$(DDR_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(DDR_HDRS): src
-	@cp $(DDR_PATH)/$@ $(SRC_DIR)/$@
+	@cp -r "$(DDR_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(COMMON_ASM): $(HDRS_ARMV8) $(HDRS_PSCI) src
-	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(COMMON_C): $(COMMON_HDRS) src
-	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(COMMON_HDRS): src
-	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(DRIVER_C): $(DRIVER_HDRS) src
-	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(DRIVER_HDRS): src
-	@cp $(CMN_SRC)/$@ $(SRC_DIR)/$@
+	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(HASH_DRBG_C): $(HASH_DRBG_HDRS) src
-	@cp $(DRVR_SRC)/hash_drbg/src/$@ $(SRC_DIR)/$@
+	@cp -r "$(DRVR_SRC)/hash_drbg/src/$@" "$(SRC_DIR)/$@"
 
 $(HASH_DRBG_HDRS): src
-	@cp $(DRVR_SRC)/hash_drbg/include/$@ $(SRC_DIR)/$@
+	@cp -r "$(DRVR_SRC)/hash_drbg/include/$@" "$(SRC_DIR)/$@"
 
 $(SEC_C): $(SEC_HDRS) src
-	@cp $(DRVR_SRC)/fsl_sec/src/$@ $(SRC_DIR)/$@
+	@cp -r "$(DRVR_SRC)/fsl_sec/src/$@" "$(SRC_DIR)/$@"
 
 $(SEC_HDRS): src
-	@cp $(DRVR_SRC)/fsl_sec/include/$@ $(SRC_DIR)/$@
+	@cp -r "$(DRVR_SRC)/fsl_sec/include/$@" "$(SRC_DIR)/$@"
 
 #------------------------------------------------
 

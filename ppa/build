@@ -348,7 +348,7 @@ fi
 #--------------------------------------
 
  # stuff the cmd line device list into a var
-cmd_devices=("$@")
+cmd_devices="$*"
 if [ "$cmd_devices" != "" ]; then
     devices="$cmd_devices"
 fi
@@ -581,7 +581,7 @@ until [ "$1" = "" ]; do
                 if [ "$bld_mode" == "dev" ]; then
                     bld_mode=development
                 fi
-                if [ $bld_mode != "development" ]; then
+                if [ "$bld_mode" != "development" ]; then
                     bld_mode=production
                      # remove restricted options
                     bld_opts=${bld_opts/" uart"}
