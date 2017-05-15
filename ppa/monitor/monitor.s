@@ -62,6 +62,7 @@
 .align 16
 _start_monitor_el3:
      //Save the address where execution starts in x13
+    //x13 should not be used before ppa_main is called
     ADR   x13, .
      // save the LR
     mov   x12, x30
@@ -136,6 +137,7 @@ debug_stop:
     mov  x0, x8
     bl   init_stack_percpu
     
+    mov x0, x13
     bl   _ppa_main
 
      // initialize the Platform Security Policy here

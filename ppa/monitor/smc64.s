@@ -209,6 +209,11 @@ smc64_sip_PRNG:
     mov  x30, x12
     mov  x3,  xzr
     mov  x4,  xzr
+
+     // check if random number returned is 0
+     // report failure in case random number is 0
+    cmp  x1, #0x0
+    b.eq _smc_failure
     b    _smc_success
 
      //------------------------------------------
@@ -226,19 +231,23 @@ smc64_sip_RNG:
     cbz  x1, 1f
      // 64-bit hw RNG
     mov  x0, #SIP_RNG_64BIT
-//    bl   _get_RNG
+    bl   _get_RNG
     mov  x1, x0
     b    2f
 
 1:   // 32-bit hw RNG
     mov  x0, #SIP_RNG_32BIT
-//    bl   _get_RNG
+    bl   _get_RNG
     mov  x1, x0
 
 2:
     mov  x30, x12
     mov  x3,  xzr
     mov  x4,  xzr
+     // check if random number returned is 0
+     // report failure in case random number is 0
+    cmp  x1, #0x0
+    b.eq _smc_failure
     b    _smc_success
 
      //------------------------------------------

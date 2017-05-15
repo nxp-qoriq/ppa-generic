@@ -1,6 +1,5 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2016, NXP Semiconductors
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -28,49 +27,52 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-//
-// Author York Sun <york.sun@nxp.com>
 // 
+// Authors:
+//  Ruchika Gupta <ruchika.gupta@nxp.com> 
+//
 //-----------------------------------------------------------------------------
 
-#ifndef __LSCH2_H_
-#define __LSCH2_H_
+#include "types.h"
+#include "lib.h"
 
-#define CONFIG_SYS_FSL_CCSR_GUR_BE
-#define CONFIG_SYS_FSL_CCSR_DDR_BE
-#define CONFIG_SYS_FSL_CCSR_SEC_BE
+static void *__alloc(struct allocator *a, unsigned long size,
+             unsigned long align)
+{
 
-#define CONFIG_PHYS_64BIT
+    unsigned long new_start = (a->start + align - 1) & ~(align - 1);
+    void *ret = (void *)new_start;
 
-#ifndef CONFIG_CHIP_SELECTS_PER_CTRL
-#define CONFIG_CHIP_SELECTS_PER_CTRL		4
-#endif
+    new_start += size;
 
-#define CONFIG_SYS_FSL_DDR_ADDR		0x01080000
-#define CONFIG_SYS_I2C_BASE		0x02180000
-#define CAAM_BASE_ADDR          	 0x01700000
+    if (new_start >= a->end || new_start < a->start)
+        ret = NULL;
+    else
+        a->start = new_start;
 
-#define        CAAM_JR0_OFFSET           0x10000
-#define        CAAM_JR1_OFFSET           0x20000
-#define        CAAM_JR2_OFFSET           0x30000
-#define        CAAM_JR3_OFFSET           0x40000
+    return ret;
+}
 
+void *alloc(unsigned long size, unsigned long align)
+{
+    void *ret = __alloc(&heap, size, align);
+    return ret;
+}
 
-struct sysinfo {
-	unsigned long freq_platform;
-	unsigned long freq_ddr_pll0;
-	unsigned long freq_ddr_pll1;
-};
+void alloc_init(struct allocator *heap, unsigned long start, unsigned long size)
+{
+    heap->start = start;
+    heap->begin = start;
+    heap->end = start + size;
+}
 
-#define FSL_CHASSIS_RCWSR0			0x01ee0100
-#define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_SHIFT	25
-#define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_MASK	0x1f
-#define FSL_CHASSIS_RCWSR0_MEM_PLL_RAT_SHIFT	16
-#define FSL_CHASSIS_RCWSR0_MEM_PLL_RAT_MASK	0x3f
-#define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_SHIFT	8
-#define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_MASK	0x3f
+ // Free needs to be implemented. This is a placeholder
+void free(void *ptr)
+{
+}
 
+void alloc_free()
+{
+    memset((void *)heap.begin, 0, heap.end - heap.begin);
+}
 
-void get_clocks(struct sysinfo *sys);
-
-#endif /* __LSCH2_H_ */

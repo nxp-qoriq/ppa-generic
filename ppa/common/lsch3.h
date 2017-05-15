@@ -37,6 +37,7 @@
 #define __LSCH3_H_
 
 #define CONFIG_CHIP_SELECTS_PER_CTRL		4
+#define CONFIG_PHYS_64BIT
 
 #define CCI_HN_F_0_BASE			0x04200000
 #define CCI_HN_F_1_BASE			0x04210000
@@ -51,6 +52,13 @@
 
 #define CONFIG_SYS_IFC_ADDR		0x02240000
 #define CONFIG_SYS_I2C_BASE		0x02000000
+
+#define CAAM_BASE_ADDR           0x08000000
+#define CAAM_JR0_OFFSET           0x10000
+#define CAAM_JR1_OFFSET           0x20000
+#define CAAM_JR2_OFFSET           0x30000
+#define CAAM_JR3_OFFSET           0x40000
+#define CONFIG_SYS_FSL_CCSR_SEC_LE
 
 struct sysinfo {
 	unsigned long freq_platform;

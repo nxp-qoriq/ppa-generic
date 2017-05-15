@@ -48,18 +48,33 @@ typedef unsigned long long u64;
 typedef unsigned int bool;
 typedef unsigned long register_t;
 typedef unsigned int size_t;
+
 typedef signed long long int64_t;
+typedef signed int int32_t;
+typedef signed char int8_t;
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
-typedef signed char int8_t;
-typedef unsigned long phys_size_t;
-typedef uint32_t dma_addr_t;
 
 #define true	1
 #define false	0
 #define NULL ((void *)0)
+
+struct allocator {
+    unsigned long begin, start, end;
+};
+
+extern struct allocator heap;
+ // Initiate the allocator
+void alloc_init(struct allocator *heap, unsigned long start, unsigned long size);
+ // Allocate memory from allocator
+void *alloc(unsigned long size, unsigned long align);
+ // Free memory assigned ot allocator
+void alloc_free(void);
+ // free the memory back to allocator pool
+void free(void *);
+
 
 #endif

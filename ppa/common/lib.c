@@ -47,6 +47,18 @@ void *memcpy(void *dest, const void *src, size_t n)
     return dest;
 }
 
+ //  This function fills the first n bytes of the memory area pointed 
+ // to by dest with the constant byte ch
+void *memset(void *dest, uint8_t ch, size_t n)
+{
+        uint8_t *cd = dest;
+
+        while (n--)
+                *cd++ = ch;
+
+        return dest;
+};
+
  // this funcation compare memory regions.
 int memcmp(const void *s1, const void *s2, size_t n)
 {

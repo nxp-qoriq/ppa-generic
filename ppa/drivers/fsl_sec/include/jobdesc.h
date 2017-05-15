@@ -1,6 +1,5 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2016, NXP Semiconductors
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -28,49 +27,23 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-//
-// Author York Sun <york.sun@nxp.com>
 // 
+// Authors:
+//  Ruchika Gupta <ruchika.gupta@nxp.com> 
+//
 //-----------------------------------------------------------------------------
 
-#ifndef __LSCH2_H_
-#define __LSCH2_H_
+#ifndef __JOBDESC_H
+#define __JOBDESC_H
 
-#define CONFIG_SYS_FSL_CCSR_GUR_BE
-#define CONFIG_SYS_FSL_CCSR_DDR_BE
-#define CONFIG_SYS_FSL_CCSR_SEC_BE
+#include "types.h"
 
-#define CONFIG_PHYS_64BIT
+uint32_t desc_length(uint32_t *desc);
 
-#ifndef CONFIG_CHIP_SELECTS_PER_CTRL
-#define CONFIG_CHIP_SELECTS_PER_CTRL		4
+int cnstr_rng_jobdesc(uint32_t *desc, uint32_t state_handle,
+		      uint32_t *add_inp, uint32_t add_ip_len,
+             	      uint8_t *out_data, uint32_t len);
+
+int cnstr_rng_instantiate_jobdesc(uint32_t *desc);
+
 #endif
-
-#define CONFIG_SYS_FSL_DDR_ADDR		0x01080000
-#define CONFIG_SYS_I2C_BASE		0x02180000
-#define CAAM_BASE_ADDR          	 0x01700000
-
-#define        CAAM_JR0_OFFSET           0x10000
-#define        CAAM_JR1_OFFSET           0x20000
-#define        CAAM_JR2_OFFSET           0x30000
-#define        CAAM_JR3_OFFSET           0x40000
-
-
-struct sysinfo {
-	unsigned long freq_platform;
-	unsigned long freq_ddr_pll0;
-	unsigned long freq_ddr_pll1;
-};
-
-#define FSL_CHASSIS_RCWSR0			0x01ee0100
-#define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_SHIFT	25
-#define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_MASK	0x1f
-#define FSL_CHASSIS_RCWSR0_MEM_PLL_RAT_SHIFT	16
-#define FSL_CHASSIS_RCWSR0_MEM_PLL_RAT_MASK	0x3f
-#define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_SHIFT	8
-#define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_MASK	0x3f
-
-
-void get_clocks(struct sysinfo *sys);
-
-#endif /* __LSCH2_H_ */

@@ -43,6 +43,23 @@
 #else
 #error "Unknown chassis"
 #endif
+#include "types.h"
+
+#ifdef CONFIG_PHYS_64BIT
+typedef unsigned long long phys_addr_t;
+typedef unsigned long long phys_size_t;
+#else
+typedef unsigned long phys_addr_t;
+typedef unsigned long phys_size_t;
+#endif
+
+ // Return higher 32 bits of physical address
+#define PHYS_ADDR_HI(phys_addr) \
+	    (uint32_t)(((uint64_t)phys_addr) >> 32)
+
+ // Return lower 32 bits of physical address
+#define PHYS_ADDR_LO(phys_addr) \
+	    (uint32_t)(((uint64_t)phys_addr) & 0xFFFFFFFF)
 
 #include "soc.h"
 
@@ -126,6 +143,38 @@
 #endif
 #endif
 
+#ifdef CONFIG_SYS_FSL_CCSR_SEC_BE
+#define sec_in32(a)	in_be32(a)
+#define sec_out32(a, v)	out_be32(a, v)
+#define sec_in64(addr)    ((u64)sec_in32((u32 *)(addr)) << 32) | \
+    			(sec_in32((u32 *)(addr) + 1))
+#define sec_out64(addr, val)    				\
+    sec_out32((u32 *)(addr), (u32)((val) >> 32));	\
+    sec_out32((u32 *)(addr) + 1, (u32)(val))
+#elif defined(CONFIG_SYS_FSL_CCSR_SEC_LE)
+#define sec_in32(a)	in_le32(a)
+#define sec_out32(a, v)	out_le32(a, v)
+#define sec_in64(addr)    ((u64)sec_in32((u32 *)(addr) + 1) << 32) | \
+    			(sec_in32((u32 *)(addr)))
+#define sec_out64(addr, val)    				\
+    sec_out32((u32 *)(addr) + 1, (u32)((val) >> 32));	\
+    sec_out32((u32 *)(addr), (u32)(val))	
+#else
+#error Please define CCSR SEC register endianness
+#endif
+
 #define mb()		asm volatile("dsb sy" : : : "memory")
 #define isb()		asm volatile("isb" : : : "memory")
+
+static inline void *ptov (phys_addr_t *ptr)
+{
+    return (void *)ptr;
+}
+
+
+static inline phys_addr_t *vtop (void *ptr)
+{
+    return (phys_addr_t *)ptr;
+}
+
 #endif /* __IO_H__ */

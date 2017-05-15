@@ -44,6 +44,7 @@
 
 .global smc32_handler
 .global _smc_success
+.global _smc_failure
 .global _smc_unimplemented
 .global _smc_invalid
 .global _smc_invalid_el

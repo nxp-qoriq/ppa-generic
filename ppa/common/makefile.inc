@@ -86,6 +86,13 @@ HASH_DRBG_HDRS := $(notdir $(HASH_DRBG_HDRS))
 HASH_DRBG_C     = $(wildcard  $(DRVR_SRC)/hash_drbg/src/*.c) 
 HASH_DRBG_C    := $(notdir $(HASH_DRBG_C))
 
+#add the SEC files here for now
+SEC_HDRS =  $(wildcard  $(DRVR_SRC)/fsl_sec/include/*.h) 
+SEC_HDRS := $(notdir $(SEC_HDRS))
+SEC_C =  $(wildcard  $(DRVR_SRC)/fsl_sec/src/*.c) 
+SEC_C := $(notdir $(SEC_C))
+
+
 #------------------------------------------------
 
  # select the chassis file ---
@@ -109,14 +116,14 @@ PRE_TARG   =monitor.elf
 
 LINK_ASM   =ppa.ld.s
 COMMON_ASM =utils.s
-COMMON_C   =ppa_main.c lib.c
-COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h $(CHASSIS_FILE).h lnkr.cmd
+COMMON_C   =ppa_main.c lib.c alloc.c
+COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h $(CHASSIS_FILE).h lnkr.cmd 
 
 BUILD_ASM  =$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
-BUILD_C    =$(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C) $(HASH_DRBG_C)
+BUILD_C    =$(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C) $(HASH_DRBG_C) $(SEC_C)
 HDRS_ASM   =$(HDRS_SOC) $(HDRS_PSCI) $(HDRS_ARMV8) $(HDRS_PLAT) $(COMMON_HDRS) \
-	    $(HDRS_MNTR) $(DRIVER_HDRS) $(DDR_HDRS) $(HASH_DRBG_HDRS)
+	    $(HDRS_MNTR) $(DRIVER_HDRS) $(DDR_HDRS) $(HASH_DRBG_HDRS) $(SEC_HDRS)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 
 #------------------------------------------------
@@ -249,6 +256,12 @@ $(HASH_DRBG_C): $(HASH_DRBG_HDRS) src
 
 $(HASH_DRBG_HDRS): src
 	@cp $(DRVR_SRC)/hash_drbg/include/$@ $(SRC_DIR)/$@
+
+$(SEC_C): $(SEC_HDRS) src
+	@cp $(DRVR_SRC)/fsl_sec/src/$@ $(SRC_DIR)/$@
+
+$(SEC_HDRS): src
+	@cp $(DRVR_SRC)/fsl_sec/include/$@ $(SRC_DIR)/$@
 
 #------------------------------------------------
 

@@ -31,10 +31,18 @@
 //
 //-----------------------------------------------------------------------------
 
+#include "lib.h"
+#include "fsl_sec.h"
+
 char __bss_start[0] __attribute__((section(".__bss_start")));
 char __bss_end[0] __attribute__((section(".__bss_end")));
 char __rel_dyn_start[0] __attribute__((section(".__rel_dyn_start")));
 char __rel_dyn_end[0] __attribute__((section(".__rel_dyn_end")));
+
+struct allocator heap;
+ //1 MB area in DDR allocated for heap starting from 512K offset
+#define HEAP_OFFSET	0x80000
+#define HEAP_SIZE	0x100000
 
 
 #if (CNFG_DDR)
@@ -82,9 +90,11 @@ void uart_init(void)
 
 //-----------------------------------------------------------------------------
 
-int _ppa_main(void)
+int _ppa_main(unsigned long long addr)
 {
 
+    alloc_init(&heap, addr + HEAP_OFFSET, HEAP_SIZE);
+    sec_init();
 #if (CNFG_UART)
     uart_init();
 #endif
