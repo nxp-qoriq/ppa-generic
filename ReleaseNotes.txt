@@ -12,6 +12,7 @@ Services provided:
     PSCI v0.2
     Aarch32 kernel support
     Memory Bank query when secure fw initializes ddr
+    HWRNG - hw randon number generator
 
 Devices Supported:
     LS1012A
@@ -23,6 +24,21 @@ Devices Supported:
     LS2088A
     LA1575
     LX2160
+
+Date: 05/17/2017 --------------------------------------------------------------
+
+1) Added SEC driver and HWRNG (hardware random number generator) support for
+   kASLR.
+
+2) Fixed handling of exit mode (EL2/EL1) when kernel is Aarch32.
+
+3) Building position-independent images - note that gcc prior to 6.2 does
+   not handle relocation tables properly. The build system will detect this and
+   auto-build, and run, a tool to patch the relocation tables.
+
+4) BSD 3-clause license added to all sources.
+
+//- end 05/17/2017 update -----------------------------------------------------
 
 Date: 03/13/2017 --------------------------------------------------------------
 

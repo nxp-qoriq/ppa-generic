@@ -771,6 +771,7 @@ smc64_psci_cpu_on:
     mrs   x2, scr_el3
     bl   _setCoreData
 
+     // x4   = spsr_el3 of caller
      // x6   = core mask (lsb)
      // x7   = start address
      // x8   = context id
@@ -788,13 +789,16 @@ smc64_psci_cpu_on:
     mov  x2, x8
     bl   _setCoreData
 
+     // x4   = spsr_el3 of caller
      // x6   = core mask (lsb)
      // x9   = core state (from data area)
 
-    bl   _is_EL2_supported
-    cbz  x0, 6f
+    mov   x0, x4
+    bl    _get_exit_mode
+    tst   x0, #MODE_EL_MASK
+    b.ne  6f
 
-     // core will be released to EL2
+3:   // core will be released to EL2
 
      // save sctlr_el2
     mov   x0, x6
@@ -819,6 +823,7 @@ smc64_psci_cpu_on:
 
      // x6   = core mask (lsb)
      // x9   = core state (from data area)
+
 8:
      // load the soc with the address for the secondary core to jump to
      // when it completes execution in the bootrom

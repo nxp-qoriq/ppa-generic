@@ -44,6 +44,7 @@
 
 .global _set_tcr
 .global _is_EL2_supported
+.global _get_exit_mode
 .global _set_spsr_4_exit
 .global _set_spsr_4_startup
 .global _init_core_EL3
@@ -399,27 +400,23 @@ _set_spsr_4_startup:
 
      // x4 = saved spsr
 
-    bl    _is_EL2_supported
-    mov   x3, x0
-
-     // x3 = el2 support (0=el1)
-     // x4 = saved spsr
-
-     // determine if aarch32 or aarch64
-    tst   x4, #SPSR_EL3_M4
+    mov   x0, x4
+    bl    _get_exit_mode
+    cmp   x0, #MODE_AARCH64_EL2
+    b.eq  4f
+    cmp   x0, #MODE_AARCH32_EL1
+    b.eq  1f
+    cmp   x0, #MODE_AARCH64_EL1
     b.eq  3f
 
-     // process aarch32
-    cbnz  x3, 1f
-
-     // supv mode
-    mov   x0, #SPSR32_EL1_LE
+     // Aarch32 @ EL2
+    mov   x0, #SPSR32_EL2_LE
     b     2f
 
-1:   // hyp mode
-    mov   x0, #SPSR32_EL2_LE
+1:   // Aarch32 @ EL1
+    mov   x0, #SPSR32_EL1_LE
 
-2:   // determine BE/LE for Aarch32
+2:   // get endianness @ Aarch32
     tst   x4, #SPSR32_E_MASK
     b.eq  5f
 
@@ -427,17 +424,11 @@ _set_spsr_4_startup:
     orr   x0, x0, #SPSR32_E_BE
     b     5f
 
-3:   // process aarch64
-    cbnz   x3, 4f
-
-     // x3 = el2 support (0=el1)
-     // x4 = saved spsr
-
-     // EL1
+3:   // Aarch64 @ EL1
     mov   x0, #SPSR_FOR_EL1H
     b     5f
 
-4:   // EL2
+4:   // Aarch64 @ EL2
     mov   x0, #SPSR_FOR_EL2H
 
 5:  // set SPSR_EL3
@@ -452,7 +443,8 @@ _set_spsr_4_startup:
  // this function determines if there is hw support for EL2
  // in:  none
  // out: x0 == 0, no EL2 support in hw
- //      x0 != 0, the hw supports EL2
+ //      x0 == 0x100, the hw supports EL2 @ AArch64
+ //      x0 == 0x200, the hw supports EL2 @ AArch64 and AArch32
  // uses x0, x1
 _is_EL2_supported:
 
@@ -461,6 +453,51 @@ _is_EL2_supported:
     mrs  x0, id_aa64pfr0_el1
     and  x0, x0, x1
 
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function determines the exit mode of the core exiting EL3
+ //      possible choices are:
+ //         Aarch64 @ EL2
+ //         Aarch64 @ EL1
+ //         Aarch32 @ EL2
+ //         Aarch32 @ EL1
+ // in:  x0 = spsr of caller
+ // out: x0 == 0, Aarch64 @ EL2
+ //         == 1, Aarch64 @ EL1
+ //         == 2, Aarch32 @ EL2
+ //         == 3, Aarch32 @ EL1
+ // uses x0, x1, x2
+_get_exit_mode:
+
+     // x0 = spsr of caller
+
+     // get the EL2 support
+    ldr  x1, =ID_AA64PFR0_MASK_EL2
+    mrs  x2, id_aa64pfr0_el1
+    and  x2, x2, x1
+
+     // x0 = spsr of caller
+     // x2 = EL2 support (0=none, 0x100=Aarch64, 0x200=Aarch64 and Aarch32)
+
+    tst   x0, #SPSR_EL3_M4
+    b.eq  1f
+
+     // Aarch32
+    mov   x0, #MODE_AARCH_32
+    cmp   x2, #ID_AA64PFR0_EL2_64OR32
+    b.eq  4f
+
+3:   // EL1
+    orr   x0, x0, #MODE_EL_1
+    b     4f
+
+1:   // Aarch64
+    mov   x0, #MODE_AARCH_64
+    cbz   x2, 3b
+
+4:
     ret
 
 //-----------------------------------------------------------------------------

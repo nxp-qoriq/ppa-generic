@@ -45,6 +45,7 @@
 .equ  SPSR_EL2,        0x8
 .equ  SPSR_EL3,        0xC
 .equ  SPSR_EL3_M4,     0x10
+.equ  SPSR_EL3_M4_32,  0x10
 
 .equ  SPSR32_E_MASK,          0x200
 .equ  SPSR32_E_BE,            0x200
@@ -98,7 +99,9 @@
 
 .equ  HCR_EL2_RW_AARCH64,     0x80000000
 
-.equ  ID_AA64PFR0_MASK_EL2,   0xF00
+.equ  ID_AA64PFR0_MASK_EL2,    0xF00
+.equ  ID_AA64PFR0_EL2_64_ONLY, 0x100
+.equ  ID_AA64PFR0_EL2_64OR32,  0x200
 
 .equ  MPIDR_AFFINITY0_MASK,   0x00FF
 .equ  MPIDR_AFFINITY0_OFFSET, 0x0
@@ -128,6 +131,17 @@
 .equ  CNTP_CTL_EL0_EN,        0x1
 .equ  CNTP_CTL_EL0_IMASK,     0x2
 .equ  CNTP_CTL_EL0_ISTAT,     0x4
+
+.equ   MODE_AARCH64_EL2,       0x0
+.equ   MODE_AARCH64_EL1,       0x1
+.equ   MODE_AARCH32_EL2,       0x2
+.equ   MODE_AARCH32_EL1,       0x3
+.equ   MODE_AARCH_MASK,        0x2
+.equ   MODE_AARCH_64,          0x0
+.equ   MODE_AARCH_32,          0x2
+.equ   MODE_EL_MASK,           0x1
+.equ   MODE_EL_2,              0x0
+.equ   MODE_EL_1,              0x1
 
 //-----------------------------------------------------------------------------
 

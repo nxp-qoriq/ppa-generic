@@ -166,11 +166,19 @@ _secondary_core_init:
      // perform EL3 init on secondary core
     bl   _init_secondary_EL3
 
-     // determine if hw supports el2
-    bl   _is_EL2_supported
+     // get saved spsr
+    mov  x0, x8
+    mov  x1, #SPSR_EL3_DATA
+    bl   _getCoreData
+    mov  x4, x0
 
-     // x0 = EL2 support (0=none)
-    cbz  x0, 1f
+     // x4 = saved spsr
+
+    mov   x0, x4
+    bl    _get_exit_mode
+    tst   x0, #MODE_EL_MASK
+    b.ne  1f
+
      // perform EL2 init on secondary core
     mov  x0, x8
     bl   _init_secondary_EL2
@@ -361,11 +369,12 @@ _mon_core_restart:
      // perform EL3 init on secondary core
     bl   _init_secondary_EL3
 
-     // determine if hw supports el2
-    bl   _is_EL2_supported
+     // get spsr_el3
+    mrs   x0, spsr_el3
+    bl    _get_exit_mode
+    tst   x0, #MODE_EL_MASK
+    b.ne  1f
 
-     // x0 = EL2 support (0=none)
-    cbz  x0, 1f
      // perform EL2 init on core
     mov  x0, x8
     bl   _init_secondary_EL2
