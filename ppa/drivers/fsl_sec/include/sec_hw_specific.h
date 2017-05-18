@@ -99,7 +99,7 @@ struct jobring_regs {
 
  // Offsets representing common SEC Registers
 #define SEC_REG_MCFGR_OFFSET		0x0004		
-#define SEC_REG_SCFGR_OFFSET		0x0008		
+#define SEC_REG_SCFGR_OFFSET		0x000C
 #define SEC_REG_JR0ICIDR_MS_OFFSET	0x0010		
 #define SEC_REG_JR0ICIDR_LS_OFFSET	0x0014		
 #define SEC_REG_JR1ICIDR_MS_OFFSET	0x0018		

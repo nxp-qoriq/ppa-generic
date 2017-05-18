@@ -411,8 +411,8 @@ void hw_flush_job_ring(struct sec_job_ring_t *job_ring,
     phys_addr_t current_desc = 0;
 
     debug("JR[%p]");
-        debug_int("pi[%d]", job_ring->pidx);
-        debug_int("ci[%d]", job_ring->cidx);
+    debug_int("pi[%d]", job_ring->pidx);
+    debug_int("ci[%d]", job_ring->cidx);
     debug_hex("error code", error_code);
     debug_int("Notify_desc = \n", do_notify);
 
@@ -422,8 +422,8 @@ void hw_flush_job_ring(struct sec_job_ring_t *job_ring,
     jobs_no_to_discard = number_of_jobs_available;
 
     debug("JR[%p]");
-        debug_int("pi[%d]", job_ring->pidx);
-        debug_int("ci[%d]", job_ring->cidx);
+    debug_int("pi[%d]", job_ring->pidx);
+    debug_int("ci[%d]", job_ring->cidx);
     debug_int("Discarding desc = \n", jobs_no_to_discard);
 
     while (jobs_no_to_discard > discarded_descs_no) {
@@ -460,7 +460,7 @@ int hw_poll_job_ring(struct sec_job_ring_t *job_ring,
     uint32_t error_descs_no = 0;
     uint32_t sec_error_code = 0;
     uint32_t do_driver_shutdown = false;
-    phys_addr_t *fnptr, *arg_val;
+    phys_addr_t *fnptr, *arg_addr;
     user_callback usercall = NULL;
     uint8_t *current_desc;
     void *arg;
@@ -526,9 +526,9 @@ int hw_poll_job_ring(struct sec_job_ring_t *job_ring,
         hw_remove_entries(job_ring, 1);
         notified_descs_no++;
 
-        arg_val = (phys_addr_t *)(current_desc - sizeof(void *));
-        fnptr = (phys_addr_t *)(arg - sizeof(usercall));
-	arg = (void *)*arg_val;
+	arg_addr = (phys_addr_t *)(phys_addr_t *)(current_desc - sizeof(void *));
+	fnptr = (phys_addr_t *)(current_desc - sizeof(void *) - sizeof(usercall));
+	arg = (void *)*(arg_addr);
         if (*fnptr) {
             debug("Callback Fucntion called\n");
             usercall = (user_callback)*(fnptr);
