@@ -1439,22 +1439,23 @@ read_reg_gicc:
  // this function initializes the upper-half of OCRAM for ECC checking
  // in:  none
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _ocram_init_upper:
+    mov  x10, x30
 
      // set the start flag
     adr  x8, init_task1_flags
     mov  w9, #1
     str  w9, [x8]
 
-     // use 64-bit accesses to r/w all locations of the upper-half of OCRAM
-    mov  x0, #OCRAM_BASE_ADDR
-    mov  x1, #OCRAM_SIZE_IN_BYTES
-     // divide size in half
-    lsr  x1, x1, #1
-     // add size to base addr to get start addr of upper half
-    add  x0, x0, x1
-     // convert bytes to 64-byte chunks (using quad load/store pair ops)
+     // get the start address and size of the upper region
+    mov  x0, #OCRAM_REGION_UPPER
+    bl   _get_ocram_2_init
+
+     // x0 = start address
+     // x1 = size in bytes
+
+     // convert bytes to 64-byte chunks (we are using quad load/store pairs)
     lsr  x1, x1, #6
 
      // x0 = start address
@@ -1485,17 +1486,22 @@ _ocram_init_upper:
     mov  w7, #1
     str  w7, [x6, #4]
 
+     // restore link register
+    mov  x30, x10
+
      // clean the registers
-    mov  x0, #0
-    mov  x1, #0
-    mov  x2, #0
-    mov  x3, #0
-    mov  x4, #0
-    mov  x5, #0
-    mov  x6, #0
-    mov  x7, #0
-    mov  x8, #0
-    mov  x9, #0
+    mov  x0,  #0
+    mov  x1,  #0
+    mov  x2,  #0
+    mov  x3,  #0
+    mov  x4,  #0
+    mov  x5,  #0
+    mov  x6,  #0
+    mov  x7,  #0
+    mov  x8,  #0
+    mov  x9,  #0
+    mov  x10, #0
+
     ret
 
 //-----------------------------------------------------------------------------
@@ -1503,19 +1509,22 @@ _ocram_init_upper:
  // this function initializes the lower-half of OCRAM for ECC checking
  // in:  none
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
 _ocram_init_lower:
+    mov  x10, x30
 
      // set the start flag
     adr  x8, init_task2_flags
     mov  w9, #1
     str  w9, [x8]
 
-     // use 64-bit accesses to r/w all locations of the upper-half of OCRAM
-    mov  x0, #OCRAM_BASE_ADDR
-    mov  x1, #OCRAM_SIZE_IN_BYTES
-     // divide size in half
-    lsr  x1, x1, #1
+     // get the start address and size of the lower region
+    mov  x0, #OCRAM_REGION_LOWER
+    bl   _get_ocram_2_init
+
+     // x0 = start address
+     // x1 = size in bytes
+
      // convert bytes to 64-byte chunks (using quad load/store pair ops)
     lsr  x1, x1, #6
 
@@ -1547,17 +1556,22 @@ _ocram_init_lower:
     mov  w7, #1
     str  w7, [x6, #4]
 
+     // restore link register
+    mov  x30, x10
+
      // clean the registers
-    mov  x0, #0
-    mov  x1, #0
-    mov  x2, #0
-    mov  x3, #0
-    mov  x4, #0
-    mov  x5, #0
-    mov  x6, #0
-    mov  x7, #0
-    mov  x8, #0
-    mov  x9, #0
+    mov  x0,  #0
+    mov  x1,  #0
+    mov  x2,  #0
+    mov  x3,  #0
+    mov  x4,  #0
+    mov  x5,  #0
+    mov  x6,  #0
+    mov  x7,  #0
+    mov  x8,  #0
+    mov  x9,  #0
+    mov  x10, #0
+
     ret
 
 //-----------------------------------------------------------------------------

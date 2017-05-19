@@ -38,7 +38,9 @@
 //-----------------------------------------------------------------------------
 
 #include "aarch64.h"
+#include "smc.h"
 #include "psci.h"
+#include "soc.h"
 
 //-----------------------------------------------------------------------------
 
@@ -46,6 +48,7 @@
 .global _get_cluster_state
 .global _core_on_cnt_clstr
 .global _is_mpidr_valid
+.global _get_ocram_2_init
 
 //-----------------------------------------------------------------------------
 
@@ -249,6 +252,75 @@ _is_mpidr_valid:
      // if the clusters are not symmetrical, then add an appropriate
      // function in the specific device soc.s file.
 #endif
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the start address and size of two equal regions
+ // of ocram for initialization purposes. If the stack area is in the top
+ // of ocram, this is left out of the ocram regions to be initialized
+ // in:  x0 = 0, return start addr and size of lower ocram region
+ //         = 1, return start addr and size of upper ocram region
+ // out: x0 = start address of region
+ //      x1 = size of region in bytes
+ // uses x0, x1, x2, x3, x4, x5
+_get_ocram_2_init:
+    mov  x5, x30
+
+     // determine if the stack area is in the top of ocram
+    mov  x1, #OCRAM_SIZE_IN_BYTES
+    mov  x2, #OCRAM_BASE_ADDR
+    mov  x3, #STACK_BASE_ADDR
+    add  x4, x2, x1
+    cmp  x3, x4
+    b.ne 1f
+    
+     // stack is in top of ocram
+
+     // x1 = OCRAM_SIZE_IN_BYTES
+     // x2 = OCRAM_BASE_ADDR
+
+     // determine the amount of stack space
+    mov  x4, #CPU_MAX_COUNT
+    mov  x3, #STACK_OFFSET
+     // boot core has twice the normal stack space
+    add  x4, x4, #1
+    mul  x4, x4, x3
+
+     // x4 = total stack size in bytes
+
+     // adjust the size by subtracting the amount of stack space
+    sub  x1, x1, x4
+
+1:
+     // x1 = size of ocram to initialize
+     // x2 = OCRAM_BASE_ADDR
+
+     // divide size in half
+    lsr  x1, x1, #1
+
+     // determine if the upper or lower region of ocram is requested
+    cbz  x0, 2f
+
+     // process the upper region of ocram
+
+     // x1 = size of ocram to initialize
+     // x2 = OCRAM_BASE_ADDR
+    
+     // add size to base addr to get start addr of upper half
+    add  x0, x2, x1
+    b    3f
+
+2:   // process the lower region of ocram
+
+     // x1 = size of ocram to initialize
+     // x2 = OCRAM_BASE_ADDR
+
+     // get start address of lower region
+    mov  x0, x2
+
+3:
+    mov  x30, x5
+    ret
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
