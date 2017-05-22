@@ -839,6 +839,8 @@ smc64_psci_cpu_on:
      // x6   = core mask (lsb)
      // x9   = core state (from data area)
 
+    cmp  x9, #CORE_WFE
+    b.eq core_in_wfe
     cmp  x9, #CORE_IN_RESET
     b.eq core_in_reset
     cmp  x0, #CORE_OFF
@@ -908,6 +910,24 @@ core_is_off:
      // put the core back into service
     mov  x0, x6
     bl   _soc_core_restart    
+    b    psci_success
+
+ // this is where we release a core that is being held in wfe
+core_in_wfe:
+     // x6   = core mask (lsb)
+
+     // set core state in data area
+    mov  x0, x6
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_PENDING
+    bl   _setCoreData
+    dsb  sy
+    isb
+
+     // put the core back into service
+    sev
+    sev
+    isb
     b    psci_success
 
 //-----------------------------------------------------------------------------

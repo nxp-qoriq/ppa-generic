@@ -242,7 +242,7 @@ _soc_init_finish:
     cbz  x0, 5f
      // x0 = core mask lsb of the task 1 core
     mov  x1, #CORE_STATE_DATA
-    mov  x2, #CORE_IN_RESET
+    mov  x2, #CORE_WFE
     bl   _setCoreData
 5:
      // set the task 2 core state to IN_RESET
@@ -250,7 +250,7 @@ _soc_init_finish:
     cbz  x0, 4f
      // x0 = core mask lsb of the task 2 core
     mov  x1, #CORE_STATE_DATA
-    mov  x2, #CORE_IN_RESET
+    mov  x2, #CORE_WFE
     bl   _setCoreData
 4:
      // restore bootlocptr
