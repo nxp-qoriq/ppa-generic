@@ -49,6 +49,21 @@
 .global _core_on_cnt_clstr
 .global _is_mpidr_valid
 .global _get_ocram_2_init
+.global _getCoreData
+.global _setCoreData
+.global _ocram_init_upper
+.global _ocram_init_lower
+.global _prep_init_ocram_hi
+.global _prep_init_ocram_lo
+.global _init_task_flags
+.global _get_task1_start
+.global _get_task1_done
+.global _get_task1_core
+.global _set_task1_core
+.global _get_task2_start
+.global _get_task2_done
+.global _get_task2_core
+.global _set_task2_core
 
 //-----------------------------------------------------------------------------
 
@@ -323,6 +338,510 @@ _get_ocram_2_init:
     ret
 
 //-----------------------------------------------------------------------------
+
+ // this function returns the specified data field value from the specified cpu
+ // core data area
+ // in:  x0 = core mask lsb
+ //      x1 = data field name/offset
+ // out: x0 = data value
+ // uses x0, x1, x2
+_getCoreData:
+     // x0 = core mask
+     // x1 = field offset
+
+     // generate a 0-based core number from the input mask
+    clz   x2, x0
+    mov   x0, #63
+    sub   x0, x0, x2
+
+     // x0 = core number (0-based)
+     // x1 = field offset
+
+    mov   x2, #CORE_DATA_OFFSET
+    mul   x2, x2, x0
+    add   x1, x1, x2
+
+     // x1 = cumulative offset to data field
+
+    adr   x2, _cpu0_data
+
+     // a53 errata
+    add   x2, x2, x1
+    dc    ivac, x2
+    dsb   sy
+    isb 
+ 
+     // read data
+    ldr   x0, [x2]
+    ret
+    
 //-----------------------------------------------------------------------------
+
+ // this function writes the specified data value into the specified cpu
+ // core data area
+ // in:  x0 = core mask lsb
+ //      x1 = data field name/offset
+ //      x2 = data value to write/store
+ // out: none
+ // uses x0, x1, x2, x3
+_setCoreData:
+     // x0 = core mask
+     // x1 = field offset
+     // x2 = data value
+
+    clz   x3, x0
+    mov   x0, #63
+    sub   x0, x0, x3
+
+     // x0 = core number (0-based)
+     // x1 = field offset
+     // x2 = data value
+
+    mov   x3, #CORE_DATA_OFFSET
+    mul   x3, x3, x0
+    add   x1, x1, x3
+
+     // x1 = cumulative offset to data field
+     // x2 = data value
+
+    adr   x3, _cpu0_data
+    str   x2, [x3, x1]
+
+     // a53 errata
+    add   x3, x3, x1
+    dc    cvac, x3
+    dsb   sy
+    isb  
+    ret
+    
+//-----------------------------------------------------------------------------
+
+ // this function initializes the upper-half of OCRAM for ECC checking
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
+_ocram_init_upper:
+    mov  x10, x30
+
+     // set the start flag
+    adr  x8, _init_task1_flags
+    mov  w9, #1
+    str  w9, [x8]
+    dc   cvac, x8
+    dsb  sy
+    isb
+
+     // get the start address and size of the upper region
+    mov  x0, #OCRAM_REGION_UPPER
+    bl   _get_ocram_2_init
+
+     // x0 = start address
+     // x1 = size in bytes
+
+     // convert bytes to 64-byte chunks (we are using quad load/store pairs)
+    lsr  x1, x1, #6
+
+     // x0 = start address
+     // x1 = size in 64-byte chunks
+1:
+     // for each location, read and write-back
+    ldp  x2, x3, [x0]
+    ldp  x4, x5, [x0, #16]
+    ldp  x6, x7, [x0, #32]
+    ldp  x8, x9, [x0, #48]
+    stp  x2, x3, [x0]
+    stp  x4, x5, [x0, #16]
+    stp  x6, x7, [x0, #32]
+    stp  x8, x9, [x0, #48]
+
+    sub  x1, x1, #1
+    cbz  x1, 2f
+    add  x0, x0, #64
+    b    1b
+
+2:
+     // set the done flag
+    adr  x6, _init_task1_flags
+    mov  w7, #1
+    str  w7, [x6, #4]!
+    dc   cvac, x6
+
+     // make sure the data accesses are complete
+    dsb  sy
+    isb
+
+     // restore link register
+    mov  x30, x10
+
+     // clean the registers
+    mov  x0,  #0
+    mov  x1,  #0
+    mov  x2,  #0
+    mov  x3,  #0
+    mov  x4,  #0
+    mov  x5,  #0
+    mov  x6,  #0
+    mov  x7,  #0
+    mov  x8,  #0
+    mov  x9,  #0
+    mov  x10, #0
+
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function initializes the lower-half of OCRAM for ECC checking
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
+_ocram_init_lower:
+    mov  x10, x30
+
+     // set the start flag
+    adr  x8, _init_task2_flags
+    mov  w9, #1
+    str  w9, [x8]
+    dc   cvac, x8
+    dsb  sy
+    isb
+
+     // get the start address and size of the lower region
+    mov  x0, #OCRAM_REGION_LOWER
+    bl   _get_ocram_2_init
+
+     // x0 = start address
+     // x1 = size in bytes
+
+     // convert bytes to 64-byte chunks (using quad load/store pair ops)
+    lsr  x1, x1, #6
+
+     // x0 = start address
+     // x1 = size in 64-byte chunks
+1:
+     // for each location, read and write-back
+    ldp  x2, x3, [x0]
+    ldp  x4, x5, [x0, #16]
+    ldp  x6, x7, [x0, #32]
+    ldp  x8, x9, [x0, #48]
+    stp  x2, x3, [x0]
+    stp  x4, x5, [x0, #16]
+    stp  x6, x7, [x0, #32]
+    stp  x8, x9, [x0, #48]
+
+    sub  x1, x1, #1
+    cbz  x1, 2f
+    add  x0, x0, #64
+    b    1b
+
+2:
+     // set the done flag
+    adr  x6, _init_task2_flags
+    mov  w7, #1
+    str  w7, [x6, #4]!
+    dc   cvac, x6
+
+     // make sure the data accesses are complete
+    dsb  sy
+    isb
+
+     // restore link register
+    mov  x30, x10
+
+     // clean the registers
+    mov  x0,  #0
+    mov  x1,  #0
+    mov  x2,  #0
+    mov  x3,  #0
+    mov  x4,  #0
+    mov  x5,  #0
+    mov  x6,  #0
+    mov  x7,  #0
+    mov  x8,  #0
+    mov  x9,  #0
+    mov  x10, #0
+
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function initializes the soc init task flags
+ // in:  none
+ // out: none
+ // uses x0, x1
+_init_task_flags:
+
+    adr  x0, _init_task1_flags
+    adr  x1, _init_task2_flags
+    str  wzr, [x0]
+    str  wzr, [x0, #4]
+    str  wzr, [x0, #8]
+    dc   cvac, x0
+
+    str  wzr, [x1]
+    str  wzr, [x1, #4]
+    str  wzr, [x1, #8]
+    dc   cvac, x1
+
+    adr  x0, _init_task3_flags
+    str  wzr, [x0]
+    str  wzr, [x0, #4]
+    str  wzr, [x0, #8]
+    dc   cvac, x0
+
+    dsb  sy
+    isb
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the state of the task 1 start flag
+ // in:  
+ // out: 
+ // uses x0, x1
+_get_task1_start:
+
+    adr  x1, _init_task1_flags
+    dc   ivac, x1
+    isb
+    ldr  w0, [x1]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the state of the task 1 done flag
+ // in:  
+ // out: 
+ // uses x0, x1
+_get_task1_done:
+
+    adr  x1, _init_task1_flags
+    dc   ivac, x1
+    isb
+    ldr  w0, [x1, #4]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the core mask of the core performing task 1
+ // in:  
+ // out: x0 = core mask lsb of the task 1 core
+ // uses x0, x1
+_get_task1_core:
+
+    adr  x1, _init_task1_flags
+    dc   ivac, x1
+    isb
+    ldr  w0, [x1, #8]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function saves the core mask of the core performing task 1
+ // in:  x0 = core mask lsb of the task 1 core
+ // out:
+ // uses x0, x1
+_set_task1_core:
+
+    adr  x1, _init_task1_flags
+    str  w0, [x1, #8]!
+    dc   cvac, x1
+    dsb  sy
+    isb
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the state of the task 2 start flag
+ // in:  
+ // out: 
+ // uses x0, x1
+_get_task2_start:
+
+    adr  x1, _init_task2_flags
+    dc   ivac, x1
+    isb
+    ldr  w0, [x1]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the state of the task 2 done flag
+ // in:  
+ // out: 
+ // uses x0, x1
+_get_task2_done:
+
+    adr  x1, _init_task2_flags
+    dc   ivac, x1
+    isb
+    ldr  w0, [x1, #4]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the core mask of the core performing task 2
+ // in:  
+ // out: x0 = core mask lsb of the task 2 core
+ // uses x0, x1
+_get_task2_core:
+
+    adr  x1, _init_task2_flags
+    dc   ivac, x1
+    isb
+    ldr  w0, [x1, #8]
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function saves the core mask of the core performing task 2
+ // in:  x0 = core mask lsb of the task 2 core
+ // out:
+ // uses x0, x1
+_set_task2_core:
+
+    adr  x1, _init_task2_flags
+    str  w0, [x1, #8]!
+    dc   cvac, x1
+    dsb  sy
+    isb
+    ret
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+ // DO NOT CALL THIS FUNCTION FROM THE BOOT CORE!!
+ // this function uses a secondary core to initialize the upper portion of OCRAM
+ // the core does not return from this function
+_prep_init_ocram_hi:
+
+     // invalidate the icache
+    ic  iallu
+    isb
+
+     // enable the icache on the secondary core
+    mrs  x1, sctlr_el3
+    orr  x1, x1, #SCTLR_I_MASK
+    msr  sctlr_el3, x1
+    isb
+
+     // init the range of ocram
+    bl  _ocram_init_upper
+
+     // get the core mask
+    mrs  x0, MPIDR_EL1
+    bl   _get_core_mask_lsb
+
+     // x0 = core mask lsb
+
+     // turn off icache, mmu
+    mrs  x1, sctlr_el3
+    bic  x1, x1, #SCTLR_I_MASK
+    bic  x1, x1, #SCTLR_M_MASK
+    msr  sctlr_el3, x1
+
+     // invalidate the icache
+    ic  iallu
+    isb
+
+     // wakeup the bootcore - it might be asleep waiting for us to finish
+    sev
+    isb
+    sev
+    isb
+
+    mov  x5, x0
+
+     // x5 = core mask lsb
+
+1:
+     // see if our state has changed to CORE_PENDING
+    mov   x0, x5
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+
+     // x0 = core state
+
+    cmp   x0, #CORE_PENDING
+    b.eq  2f
+     // if not core_pending, then wfe
+    wfe
+    b  1b
+
+2:
+     // branch to the start code in the monitor
+    adr  x0, _secondary_core_init
+    br   x0
+
+//-----------------------------------------------------------------------------
+
+ // DO NOT CALL THIS FUNCTION FROM THE BOOT CORE!!
+ // this function uses a secondary core to initialize the lower portion of OCRAM
+ // the core does not return from this function
+_prep_init_ocram_lo:
+
+     // invalidate the icache
+    ic  iallu
+    isb
+
+     // enable the icache on the secondary core
+    mrs  x1, sctlr_el3
+    orr  x1, x1, #SCTLR_I_MASK
+    msr  sctlr_el3, x1
+    isb
+
+     // init the range of ocram
+    bl  _ocram_init_lower    // 0-9
+
+     // get the core mask
+    mrs  x0, MPIDR_EL1
+    bl   _get_core_mask_lsb  // 0-2
+
+     // x0 = core mask lsb
+
+     // turn off icache
+    mrs  x1, sctlr_el3
+    bic  x1, x1, #SCTLR_I_MASK
+    msr  sctlr_el3, x1
+
+     // invalidate tlb
+    tlbi  alle3
+    dsb   sy
+    isb
+
+     // invalidate the icache
+    ic  iallu
+    isb
+
+     // wakeup the bootcore - it might be asleep waiting for us to finish
+    sev
+    isb
+    sev
+    isb
+
+    mov  x5, x0
+
+     // x5 = core mask lsb
+
+1:
+     // see if our state has changed to CORE_PENDING
+    mov   x0, x5
+    mov   x1, #CORE_STATE_DATA
+    bl    _getCoreData
+
+     // x0 = core state
+
+    cmp   x0, #CORE_PENDING
+    b.eq  2f
+     // if not core_pending, then wfe
+    wfe
+    b  1b
+
+2:
+     // branch to the start code in the monitor
+    adr  x0, _secondary_core_init
+    br   x0
+
 //-----------------------------------------------------------------------------
 

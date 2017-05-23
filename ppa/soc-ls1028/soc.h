@@ -77,6 +77,8 @@
 #define  OCRAM_MID_ADDR      0x18010000
 #define  OCRAM_SIZE_IN_BYTES 0x20000
 #define  OCRAM_INIT_RETRY    0x2000
+#define  OCRAM_REGION_LOWER  0
+#define  OCRAM_REGION_UPPER  1
 
 //---- should not need mofification -------------------------------------------
 

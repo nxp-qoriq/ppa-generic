@@ -107,8 +107,6 @@
 .global _soc_core_restart
 
 .global _get_current_mask
-.global _getCoreData
-.global _setCoreData
 
 .global _soc_init_start
 .global _soc_init_finish
@@ -116,9 +114,7 @@
 .global _set_platform_security
 
 .global _gic_base_addr
-
 .global _soc_exit_boot_svcs
-
 .global _soc_check_sec_enabled
 
  // only valid if ddr is being initialized
@@ -126,6 +122,11 @@
 .global _membank_count_addr
 .global _membank_data_addr
 #endif
+
+.global _init_task1_flags
+.global _init_task2_flags
+.global _init_task3_flags
+.global _init_task4_flags
 
 //-----------------------------------------------------------------------------
 
@@ -1841,7 +1842,7 @@ _soc_init_start:
      //---------------------------
 
      // init the task flags
-    bl  init_task_flags   // 0-1
+    bl  _init_task_flags   // 0-1
 
      // save start address
     bl  _soc_get_start_addr   // 0-2
@@ -1859,7 +1860,7 @@ _soc_init_start:
     bl  init_task_1     // 0-4   
 5:
      // wait til task 1 has started
-    bl  get_task1_start // 0-1
+    bl  _get_task1_start // 0-1
     cbnz x0, 4f
     b    5b
 4:
@@ -1870,7 +1871,7 @@ _soc_init_start:
     bl  init_task_2     // 0-4
 6:
      // wait til task 2 has started
-    bl  get_task2_start // 0-1
+    bl  _get_task2_start // 0-1
     cbnz x0, 7f
     b    6b
 2:
@@ -1906,18 +1907,18 @@ _soc_init_finish:
 
      // if the ocram init is not completed, wait til it is
 1:
-    bl   get_task1_done
+    bl   _get_task1_done
     cbnz x0, 2f
     wfe
     b    1b    
 2:
-    bl   get_task2_done
+    bl   _get_task2_done
     cbnz x0, 3f
     wfe
     b    2b    
 3:
      // set the task 1 core state to IN_RESET
-    bl   get_task1_core
+    bl   _get_task1_core
     cbz  x0, 5f
      // x0 = core mask lsb of the task 1 core
     mov  x1, #CORE_STATE_DATA
@@ -1925,7 +1926,7 @@ _soc_init_finish:
     bl   _setCoreData
 5:
      // set the task 2 core state to IN_RESET
-    bl   get_task2_core
+    bl   _get_task2_core
     cbz  x0, 4f
      // x0 = core mask lsb of the task 2 core
     mov  x1, #CORE_STATE_DATA
@@ -2173,146 +2174,6 @@ write_reg_ddr:
 
 //-----------------------------------------------------------------------------
 
- // this function initializes the upper-half of OCRAM for ECC checking
- // in:  none
- // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
-_ocram_init_upper:
-    mov  x10, x30
-
-     // set the start flag
-    adr  x8, init_task1_flags
-    mov  w9, #1
-    str  w9, [x8]
-
-     // get the start address and size of the upper region
-    mov  x0, #OCRAM_REGION_UPPER
-    bl   _get_ocram_2_init
-
-     // x0 = start address
-     // x1 = size in bytes
-
-     // convert bytes to 64-byte chunks (we are using quad load/store pairs)
-    lsr  x1, x1, #6
-
-     // x0 = start address
-     // x1 = size in 64-byte chunks
-1:
-     // for each location, read and write-back
-    ldp  x2, x3, [x0]
-    ldp  x4, x5, [x0, #16]
-    ldp  x6, x7, [x0, #32]
-    ldp  x8, x9, [x0, #48]
-    stp  x2, x3, [x0]
-    stp  x4, x5, [x0, #16]
-    stp  x6, x7, [x0, #32]
-    stp  x8, x9, [x0, #48]
-
-    sub  x1, x1, #1
-    cbz  x1, 2f
-    add  x0, x0, #64
-    b    1b
-
-2:
-     // make sure the data accesses are complete
-    dsb  sy
-    isb
-
-     // set the done flag
-    adr  x6, init_task1_flags
-    mov  w7, #1
-    str  w7, [x6, #4]
-
-     // restore link register
-    mov  x30, x10
-
-     // clean the registers
-    mov  x0,  #0
-    mov  x1,  #0
-    mov  x2,  #0
-    mov  x3,  #0
-    mov  x4,  #0
-    mov  x5,  #0
-    mov  x6,  #0
-    mov  x7,  #0
-    mov  x8,  #0
-    mov  x9,  #0
-    mov  x10, #0
-
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function initializes the lower-half of OCRAM for ECC checking
- // in:  none
- // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
-_ocram_init_lower:
-    mov  x10, x30
-
-     // set the start flag
-    adr  x8, init_task2_flags
-    mov  w9, #1
-    str  w9, [x8]
-
-     // get the start address and size of the lower region
-    mov  x0, #OCRAM_REGION_LOWER
-    bl   _get_ocram_2_init
-
-     // x0 = start address
-     // x1 = size in bytes
-
-     // convert bytes to 64-byte chunks (using quad load/store pair ops)
-    lsr  x1, x1, #6
-
-     // x0 = start address
-     // x1 = size in 64-byte chunks
-1:
-     // for each location, read and write-back
-    ldp  x2, x3, [x0]
-    ldp  x4, x5, [x0, #16]
-    ldp  x6, x7, [x0, #32]
-    ldp  x8, x9, [x0, #48]
-    stp  x2, x3, [x0]
-    stp  x4, x5, [x0, #16]
-    stp  x6, x7, [x0, #32]
-    stp  x8, x9, [x0, #48]
-
-    sub  x1, x1, #1
-    cbz  x1, 2f
-    add  x0, x0, #64
-    b    1b
-
-2:
-     // make sure the data accesses are complete
-    dsb  sy
-    isb
-
-     // set the done flag
-    adr  x6, init_task2_flags
-    mov  w7, #1
-    str  w7, [x6, #4]
-
-     // restore link register
-    mov  x30, x10
-
-     // clean the registers
-    mov  x0,  #0
-    mov  x1,  #0
-    mov  x2,  #0
-    mov  x3,  #0
-    mov  x4,  #0
-    mov  x5,  #0
-    mov  x6,  #0
-    mov  x7,  #0
-    mov  x8,  #0
-    mov  x9,  #0
-    mov  x10, #0
-
-    ret
-
-//-----------------------------------------------------------------------------
-
  // this is soc initialization task 1
  // this function releases a secondary core to init the upper half of OCRAM
  // in:  x0 = core mask lsb of the secondary core to put to work
@@ -2329,10 +2190,10 @@ init_task_1:
 
      // save the core mask
     mov  x0, x4
-    bl   set_task1_core
+    bl   _set_task1_core
 
      // load bootlocptr with start addr
-    adr  x0, prep_init_ocram_hi
+    adr  x0, _prep_init_ocram_hi
     bl   _soc_set_start_addr
 
      // release secondary core
@@ -2360,10 +2221,10 @@ init_task_2:
 
      // save the core mask
     mov  x0, x4
-    bl   set_task2_core
+    bl   _set_task2_core
 
      // load bootlocptr with start addr
-    adr  x0, prep_init_ocram_lo
+    adr  x0, _prep_init_ocram_lo
     bl   _soc_set_start_addr
 
      // release secondary core
@@ -2374,337 +2235,6 @@ init_task_2:
     ret
 
 //-----------------------------------------------------------------------------
-
- // this function initializes the soc init task flags
- // in:  none
- // out: none
- // uses x0, x1
-init_task_flags:
-
-    adr  x0, init_task1_flags
-    adr  x1, init_task2_flags
-    str  wzr, [x0]
-    str  wzr, [x0, #4]
-    str  wzr, [x0, #8]
-    str  wzr, [x1]
-    str  wzr, [x1, #4]
-    str  wzr, [x1, #8]
-    adr  x0, init_task3_flags
-    str  wzr, [x0]
-    str  wzr, [x0, #4]
-    str  wzr, [x0, #8]
-
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function returns the state of the task 1 start flag
- // in:  
- // out: 
- // uses x0, x1
-get_task1_start:
-
-    adr  x1, init_task1_flags
-    ldr  w0, [x1]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function returns the state of the task 1 done flag
- // in:  
- // out: 
- // uses x0, x1
-get_task1_done:
-
-    adr  x1, init_task1_flags
-    ldr  w0, [x1, #4]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function returns the core mask of the core performing task 1
- // in:  
- // out: x0 = core mask lsb of the task 1 core
- // uses x0, x1
-get_task1_core:
-
-    adr  x1, init_task1_flags
-    ldr  w0, [x1, #8]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function saves the core mask of the core performing task 1
- // in:  x0 = core mask lsb of the task 1 core
- // out:
- // uses x0, x1
-set_task1_core:
-
-    adr  x1, init_task1_flags
-    str  w0, [x1, #8]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function returns the state of the task 2 start flag
- // in:  
- // out: 
- // uses x0, x1
-get_task2_start:
-
-    adr  x1, init_task2_flags
-    ldr  w0, [x1]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function returns the state of the task 2 done flag
- // in:  
- // out: 
- // uses x0, x1
-get_task2_done:
-
-    adr  x1, init_task2_flags
-    ldr  w0, [x1, #4]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function returns the core mask of the core performing task 2
- // in:  
- // out: x0 = core mask lsb of the task 2 core
- // uses x0, x1
-get_task2_core:
-
-    adr  x1, init_task2_flags
-    ldr  w0, [x1, #8]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function saves the core mask of the core performing task 2
- // in:  x0 = core mask lsb of the task 2 core
- // out:
- // uses x0, x1
-set_task2_core:
-
-    adr  x1, init_task2_flags
-    str  w0, [x1, #8]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function returns the specified data field value from the specified cpu
- // core data area
- // in:  x0 = core mask lsb
- //      x1 = data field name/offset
- // out: x0 = data value
- // uses x0, x1, x2
-_getCoreData:
-     // x0 = core mask
-     // x1 = field offset
-
-     // generate a 0-based core number from the input mask
-    clz   x2, x0
-    mov   x0, #63
-    sub   x0, x0, x2
-
-     // x0 = core number (0-based)
-     // x1 = field offset
-
-    mov   x2, #CORE_DATA_OFFSET
-    mul   x2, x2, x0
-    add   x1, x1, x2
-
-     // x1 = cumulative offset to data field
-
-    adr   x2, _cpu0_data
-
-     // a53 errata
-    add   x2, x2, x1
-    dc    ivac, x2
-    dsb   sy
-    isb 
- 
-     // read data
-    ldr   x0, [x2]
-    ret
-    
-//-----------------------------------------------------------------------------
-
- // this function writes the specified data value into the specified cpu
- // core data area
- // in:  x0 = core mask lsb
- //      x1 = data field name/offset
- //      x2 = data value to write/store
- // out: none
- // uses x0, x1, x2, x3
-_setCoreData:
-     // x0 = core mask
-     // x1 = field offset
-     // x2 = data value
-
-    clz   x3, x0
-    mov   x0, #63
-    sub   x0, x0, x3
-
-     // x0 = core number (0-based)
-     // x1 = field offset
-     // x2 = data value
-
-    mov   x3, #CORE_DATA_OFFSET
-    mul   x3, x3, x0
-    add   x1, x1, x3
-
-     // x1 = cumulative offset to data field
-     // x2 = data value
-
-    adr   x3, _cpu0_data
-    str   x2, [x3, x1]
-
-     // a53 errata
-    add   x3, x3, x1
-    dc    cvac, x3
-    dsb   sy
-    isb  
-    ret
-    
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
- // DO NOT CALL THIS FUNCTION FROM THE BOOT CORE!!
- // this function uses a secondary core to initialize the upper portion of OCRAM
- // the core does not return from this function
-prep_init_ocram_hi:
-
-     // invalidate the icache
-    ic  iallu
-    isb
-
-     // enable the icache on the secondary core
-    mrs  x1, sctlr_el3
-    orr  x1, x1, #SCTLR_I_MASK
-    msr  sctlr_el3, x1
-    isb
-
-     // init the range of ocram
-    bl  _ocram_init_upper
-
-     // get the core mask
-    mrs  x0, MPIDR_EL1
-    bl   _get_core_mask_lsb
-
-     // x0 = core mask lsb
-
-     // turn off icache, mmu
-    mrs  x1, sctlr_el3
-    bic  x1, x1, #SCTLR_I_MASK
-    bic  x1, x1, #SCTLR_M_MASK
-    msr  sctlr_el3, x1
-
-     // invalidate the icache
-    ic  iallu
-    isb
-
-     // wakeup the bootcore - it might be asleep waiting for us to finish
-    sev
-    isb
-    sev
-    isb
-
-    mov  x5, x0
-
-     // x5 = core mask lsb
-
-1:
-     // see if our state has changed to CORE_PENDING
-    mov   x0, x5
-    mov   x1, #CORE_STATE_DATA
-    bl    _getCoreData
-
-     // x0 = core state
-
-    cmp   x0, #CORE_PENDING
-    b.eq  2f
-     // if not core_pending, then wfe
-    wfe
-    b  1b
-
-2:
-     // branch to the start code in the monitor
-    adr  x0, _secondary_core_init
-    br   x0
-
-//-----------------------------------------------------------------------------
-
- // DO NOT CALL THIS FUNCTION FROM THE BOOT CORE!!
- // this function uses a secondary core to initialize the lower portion of OCRAM
- // the core does not return from this function
-prep_init_ocram_lo:
-
-     // invalidate the icache
-    ic  iallu
-    isb
-
-     // enable the icache on the secondary core
-    mrs  x1, sctlr_el3
-    orr  x1, x1, #SCTLR_I_MASK
-    msr  sctlr_el3, x1
-    isb
-
-     // init the range of ocram
-    bl  _ocram_init_lower    // 0-9
-
-     // get the core mask
-    mrs  x0, MPIDR_EL1
-    bl   _get_core_mask_lsb  // 0-2
-
-     // x0 = core mask lsb
-
-     // turn off icache
-    mrs  x1, sctlr_el3
-    bic  x1, x1, #SCTLR_I_MASK
-    msr  sctlr_el3, x1
-
-     // invalidate tlb
-    tlbi  alle3
-    dsb   sy
-    isb
-
-     // invalidate the icache
-    ic  iallu
-    isb
-
-     // wakeup the bootcore - it might be asleep waiting for us to finish
-    sev
-    isb
-    sev
-    isb
-
-    mov  x5, x0
-
-     // x5 = core mask lsb
-
-1:
-     // see if our state has changed to CORE_PENDING
-    mov   x0, x5
-    mov   x1, #CORE_STATE_DATA
-    bl    _getCoreData
-
-     // x0 = core state
-
-    cmp   x0, #CORE_PENDING
-    b.eq  2f
-     // if not core_pending, then wfe
-    wfe
-    b  1b
-
-2:
-     // branch to the start code in the monitor
-    adr  x0, _secondary_core_init
-    br   x0
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -2851,6 +2381,26 @@ psci_features_table:
     .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
     .4byte  FEATURES_TABLE_END      // table terminating value - must always be last entry in table
 
+.align 9  // 64-byte aligned
+saved_bootlocptr:
+    .8byte 0x0   // 
+_init_task1_flags:
+    .4byte  0x0  // begin flag
+    .4byte  0x0  // completed flag
+    .4byte  0x0  // core mask
+_init_task2_flags:
+    .4byte  0x0  // begin flag
+    .4byte  0x0  // completed flag
+    .4byte  0x0  // core mask
+_init_task3_flags:
+    .4byte  0x0  // begin flag
+    .4byte  0x0  // completed flag
+    .4byte  0x0  // core mask
+_init_task4_flags:
+    .4byte  0x0  // begin flag
+    .4byte  0x0  // completed flag
+    .4byte  0x0  // core mask
+
 .align 3
 soc_data_area:
     .4byte  0x0  // soc storage 1, offset 0x0
@@ -2866,22 +2416,6 @@ soc_data_area:
 _gic_base_addr:
     .8byte  0x0  // gicd base address
     .8byte  0x0  // gicc base address
-
-.align 3
-saved_bootlocptr:
-    .8byte 0x0   // 
-init_task1_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-init_task2_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-init_task3_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
 
 //-----------------------------------------------------------------------------
 
