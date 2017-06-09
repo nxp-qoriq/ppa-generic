@@ -37,26 +37,20 @@
 
 //-----------------------------------------------------------------------------
 
-#include "aarch64.h"
-#include "soc.h"
-#include "soc.mac"
-#include "policy.h"
-#include "psci.h"
-
-//-----------------------------------------------------------------------------
-
 #define SWLPM20_WA 1
 
-#define DAIF_DATA  AUX_01_DATA
 
-#define DEVDISR2_MASK_OFFSET  0x0
-#define DEVDISR5_MASK_OFFSET  0x4
-#define DEVDISR1_DATA_OFFSET  0x8
-#define DEVDISR2_DATA_OFFSET  0xC
-#define DEVDISR3_DATA_OFFSET  0x10
-#define DEVDISR4_DATA_OFFSET  0x14
-#define DEVDISR5_DATA_OFFSET  0x18
-#define CPUACTLR_DATA_OFFSET  0x1C
+ // the BASE address for these offsets is AUX_01_DATA in the
+ // bootcore's psci data region
+#define DEVDISR2_MASK_OFFSET  0x0    // references AUX_01_DATA
+#define DEVDISR5_MASK_OFFSET  0x8    // references AUX_02_DATA
+#define CPUACTLR_DATA_OFFSET  0x10   // references AUX_03_DATA
+ // the BASE address for these offsets is AUX_04_DATA in the
+ // bootcore's psci data region
+#define GICD_BASE_ADDR_OFFSET 0x0    // references AUX_04_DATA
+#define GICC_BASE_ADDR_OFFSET 0x8    // references AUX_05_DATA
+
+#define DAIF_DATA AUX_06_DATA        // references AUX_06_DATA
 
 #define IPSTPACK_RETRY_CNT    0x10000
 #define DDR_SLEEP_RETRY_CNT   0x10000
@@ -76,6 +70,15 @@
 
 #define CORE_RESTARTABLE     0
 #define CORE_NOT_RESTARTABLE 1
+
+//-----------------------------------------------------------------------------
+
+#include "aarch64.h"
+#include "soc.h"
+#include "policy.h"
+#include "psci.h"
+#include "runtime_data.h"
+#include "soc.mac"
 
 //-----------------------------------------------------------------------------
 
@@ -113,20 +116,8 @@
 .global _soc_init_percpu
 .global _set_platform_security
 
-.global _gic_base_addr
 .global _soc_exit_boot_svcs
 .global _soc_check_sec_enabled
-
- // only valid if ddr is being initialized
-#if (DDR_INIT)
-.global _membank_count_addr
-.global _membank_data_addr
-#endif
-
-.global _init_task1_flags
-.global _init_task2_flags
-.global _init_task3_flags
-.global _init_task4_flags
 
 //-----------------------------------------------------------------------------
 
@@ -510,7 +501,8 @@ _soc_sys_entr_pwrdn:
     csel x5, x5, x4, EQ
 1:    
      // store the DEVDISR5 override mask
-    adr  x2, soc_data_area
+    ldr  x2, =BC_PSCI_BASE
+    add  x2, x2, #AUX_01_DATA
     str  w5, [x2, #DEVDISR5_MASK_OFFSET]
 
      // build an override mask for IPSTPCR1/IPSTPACK1/DEVDISR2
@@ -557,7 +549,8 @@ _soc_sys_entr_pwrdn:
     
 2:
      // store the DEVDISR2 override mask
-    adr  x2, soc_data_area
+    ldr  x2, =BC_PSCI_BASE
+    add  x2, x2, #AUX_01_DATA
     str  w5, [x2, #DEVDISR2_MASK_OFFSET]
 
      // x5 = DEVDISR2 override mask
@@ -586,7 +579,8 @@ _soc_sys_entr_pwrdn:
     bl   write_reg_rcpm2
 
      // write IPSTPCR4 - overrides possible
-    adr  x2, soc_data_area
+    ldr  x2, =BC_PSCI_BASE
+    add  x2, x2, #AUX_01_DATA
     ldr  w6, [x2, #DEVDISR5_MASK_OFFSET]
     ldr  x0, =RCPM2_IPSTPCR4_OFFSET
     ldr  x1, =IPSTPCR4_VALUE
@@ -663,7 +657,8 @@ _soc_sys_entr_pwrdn:
     cbnz x7, 7b
 
 18:
-    adr  x7, soc_data_area
+    ldr  x7, =BC_PSCI_BASE
+    add  x7, x7, #AUX_01_DATA
 
      // x5 = DEVDISR2 override mask
      // x6 = DEVDISR5 override mask
@@ -872,7 +867,8 @@ _soc_sys_off:
     csel x5, x5, x4, EQ
 1:    
      // store the DEVDISR5 override mask
-    adr  x2, soc_data_area
+    ldr  x2, =BC_PSCI_BASE
+    add  x2, x2, #AUX_01_DATA
     str  w5, [x2, #DEVDISR5_MASK_OFFSET]
 
      // build an override mask for IPSTPCR1/IPSTPACK1/DEVDISR2
@@ -919,7 +915,8 @@ _soc_sys_off:
     
 2:
      // store the DEVDISR2 override mask
-    adr  x2, soc_data_area
+    ldr  x2, =BC_PSCI_BASE
+    add  x2, x2, #AUX_01_DATA
     str  w5, [x2, #DEVDISR2_MASK_OFFSET]
 
      // x5 = DEVDISR2 override mask
@@ -948,7 +945,8 @@ _soc_sys_off:
     bl   write_reg_rcpm2
 
      // write IPSTPCR4 - overrides possible
-    adr  x2, soc_data_area
+    ldr  x2, =BC_PSCI_BASE
+    add  x2, x2, #AUX_01_DATA
     ldr  w6, [x2, #DEVDISR5_MASK_OFFSET]
     ldr  x0, =RCPM2_IPSTPCR4_OFFSET
     ldr  x1, =IPSTPCR4_VALUE
@@ -1025,7 +1023,8 @@ _soc_sys_off:
     cbnz x7, 7b
 
 18:
-    adr  x7, soc_data_area
+    ldr  x7, =BC_PSCI_BASE
+    add  x7, x7, #AUX_01_DATA
 
      // x5 = DEVDISR2 override mask
      // x6 = DEVDISR5 override mask
@@ -1788,19 +1787,16 @@ _get_current_mask:
 _soc_init_start:
     mov   x10, x30
 
-     // zero-out the membank global vars
-    adr   x2, _membank_count_addr
-    stp   xzr, xzr, [x2]
-
      // get the address of the gic base address area
-    adr   x5, _gic_base_addr
+    ldr  x5, =BC_PSCI_BASE
+    add  x5, x5, #AUX_04_DATA
 
      // read SVR and get the SoC version
     mov   x0, #DCFG_SVR_OFFSET
     bl    read_reg_dcfg
 
      // x0 =  svr
-     // x5 = _gic_base_addr
+     // x5 = GIC BASE ADDR storage area
 
     and   w0, w0, #SVR_MINOR_REV_MASK
     cmp   w0, #SVR_MINOR_REV_0
@@ -1833,11 +1829,11 @@ _soc_init_start:
     ldr   x2, =GICD_BASE_ADDR_64K
     ldr   x3, =GICC_BASE_ADDR_64K
 10:
-     // x5 = _gic_base_addr
+     // x5 = GIC BASE ADDR storage area
 
      // store the base addresses
-    str   x2, [x5]
-    str   x3, [x5, #8]
+    str   x2, [x5, #GICD_BASE_ADDR_OFFSET]
+    str   x3, [x5, #GICC_BASE_ADDR_OFFSET]
 
      //---------------------------
 
@@ -1845,9 +1841,10 @@ _soc_init_start:
     bl  _init_task_flags   // 0-1
 
      // save start address
-    bl  _soc_get_start_addr   // 0-2
-    adr x1, saved_bootlocptr
-    str x0, [x1]
+    bl   _soc_get_start_addr   // 0-2
+    mov  x1, x0
+    mov  x0, #BOOTLOC_OFFSET
+    bl   _set_global_data
 
      // see if we are initializing ocram
     ldr x0, =POLICY_USING_ECC
@@ -1934,8 +1931,9 @@ _soc_init_finish:
     bl   _setCoreData
 4:
      // restore bootlocptr
-    adr  x1, saved_bootlocptr
-    ldr  x0, [x1]
+    mov  x0, #BOOTLOC_OFFSET
+    bl   _get_global_data
+     // x0 = saved start address
     bl    _soc_set_start_addr
 
     mov   x30, x4
@@ -2380,59 +2378,6 @@ psci_features_table:
     .4byte  PSCI64_AFFINITY_INFO_ID // psci_affinity_info
     .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
     .4byte  FEATURES_TABLE_END      // table terminating value - must always be last entry in table
-
-.align 9  // 64-byte aligned
-saved_bootlocptr:
-    .8byte 0x0   // 
-_init_task1_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task2_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task3_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task4_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-
-.align 3
-soc_data_area:
-    .4byte  0x0  // soc storage 1, offset 0x0
-    .4byte  0x0  // soc storage 2, offset 0x4
-    .4byte  0x0  // soc storage 3, offset 0x8
-    .4byte  0x0  // soc storage 4, offset 0xC
-    .4byte  0x0  // soc storage 5, offset 0x10
-    .4byte  0x0  // soc storage 6, offset 0x14
-    .4byte  0x0  // soc storage 7, offset 0x18
-    .4byte  0x0  // soc storage 8, offset 0x1C
-
-.align 3
-_gic_base_addr:
-    .8byte  0x0  // gicd base address
-    .8byte  0x0  // gicc base address
-
-//-----------------------------------------------------------------------------
-
- // only used if ddr is being initialized
- // Note: keep these two locations contiguous
-.align 4
-
- // address in memory of number of memory banks
- // this is a pointer-to-a-pointer (**)
-_membank_count_addr:
-    .8byte  0x0
- // address in memory of start of memory bank data structures
- // Note: number of valid structures determined by value found
- //       at **_membank_count_addr
-_membank_data_addr:
-    .8byte  0x0
-
 
 //-----------------------------------------------------------------------------
 

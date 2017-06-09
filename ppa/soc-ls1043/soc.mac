@@ -55,7 +55,8 @@
  // Note: $p1 must be a 64-bit register
  // GICD base address returned in $p1
 .macro Get_GICD_Base_Addr $p1
-    adr   \$p1, _gic_base_addr
+    ldr  \$p1, =BC_PSCI_BASE
+    add  \$p1, \$p1, #AUX_04_DATA
     ldr   \$p1, [\$p1]
 .endm
 
@@ -64,7 +65,8 @@
  // Note: $p1 must be a 64-bit register
  // GICC base address returned in $p1
 .macro Get_GICC_Base_Addr $p1
-    adr   \$p1, _gic_base_addr
+    ldr  \$p1, =BC_PSCI_BASE
+    add  \$p1, \$p1, #AUX_04_DATA
     ldr   \$p1, [\$p1, #8]
 .endm
 

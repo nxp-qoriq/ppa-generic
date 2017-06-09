@@ -42,6 +42,7 @@
 #include "soc.mac"
 #include "policy.h"
 #include "psci.h"
+#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 
@@ -104,17 +105,6 @@
 .global _set_platform_security
 .global _soc_exit_boot_svcs
 .global _soc_check_sec_enabled
-
- // only valid if ddr is being initialized
-#if (DDR_INIT)
-.global _membank_count_addr
-.global _membank_data_addr
-#endif
-
-.global _init_task1_flags
-.global _init_task2_flags
-.global _init_task3_flags
-.global _init_task4_flags
 
 //-----------------------------------------------------------------------------
 
@@ -388,7 +378,9 @@ _soc_sys_entr_pwrdn:
      // w7 = IPPDEXPCR
 
      // get DEVDISR1 mask
-    adr  x2, soc_data_area
+    ldr  x2, =BC_PSCI_BASE
+    add  x2, x2, #AUX_01_DATA
+
     mov  w5, wzr
     ldr  w6, =IPPDEXPCR_PFE_MASK
     and  w6, w6, w7
@@ -493,7 +485,8 @@ _soc_sys_entr_pwrdn:
     cbnz x7, 7b
 
 18:
-    adr  x7, soc_data_area
+    ldr  x7, =BC_PSCI_BASE
+    add  x7, x7, #AUX_01_DATA
 
      // w6 = DEVDISR1 override mask
      // x7 = [soc_data_area]
@@ -576,7 +569,9 @@ _soc_sys_exit_pwrdn:
      // x0 = core mask lsb
 
      // restore cpuactlr_el1
-    adr  x1, soc_data_area
+    ldr  x1, =BC_PSCI_BASE
+    add  x1, x1, #AUX_01_DATA
+
     ldr  x0, [x1, #CPUACTLR_DATA_OFFSET]
     msr  CPUACTLR_EL1, x0
 
@@ -927,17 +922,14 @@ _get_current_mask:
 _soc_init_start:
     mov   x10, x30
 
-     // zero-out the membank global vars
-    adr   x2, _membank_count_addr
-    stp   xzr, xzr, [x2]
-
      // init the task flags
     bl  _init_task_flags   // 0-1
 
      // save start address
-    bl  _soc_get_start_addr   // 0-2
-    adr x1, saved_bootlocptr
-    str x0, [x1]
+    bl   _soc_get_start_addr   // 0-2
+    mov  x1, x0
+    mov  x0, #BOOTLOC_OFFSET
+    bl   _set_global_data
 
      // see if we are initializing ocram
     ldr x0, =POLICY_USING_ECC
@@ -1402,49 +1394,6 @@ psci_features_table:
     .4byte  PSCI64_AFFINITY_INFO_ID // psci_affinity_info
     .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
     .4byte  FEATURES_TABLE_END      // table terminating value - must always be last entry in table
-
-.align 9  // 64-byte aligned
-saved_bootlocptr:
-    .8byte 0x0   // 
-_init_task1_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task2_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task3_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task4_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-
-.align 3
-soc_data_area:
-    .8byte  0x0  // soc storage 1, offset 0x0
-    .8byte  0x0  // soc storage 2, offset 0x8
-    .8byte  0x0  // soc storage 3, offset 0x10
-
-//-----------------------------------------------------------------------------
-
- // only used if ddr is being initialized
- // Note: keep these two locations contiguous
-.align 4
-
- // address in memory of number of memory banks
- // this is a pointer-to-a-pointer (**)
-_membank_count_addr:
-    .8byte  0x0
- // address in memory of start of memory bank data structures
- // Note: number of valid structures determined by value found
- //       at **_membank_count_addr
-_membank_data_addr:
-    .8byte  0x0
-
 
 //-----------------------------------------------------------------------------
 

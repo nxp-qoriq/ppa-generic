@@ -61,10 +61,6 @@ rdb_fit_bin: ppa.itb
 
 # -----------------------------------------------------------------------------
 
- # add psci-related source and headers here
-SRC_PSCI   =psci.s
-HDRS_PSCI  =psci.h psci_data.h
-
  # add soc-specific source and headers here
 SRC_SOC    =soc.s
 HDRS_SOC   =soc.h soc.mac

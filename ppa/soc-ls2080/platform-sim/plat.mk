@@ -52,10 +52,6 @@ sim_bin: bootmain.64.bin
 
 # -----------------------------------------------------------------------------
 
-# add psci-related source and headers here
-SRC_PSCI   =psci.s
-HDRS_PSCI  =psci.h psci_data.h
-
 # add soc-specific source and headers here
 SRC_SOC    =bootmain.64.s nonboot64.s soc.s
 HDRS_SOC   =soc.h soc.mac

@@ -48,12 +48,6 @@
 #define SMC_AARCH32_MODE  0x1
 #define SMC_AARCH64_MODE  0x0
 
- // this is a size in bytes of each core's stack - the boot core
- // will automatically be allocated TWICE this amount
- // Note: offset must be a quadword multiple
-#define STACK_OFFSET     0x400
-#define STACK_BASE_ADDR  (OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES)
-
  // function return values
 #define  SMC_SUCCESS         0
 #define  SMC_UNIMPLEMENTED  -1
@@ -147,54 +141,5 @@
 #define  SIP_MEMBANK_64 0xC200FF12
 
 //-----------------------------------------------------------------------------
-
- // structure for recording memory bank data
- // in 'C' this looks like:
- // struct MemDataStruc {
- //          uint32_t  bankState,        // (0=invalid, 1=valid)
- //          uint32_t  bankType,         // (1=ddr, 2=sram, 3=peripheral)
- //          uint64_t  bankStartAddress, // physical address
- //          uint64_t  bankSizeInBytes
- //        } 
- // this structure will be populated by the platform-specific
- // ddr initialization, and consumed by the smc function SIP_MEMBANK_64
-
- // max size of the membank data region in bytes
- // Note: must be a 64-bit multiple
-#define MEMBANK_REGION_MAX_SIZE 1024
-
- // keep these in synch with MemDataStruc
-#define MEMBANK_DATA_SIZE      0x18  // size in bytes of MemDataStruc
-#define MEMDATA_STATE_OFFSET   0x0
-#define MEMDATA_TYPE_OFFSET    0x4
-#define MEMDATA_ADDR_OFFSET    0x8
-#define MEMDATA_SIZE_OFFSET    0x10
-
-#define MEMBANK_STATE_INVALID  0x0
-#define MEMBANK_STATE_VALID    0x1
-
-#define MEMBANK_TYPE_DDR       0x1
-#define MEMBANK_TYPE_SRAM      0x2
-#define MEMBANK_TYPE_SPEC      0x3
-
-#define MEMBANK_LAST           0x0
-#define MEMBANK_NOT_LAST       0x8
-
- // field data
-#define MEMBANK_INVALID        0x0  // bank state bit[0]
-#define MEMBANK_VALID          0x1  // bank state bit[0]
-#define MEMBANK_DDR            0x2  // bank state bit[2:1]
-#define MEMBANK_SRAM           0x4  // bank state bit[2:1]
-#define MEMBANK_SPECIAL        0x6  // bank state bit[2:1]
-#define MEMBANK_NOT_LAST       0x8  // bank state bit[3]
-
-//-----------------------------------------------------------------------------
-
-
-
-
-
-
-
 
 #endif // _SMC_H

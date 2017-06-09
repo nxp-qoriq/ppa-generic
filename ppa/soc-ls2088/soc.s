@@ -42,6 +42,7 @@
 #include "soc.mac"
 #include "psci.h"
 #include "policy.h"
+#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 
@@ -84,17 +85,6 @@
 .global _get_gic_sgi_base
 .global _soc_exit_boot_svcs
 .global _soc_check_sec_enabled
-
- // only valid if ddr is being initialized
-#if (DDR_INIT)
-.global _membank_count_addr
-.global _membank_data_addr
-#endif
-
-.global _init_task1_flags
-.global _init_task2_flags
-.global _init_task3_flags
-.global _init_task4_flags
 
 //-----------------------------------------------------------------------------
 
@@ -154,17 +144,14 @@ _soc_init_start:
      // that are marked "to-be-disabled" from reset
     bl  release_disabled  // 0-3
 
-     // zero-out the membank global vars
-    adr   x2, _membank_count_addr
-    stp   xzr, xzr, [x2]
-
      // init the task flags
     bl  _init_task_flags   // 0-1
 
      // save start address
-    bl  _soc_get_start_addr   // 0-2
-    adr x1, saved_bootlocptr
-    str x0, [x1]
+    bl   _soc_get_start_addr   // 0-2
+    mov  x1, x0
+    mov  x0, #BOOTLOC_OFFSET
+    bl   _set_global_data
 
      // see if we are initializing ocram
     ldr x0, =POLICY_USING_ECC
@@ -256,8 +243,9 @@ _soc_init_finish:
     bl   _setCoreData
 4:
      // restore bootlocptr
-    adr  x1, saved_bootlocptr
-    ldr  x0, [x1]
+    mov  x0, #BOOTLOC_OFFSET
+    bl   _get_global_data
+     // x0 = saved start address
     bl    _soc_set_start_addr
 
     mov   x30, x4
@@ -1611,42 +1599,6 @@ psci_features_table:
     .4byte  PSCI64_AFFINITY_INFO_ID   // psci_affinity_info
     .4byte  PSCI_FUNC_IMPLEMENTED     // implemented
     .4byte  FEATURES_TABLE_END        // table terminating value - must always be last entry in table
-
-.align 9  // 64-byte aligned
-saved_bootlocptr:
-    .8byte 0x0   // 
-_init_task1_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task2_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task3_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task4_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-
-//-----------------------------------------------------------------------------
-
- // only used if ddr is being initialized
- // Note: keep these two locations contiguous
-.align 4
-
- // address in memory of number of memory banks
- // this is a pointer-to-a-pointer (**)
-_membank_count_addr:
-    .8byte  0x0
- // address in memory of start of memory bank data structures
- // Note: number of valid structures determined by value found
- //       at **_membank_count_addr
-_membank_data_addr:
-    .8byte  0x0
 
 //-----------------------------------------------------------------------------
 

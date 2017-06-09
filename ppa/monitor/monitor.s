@@ -45,6 +45,7 @@
 #include "soc.mac"
 #include "policy.h"
 #include "smc.h"
+#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 
@@ -52,10 +53,6 @@
 .global _cpu_off_exit
 .global _start_monitor_el3
 .global _mon_core_restart
-.global _init_membank_data
-#if (PSCI_TEST)
-.global _populate_membank_data
-#endif
 
 //-----------------------------------------------------------------------------
 
@@ -135,7 +132,7 @@ debug_stop:
 
      // setup the stack
     mov  x0, x8
-    bl   init_stack_percpu
+    bl   _init_stack_percpu
     
     mov x0, x13
     bl   _ppa_main
@@ -207,7 +204,7 @@ _secondary_core_init:
 
      // setup runtime stack
     mov  x0, x8
-    bl   init_stack_percpu
+    bl   _init_stack_percpu
 
      // exit the EL3 area
     b    _secondary_exit
@@ -409,7 +406,7 @@ _mon_core_restart:
 
      // setup the stack
     mov  x0, x8
-    bl   init_stack_percpu
+    bl   _init_stack_percpu
 
      // x8 = core mask lsb
 
@@ -469,14 +466,16 @@ exit_boot_svcs:
     mov  x11, x30
 
      // read the boot services flag
-    adr  x0, boot_services_flag
-    ldr  w1, [x0]
+    mov  x0, #BOOT_SVCS_OSET
+    bl   _get_global_data
+
      // if we have already executed this service, don't execute again
-    cbnz w1, 1f
+    cbnz x0, 1f
 
      // set the flag
-    mov  w1, #1
-    str  w1, [x0]
+    mov  x0, #BOOT_SVCS_OSET
+    mov  x1, #1
+    bl   _set_global_data
 
      // put any global changes needed at end of boot services here
     
@@ -486,236 +485,6 @@ exit_boot_svcs:
 1:
     mov  x30, x11
     ret
-
-//-----------------------------------------------------------------------------
-
- // this function initializes the per-core stack area, and sets SP_EL3 to
- // point to the start of this area
- // Note: stack is full-descending
- // in:  x0 = core mask lsb
- // out: none
- // uses x0, x1, x2
-init_stack_percpu:
-
-     // x0 = core mask
-
-     // generate a 0-based core number from the input mask
-    clz   x1, x0
-    mov   x0, #63
-    sub   x0, x0, x1
-
-     // x0 = current core number (0-based)
-
-     // calculate the maximum core number
-    mov   x1, #CPU_MAX_COUNT
-    sub   x1, x1, #1
-
-     // x0 = core number (0-based)
-     // x1 = max core number (0-based)
-
-     // get the offset factor
-    sub   x1, x1, x0
-     // get the absolute offset
-    mov   x2, #STACK_OFFSET
-    mul   x2, x2, x1
-
-     // x0 = current core number (0-based)
-     // x2 = absolute stack offset
-
-     // get the top of the stack area
-    mov   x1, #STACK_BASE_ADDR
-
-     // x0 = current core number (0-based)
-     // x1 = address of top of stack
-     // x2 = absolute stack offset
-
-     // get start of this cores stack
-    sub   x1, x1, x2
-
-     // x0 = current core number (0-based)
-     // x1 = start of current cores stack
-
-     // align to a quad-word boundary
-    bic   x1, x1, #0xf
-
-     // set the stack pointer
-    mov   sp, x1
-
-     // x0 = current core number (0-based)
-     // x1 = start of current cores stack
-
-     // initialize the stack area
-    mov   x2, #STACK_OFFSET
-     // if this is core 0, give it twice as much stack space
-    cbnz  x0, 3f
-    lsl   x2, x2, #1
-3:
-     // x2 = size of stack area in bytes
-     // convert bytes to 16-byte chunks
-    lsr   x2, x2, #4
-
-     // x1 = start of current cores stack
-     // x2 = size of stack area in 16-byte chunks
-2:
-     // descending-full stack - use pre-indexed addressing
-    stp   xzr, xzr, [x1, #-16]!
-    subs  x2, x2, #1
-    b.gt  2b
-
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function sets up the memory bank info data areas in memory
- // Note: this function MUST be called before initializing ddr
- // in:  none
- // out: none
- // uses x0, x1, x2, x3
-_init_membank_data:
-
- // only valid if ddr is being initialized
-#if (DDR_INIT)
-
-     // we want to allocate this data area directly below the EL3
-     // stacks - calculate the size of the stack space
-    mov   x0, #CPU_MAX_COUNT
-    mov   x1, #STACK_OFFSET
-    mul   x0, x0, x1
-     // the bootcore is allocated 2x the normal stack size
-    add   x0, x0, x1
-
-     // x0 = total stack space
-
-    mov   x1, #STACK_BASE_ADDR
-
-     // find the bottom of the stack space
-    sub   x0, x1, x0
-
-     // x0 = bottom of stack
-
-     // find bottom of memory bank data area
-    mov   x1, #MEMBANK_REGION_MAX_SIZE
-    sub   x0, x0, x1
-
-     // x0 = bottom of memory bank data area
-     // x1 = size of memory bank data area
-
-     // store address of the memory bank count data
-    adr  x3, _membank_count_addr
-    bic  x0, x0, #0x7
-    str  x0, [x3]
-
-     // store address of the memory bank info data
-    adr  x3, _membank_data_addr
-    add  x2, x0, #0x8
-    str  x2, [x3]
-
-     // x0 = bottom of memory bank data area
-     // x1 = size of memory bank data area
-
-     // initialize the data area
-    lsr   x1, x1, #3
-     // x1 = number of double-words in region
-1:
-    str   xzr, [x0], #8
-    sub   x1, x1, #1
-    cbnz  x1, 1b
-
-#endif
-
-    ret
-
-//-----------------------------------------------------------------------------
-
-#if DDR_INIT
-#if PSCI_TEST
-
-#define  MEMBANK_COUNT  4
-#define  BANK1_ADDR     0x0080000000
-#define  BANK2_ADDR     0x8000000000
-#define  BANK3_ADDR     OCRAM_BASE_ADDR
-#define  BANK4_ADDR     0x00F0000000
-#define  BANK1_SIZE     0x080000000       // 2GB
-#define  BANK2_SIZE     0x200000000       // 8GB
-#define  BANK3_SIZE     OCRAM_SIZE_IN_BYTES
-#define  BANK4_SIZE     0x080000000       // 2GB
-
- // in:  none
- // out: none
- // uses x0, x1, x2, x3
-_populate_membank_data:
-
-     // get the address of the bank count var
-    adr  x1, _membank_count_addr
-    ldr  x2, [x1]
-
-     // x2 = address of membank count data
-
-     // store the number of banks
-    mov  x1, #MEMBANK_COUNT
-    str  x1, [x2] 
-
-     // get the address of the first bank info struc
-    adr  x1, _membank_data_addr
-    ldr  x2, [x1]
-
-     // x2 = address of first membank info struc
-
-     // populate the first structure
-    mov   w1, #MEMBANK_STATE_VALID
-    str   w1, [x2, #MEMDATA_STATE_OFFSET]
-    mov   w3, #MEMBANK_TYPE_DDR
-    str   w3, [x2, #MEMDATA_TYPE_OFFSET]
-    mov   x0, #BANK1_ADDR
-    str   x0, [x2, #MEMDATA_ADDR_OFFSET]
-    mov   x1, #BANK1_SIZE
-    str   x1, [x2, #MEMDATA_SIZE_OFFSET]
-   
-     // move to the next data structure
-    add   x2, x2, #MEMBANK_DATA_SIZE
-
-     // populate the second structure
-    mov   w1, #MEMBANK_STATE_VALID
-    str   w1, [x2, #MEMDATA_STATE_OFFSET]
-    mov   w3, #MEMBANK_TYPE_DDR
-    str   w3, [x2, #MEMDATA_TYPE_OFFSET]
-    mov   x0, #BANK2_ADDR
-    str   x0, [x2, #MEMDATA_ADDR_OFFSET]
-    mov   x1, #BANK2_SIZE
-    str   x1, [x2, #MEMDATA_SIZE_OFFSET]
-   
-     // move to the next data structure
-    add   x2, x2, #MEMBANK_DATA_SIZE
-
-     // populate the third structure
-    mov   w1, #MEMBANK_STATE_VALID
-    str   w1, [x2, #MEMDATA_STATE_OFFSET]
-    mov   w3, #MEMBANK_TYPE_DDR
-    str   w3, [x2, #MEMDATA_TYPE_OFFSET]
-    mov   x0, #BANK3_ADDR
-    str   x0, [x2, #MEMDATA_ADDR_OFFSET]
-    mov   x1, #BANK3_SIZE
-    str   x1, [x2, #MEMDATA_SIZE_OFFSET]
-   
-     // move to the next data structure
-    add   x2, x2, #MEMBANK_DATA_SIZE
-
-     // populate the fourth structure
-    mov   w1, #MEMBANK_STATE_INVALID
-    str   w1, [x2, #MEMDATA_STATE_OFFSET]
-
-    ret
-
-#endif
-#endif
-
-//-----------------------------------------------------------------------------
-
-boot_services_flag:
-    .4byte 0x0
-
-PPA_VERSION:
-    .4byte  0x00040000
 
 //-----------------------------------------------------------------------------
 

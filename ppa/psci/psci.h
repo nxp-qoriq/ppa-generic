@@ -180,29 +180,6 @@
 .equ AARCH32_MODE,    0x1
 .equ AARCH64_MODE,    0x0
 
- // data area offsets - must be in synch with CoreDataStruc in psci_data.h
-.equ CORE_STATE_DATA,   0x0
-.equ SPSR_EL3_DATA,     0x8
-.equ CNTXT_ID_DATA,     0x10
-.equ START_ADDR_DATA,   0x18
-.equ LINK_REG_DATA,     0x20
-.equ GICC_CTLR_DATA,    0x28
-.equ ABORT_FLAG_DATA,   0x30
-.equ SCTLR_DATA,        0x38
-.equ CPUECTLR_DATA,     0x40
-.equ AUX_01_DATA,       0x48  // usage defined per SoC
-.equ AUX_02_DATA,       0x50  // usage defined per SoC
-.equ AUX_03_DATA,       0x58  // usage defined per SoC
-.equ AUX_04_DATA,       0x60  // expansion
-.equ AUX_05_DATA,       0x68  // expansion
-.equ SCR_EL3_DATA,      0x70
-.equ HCR_EL2_DATA,      0x78
-
- // width of a core data area - must be in synch
- //  w/CoreDataStruc in psci_data.h
-.equ CORE_DATA_OFFSET,  0x80
-
-
 //-----------------------------------------------------------------------------
 
  // this macro acquires a lock for a critical section

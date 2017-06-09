@@ -88,11 +88,15 @@ HASH_DRBG_HDRS := $(notdir $(HASH_DRBG_HDRS))
 HASH_DRBG_C     = $(wildcard  $(DRVR_SRC)/hash_drbg/src/*.c) 
 HASH_DRBG_C    := $(notdir $(HASH_DRBG_C))
 
-#add the SEC files here for now
+#add the SEC files here
 SEC_HDRS =  $(wildcard  $(DRVR_SRC)/fsl_sec/include/*.h) 
 SEC_HDRS := $(notdir $(SEC_HDRS))
 SEC_C =  $(wildcard  $(DRVR_SRC)/fsl_sec/src/*.c) 
 SEC_C := $(notdir $(SEC_C))
+
+# add psci-related source and headers here
+SRC_PSCI   =psci.s
+HDRS_PSCI  =psci.h
 
 #------------------------------------------------
 
@@ -116,9 +120,10 @@ TARGETS    =monitor.bin bootmain.64.bin
 PRE_TARG   =monitor.elf
 
 LINK_ASM   =ppa.ld.s
-COMMON_ASM =utils.s
+COMMON_ASM =utils.s runtime_data.s
 COMMON_C   =ppa_main.c lib.c alloc.c
-COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h $(CHASSIS_FILE).h lnkr.cmd 
+COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h runtime_data.h \
+			$(CHASSIS_FILE).h lnkr.cmd
 
 BUILD_ASM  =$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
@@ -185,7 +190,7 @@ ppa.ld: ppa.ld.s lnkr.cmd src obj
 ppa.its: $(GENITS) src
 	$(GENITS) $(SRC_DIR)/ppa.its
 
-$(SRC_SOC): $(HDRS_SOC) $(LINK_ASM) src
+$(SRC_SOC): $(HDRS_SOC) $(COMMON_HDRS) $(LINK_ASM) src
 	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_SOC): src
@@ -194,25 +199,25 @@ $(HDRS_SOC): src
 $(LINK_ASM): $(HDRS_SOC) $(COMMON_HDRS) src
 	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
-$(SRC_PSCI): $(HDRS_PSCI) $(HDRS_SOC) src
+$(SRC_PSCI): $(HDRS_PSCI) $(HDRS_SOC) $(COMMON_HDRS) src
 	@cp -r "$(PSCI_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_PSCI): src
 	@cp -r "$(PSCI_SRC)/$@" "$(SRC_DIR)/$@"
 
-$(CSRC_SOC): $(CHDRS_SOC) src
+$(CSRC_SOC): $(CHDRS_SOC) $(HDRS_SOC) src
 	@cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(CHDRS_SOC): src
 	@cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
-$(SRC_ARMV8): $(HDRS_ARMV8) src
+$(SRC_ARMV8): $(HDRS_ARMV8) $(HDRS_SOC) $(COMMON_HDRS) src
 	@cp -r "$(ARMV8_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_ARMV8): src
 	@cp -r "$(ARMV8_SRC)/$@" "$(SRC_DIR)/$@"
 
-$(SRC_MNTR): $(HDRS_MNTR) $(HDRS_SOC) src
+$(SRC_MNTR): $(HDRS_MNTR) $(HDRS_SOC) $(COMMON_HDRS) src
 	@cp -r "$(MONITOR_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_MNTR): src
@@ -227,7 +232,7 @@ $(HDRS_PLAT): src
 $(PLAT_ASM): src
 	@cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
 
-$(TEST_ASM): src
+$(TEST_ASM): $(HDRS_SOC) src
 	@cp -r "$(TEST_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(DDR_C): $(DDR_HDRS) src

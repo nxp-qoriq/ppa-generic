@@ -25,6 +25,15 @@ Devices Supported:
     LA1575
     LX2160
 
+Date: 06/09/2017 --------------------------------------------------------------
+
+1) Relocated psci and smc data areas into OCRAM to correct problems writing
+   to these data areas when the image is initially on a flash device.
+
+2) Detailed OCRAM layout can be found in the file runtime_data.h
+
+//- end 06/09/2017 update -----------------------------------------------------
+
 Date: 05/17/2017 --------------------------------------------------------------
 
 1) Added SEC driver and HWRNG (hardware random number generator) support for

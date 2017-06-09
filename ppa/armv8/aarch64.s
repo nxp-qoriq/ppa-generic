@@ -39,6 +39,7 @@
 #include "soc.h"
 #include "psci.h"
 #include "policy.h"
+#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 

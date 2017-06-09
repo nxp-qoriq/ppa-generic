@@ -41,14 +41,13 @@
 #include "soc.h"
 #include "soc.mac"
 #include "psci.h"
+#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 
 .global _smc64_std_svc
 .global _smc32_std_svc
-.global _initialize_psci
 .global _find_core
-.global _cpu0_data
 
 //-----------------------------------------------------------------------------
 
@@ -1272,65 +1271,6 @@ psci_completed:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
- // this function initializes the core data areas
- // only executed by the boot core
- // in:   none
- // out:  none
- // uses: x0, x1, x2, x3, x4, x5, x6
-_initialize_psci:
-    mov   x6, x30
-
-    mov   x2, #CORE_RELEASED
-    mov   x3, #1
-    mov   x4, #CPU_MAX_COUNT
-    adr   x5, _cpu0_data
-
-1:
-     // x2 = core state
-     // x3 = core mask lsb
-     // x4 = loop counter
-     // x5 = core data area base address
-
-    str   x2,  [x5, #CORE_STATE_DATA]
-    str   xzr, [x5, #SPSR_EL3_DATA]
-    str   xzr, [x5, #CNTXT_ID_DATA]
-    str   xzr, [x5, #START_ADDR_DATA]
-    str   xzr, [x5, #LINK_REG_DATA]
-    str   xzr, [x5, #GICC_CTLR_DATA]
-    str   xzr, [x5, #ABORT_FLAG_DATA]
-    str   xzr, [x5, #SCTLR_DATA]
-    str   xzr, [x5, #CPUECTLR_DATA]
-    str   xzr, [x5, #AUX_01_DATA]
-    str   xzr, [x5, #AUX_02_DATA]
-    str   xzr, [x5, #AUX_03_DATA]
-    str   xzr, [x5, #AUX_04_DATA]
-    str   xzr, [x5, #AUX_05_DATA]
-    str   xzr, [x5, #SCR_EL3_DATA]
-    str   xzr, [x5, #HCR_EL2_DATA]
-
-     // loop control
-    sub  x4, x4, #1
-    cbz  x4, 3f
-
-     // increment to next data area
-    add  x5, x5, #CORE_DATA_OFFSET
-     // generate next core mask
-    lsl  x3, x3, #1
-
-     // set core state in x2
-    mov  x0, x3
-    bl   _soc_ck_disabled
-    mov  x2, #CORE_IN_RESET
-    cbz  x0, 1b
-    mov  x2, #CORE_DISABLED
-    b    1b
-
-3:
-    mov   x30, x6
-    ret
-
-//-----------------------------------------------------------------------------
-
  // this function stores the sctlr_elx value of the calling entity
  // in:   w0 = core mask (lsb)
  //       w1 = SPSR EL-level (must be one of: SPSR_EL1, SPSR_EL2)
@@ -1515,38 +1455,6 @@ core_on_cnt_sys:
     mov  x30, x6
     ret
 
- //----------------------------------------------------------------------------
-
- // include the data areas
-#include "psci_data.h"
-
-.align 4
-save_gicd_ctlr:
-    .4byte  0x0
-
-     // the reservation granule, as read from the CTL_EL0 register, is 16-words
-     // we need to reserve this much space to insure that there are no unexpected
-     // accesses that will disturb the exclusive-access methodology
-//.align 4
-//lock_01:
-//    .4byte  0x0  // lock at word 0
-//    .4byte  0x0  // reserved for reservation granule word 01
-//    .4byte  0x0  // reserved for reservation granule word 02
-//    .4byte  0x0  // reserved for reservation granule word 03
-//    .4byte  0x0  // reserved for reservation granule word 04
-//    .4byte  0x0  // reserved for reservation granule word 05
-//    .4byte  0x0  // reserved for reservation granule word 06
-//    .4byte  0x0  // reserved for reservation granule word 07
-//    .4byte  0x0  // reserved for reservation granule word 08
-//    .4byte  0x0  // reserved for reservation granule word 09
-//    .4byte  0x0  // reserved for reservation granule word 0A
-//    .4byte  0x0  // reserved for reservation granule word 0B
-//    .4byte  0x0  // reserved for reservation granule word 0C
-//    .4byte  0x0  // reserved for reservation granule word 0D
-//    .4byte  0x0  // reserved for reservation granule word 0E
-//    .4byte  0x0  // reserved for reservation granule word 0F
-
-//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 

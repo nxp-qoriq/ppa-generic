@@ -41,6 +41,7 @@
 #include "soc.h"
 #include "psci.h"
 #include "policy.h"
+#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 
@@ -84,17 +85,6 @@
 .global _soc_exit_boot_svcs
 .global _soc_check_sec_enabled
 
- // only valid if ddr is being initialized
-#if (DDR_INIT)
-.global _membank_count_addr
-.global _membank_data_addr
-#endif
-
-.global _init_task1_flags
-.global _init_task2_flags
-.global _init_task3_flags
-.global _init_task4_flags
-
 //-----------------------------------------------------------------------------
 
 .equ RESET_RETRY_CNT,      800
@@ -133,17 +123,14 @@ _soc_init_start:
      // that are marked "to-be-disabled" from reset
     bl  release_disabled  // 0-3
 
-     // zero-out the membank global vars
-    adr   x2, _membank_count_addr
-    stp   xzr, xzr, [x2]
-
      // init the task flags
     bl  _init_task_flags   // 0-1
 
      // save start address
     bl  _soc_get_start_addr   // 0-2
-    adr x1, saved_bootlocptr
-    str x0, [x1]
+    mov  x1, x0
+    mov  x0, #BOOTLOC_OFFSET
+    bl   _set_global_data
 
      // see if we are initializing ocram
     ldr x0, =POLICY_USING_ECC
@@ -235,8 +222,9 @@ _soc_init_finish:
     bl   _setCoreData
 4:
      // restore bootlocptr
-    adr  x1, saved_bootlocptr
-    ldr  x0, [x1]
+    mov  x0, #BOOTLOC_OFFSET
+    bl   _get_global_data
+     // x0 = saved start address
     bl    _soc_set_start_addr
 
     mov   x30, x4
@@ -1295,154 +1283,6 @@ _read_reg_reset:
 
 //-----------------------------------------------------------------------------
 
- // this function initializes the upper-half of OCRAM for ECC checking
- // in:  none
- // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
-_ocram_init_upper:
-    mov  x10, x30
-
-     // set the start flag
-    adr  x8, _init_task1_flags
-    mov  w9, #1
-    str  w9, [x8]
-    dc   cvac, x8
-    dsb  sy
-    isb
-
-     // get the start address and size of the upper region
-    mov  x0, #OCRAM_REGION_UPPER
-    bl   _get_ocram_2_init
-
-     // x0 = start address
-     // x1 = size in bytes
-
-     // convert bytes to 64-byte chunks (we are using quad load/store pairs)
-    lsr  x1, x1, #6
-
-     // x0 = start address
-     // x1 = size in 64-byte chunks
-1:
-     // for each location, read and write-back
-    ldp  x2, x3, [x0]
-    ldp  x4, x5, [x0, #16]
-    ldp  x6, x7, [x0, #32]
-    ldp  x8, x9, [x0, #48]
-    stp  x2, x3, [x0]
-    stp  x4, x5, [x0, #16]
-    stp  x6, x7, [x0, #32]
-    stp  x8, x9, [x0, #48]
-
-    sub  x1, x1, #1
-    cbz  x1, 2f
-    add  x0, x0, #64
-    b    1b
-
-2:
-     // set the done flag
-    adr  x6, _init_task1_flags
-    mov  w7, #1
-    str  w7, [x6, #4]!
-    dc   cvac, x6
-
-     // make sure the data accesses are complete
-    dsb  sy
-    isb
-
-     // restore link register
-    mov  x30, x10
-
-     // clean the registers
-    mov  x0,  #0
-    mov  x1,  #0
-    mov  x2,  #0
-    mov  x3,  #0
-    mov  x4,  #0
-    mov  x5,  #0
-    mov  x6,  #0
-    mov  x7,  #0
-    mov  x8,  #0
-    mov  x9,  #0
-    mov  x10, #0
-
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function initializes the lower-half of OCRAM for ECC checking
- // in:  none
- // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
-_ocram_init_lower:
-    mov  x10, x30
-
-     // set the start flag
-    adr  x8, _init_task2_flags
-    mov  w9, #1
-    str  w9, [x8]
-    dc   cvac, x8
-    dsb  sy
-    isb
-
-     // get the start address and size of the lower region
-    mov  x0, #OCRAM_REGION_LOWER
-    bl   _get_ocram_2_init
-
-     // x0 = start address
-     // x1 = size in bytes
-
-     // convert bytes to 64-byte chunks (using quad load/store pair ops)
-    lsr  x1, x1, #6
-
-     // x0 = start address
-     // x1 = size in 64-byte chunks
-1:
-     // for each location, read and write-back
-    ldp  x2, x3, [x0]
-    ldp  x4, x5, [x0, #16]
-    ldp  x6, x7, [x0, #32]
-    ldp  x8, x9, [x0, #48]
-    stp  x2, x3, [x0]
-    stp  x4, x5, [x0, #16]
-    stp  x6, x7, [x0, #32]
-    stp  x8, x9, [x0, #48]
-
-    sub  x1, x1, #1
-    cbz  x1, 2f
-    add  x0, x0, #64
-    b    1b
-
-2:
-     // set the done flag
-    adr  x6, _init_task2_flags
-    mov  w7, #1
-    str  w7, [x6, #4]!
-    dc   cvac, x6
-
-     // make sure the data accesses are complete
-    dsb  sy
-    isb
-
-     // restore link register
-    mov  x30, x10
-
-     // clean the registers
-    mov  x0,  #0
-    mov  x1,  #0
-    mov  x2,  #0
-    mov  x3,  #0
-    mov  x4,  #0
-    mov  x5,  #0
-    mov  x6,  #0
-    mov  x7,  #0
-    mov  x8,  #0
-    mov  x9,  #0
-    mov  x10, #0
-
-    ret
-
-//-----------------------------------------------------------------------------
-
  // this is soc initialization task 1
  // this function releases a secondary core to init the upper half of OCRAM
  // in:  x0 = core mask lsb of the secondary core to put to work
@@ -1736,42 +1576,6 @@ psci_features_table:
     .4byte  PSCI64_AFFINITY_INFO_ID // psci_affinity_info
     .4byte  PSCI_FUNC_IMPLEMENTED   // implemented
     .4byte  FEATURES_TABLE_END      // table terminating value - must always be last entry in table
-
-.align 9  // 64-byte aligned
-saved_bootlocptr:
-    .8byte 0x0   // 
-_init_task1_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task2_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task3_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-_init_task4_flags:
-    .4byte  0x0  // begin flag
-    .4byte  0x0  // completed flag
-    .4byte  0x0  // core mask
-
-//-----------------------------------------------------------------------------
-
- // only used if ddr is being initialized
- // Note: keep these two locations contiguous
-.align 4
-
- // address in memory of number of memory banks
- // this is a pointer-to-a-pointer (**)
-_membank_count_addr:
-    .8byte  0x0
- // address in memory of start of memory bank data structures
- // Note: number of valid structures determined by value found
- //       at **_membank_count_addr
-_membank_data_addr:
-    .8byte  0x0
 
 //-----------------------------------------------------------------------------
 

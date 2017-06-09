@@ -39,6 +39,8 @@
 
 #include "aarch64.h"
 #include "smc.h"
+#include "soc.h"
+#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 
@@ -359,10 +361,10 @@ smc64_membank_data:
 #if (DDR_INIT)
 
      // get the number of memory banks installed
-    adr   x3, _membank_count_addr
-    ldr   x4, [x3]
-     // the value read is an address...get the data found at that address
-    ldr   x2, [x4]
+    ldr  x3, =MEMBANK_BASE
+    dc   ivac, x3
+    isb
+    ldr  x2, [x3, #MEMBANK_CNT_OFFSET]
 
      // x1 = memory bank requested
      // x2 = number of membanks installed
@@ -382,14 +384,16 @@ smc64_membank_data:
      // x3 = offset
 
      // get the start address of the memory bank data area
-    adr   x1, _membank_data_addr
-    ldr   x4, [x1]
+    ldr  x4, =MEMBANK_BASE
+    add  x4, x4, #MEMBANK_CNT_SIZE
 
      // x3 = offset
      // x4 = base address of membank data structures
 
      // get the address to this bank's structure
     add   x3, x3, x4
+    dc   ivac, x3
+    isb
 
      // x3 = start address of data structure
 
