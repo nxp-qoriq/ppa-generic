@@ -1,0 +1,16 @@
+PPA is an EL3 resident firmware for NXP QorIQ ARMv8 SoCs. It assists in core 
+and platform initialization, provides standardized runtime services such as 
+PSCI, and provides NXP-specific services.
+
+For build help:
+cd ppa
+./build help
+
+Example assuming gcc cross compiler from Ubuntu 16.04:
+export CROSS_COMPILE=aarch64-linux-gnu-
+./build rdb-fit all
+
+The result of a build is a FIT image, e.g. ./soc-ls2088/build/obj/ppa.itb. 
+It must be placed in flash or the firmware area of an SD card per board-specific
+instructions.
+
