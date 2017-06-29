@@ -40,6 +40,24 @@ Devices Supported:
     LA1575
     LX2160
 
+Date: 06/29/2017 --------------------------------------------------------------
+
+1) Build methods from the soc folder level or the platform folder level using 
+   "make rdb" or "make rdb-fit" have been deprecated and are no longer supported.
+   Instead, build the ppa from the top level like this:
+    > cd ppa
+    > ./build rdb-fit ls2088
+
+   Multiple soc's can be built at the same time:
+    > ./build rdb-fit ls1043 ls1088 ls2088
+
+   All supported soc's can be built:
+    > ./build rdb-fit all
+
+2) top-level license file (license.txt) has been added.
+
+//- end 06/29/2017 update -----------------------------------------------------
+
 Date: 06/09/2017 --------------------------------------------------------------
 
 1) Relocated psci and smc data areas into OCRAM to correct problems writing
