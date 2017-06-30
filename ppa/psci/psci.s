@@ -885,12 +885,10 @@ core_in_reset:
     mov  x2, #CORE_PENDING
     bl   _setCoreData
 
-     // release the core from reset and wait til it's up (or timeout)
+     // release the core from reset
     mov   x0, x6
-    bl    _soc_core_rls_wait
-    cbz   x0, psci_success
-     // the core failed to come out of reset
-    b     psci_failure
+    bl    _soc_core_release
+    b     psci_success
 
  // this is where we start up a core that has been powered-down via CPU_OFF
 core_is_off:
