@@ -93,6 +93,8 @@
 
 .equ  CPUACTLR_FRC_INORDER_MASK, 0x400000
 .equ  CPUACTLR_FRC_INORDER_EN,   0x400000
+.equ  CPUACTLR_ENDCCASCI_EN,     0x100000000000
+.equ  CPUACTLR_DIS_LS_HW_PRE,    0x100000000000000
 
 .equ  OSDLR_EL1_DLK_MASK,     0x1
 .equ  OSDLR_EL1_DLK_LOCK,     0x1
@@ -111,6 +113,19 @@
 .equ  MPIDR_AFFINITY1_SIZE,   0x8
 .equ  MPIDR_CORE_MASK,        0x00FF
 .equ  MPIDR_CLUSTER_MASK,     0xFF00
+
+ // masks and constants for midr_el1
+.equ  MIDR_PARTNUM_MASK,       0xFFF0
+.equ  MIDR_PARTNUM_START,      4
+.equ  MIDR_PARTNUM_WIDTH,      12
+.equ  MIDR_REVISION_START,     0
+.equ  MIDR_REVISION_WIDTH,     4
+.equ  MIDR_VARIANT_START,      20
+.equ  MIDR_VARIANT_WIDTH,      4
+.equ  MIDR_PARTNUM_A53,        0xD03
+.equ  MIDR_PARTNUM_A57,        0xD07
+.equ  MIDR_PARTNUM_A72,        0xD08
+.equ  A53_DCACHE_RNPN_START,   0x03
 
 .equ  SCR_FIQ_MASK,           0x4
 .equ  SCR_IRQ_MASK,           0x2
