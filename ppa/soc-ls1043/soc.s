@@ -1701,9 +1701,9 @@ _get_current_mask:
  // if they are available
  // in: 
  // out: 
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11
 _soc_init_start:
-    mov   x10, x30
+    mov   x11, x30
 
      // get the address of the gic base address area
     ldr  x5, =BC_PSCI_BASE
@@ -1792,11 +1792,11 @@ _soc_init_start:
 2:
      // there are no secondary cores available, so the
      // boot core will have to init upper ocram
-    bl  _ocram_init_upper // 0-9
+    bl  _ocram_init_upper // 0-10
 3:
      // there are no secondary cores available, so the
      // boot core will have to init lower ocram
-    bl  _ocram_init_lower // 0-9
+    bl  _ocram_init_lower // 0-10
     b   1f
 7:
      // clear bootlocptr
@@ -1804,7 +1804,7 @@ _soc_init_start:
     bl    _soc_set_start_addr
 
 1:
-    mov   x30, x10
+    mov   x30, x11
     ret
 
 //-----------------------------------------------------------------------------

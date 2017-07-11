@@ -683,15 +683,15 @@ _populate_membank_data:
  // only executed by the boot core
  // in:   none
  // out:  none
- // uses: x0, x1, x2, x3, x4, x5, x6
+ // uses: x0, x1, x2, x3, x4, x5, x6, x7
 _initialize_psci:
-    mov   x6, x30
+    mov   x7, x30
 
      // initialize the bootcore psci data
     ldr   x5, =BC_PSCI_BASE
-    mov   x2, #CORE_RELEASED
+    mov   x6, #CORE_RELEASED
 
-    str   x2,  [x5], #8
+    str   x6,  [x5], #8
     str   xzr, [x5], #8
     str   xzr, [x5], #8
     str   xzr, [x5], #8
@@ -724,14 +724,14 @@ _initialize_psci:
      // x4 = number of secondary cores
      // x5 = core1 psci data base address
 2:
-     // set core state in x2
+     // set core state in x6
     mov  x0, x3
-    mov  x2, #CORE_IN_RESET
+    mov  x6, #CORE_IN_RESET
     bl   _soc_ck_disabled
     cbz  x0, 1f
-    mov  x2, #CORE_DISABLED
+    mov  x6, #CORE_DISABLED
 1:
-    str   x2,  [x5, #CORE_STATE_DATA]
+    str   x6,  [x5, #CORE_STATE_DATA]
     str   xzr, [x5, #SPSR_EL3_DATA]
     str   xzr, [x5, #CNTXT_ID_DATA]
     str   xzr, [x5, #START_ADDR_DATA]
@@ -758,7 +758,7 @@ _initialize_psci:
     add  x5, x5, #SEC_REGION_OFFSET
     b    2b
 3:
-    mov   x30, x6
+    mov   x30, x7
     ret
 
 //-----------------------------------------------------------------------------
