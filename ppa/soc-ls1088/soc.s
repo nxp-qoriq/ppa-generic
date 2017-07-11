@@ -88,12 +88,6 @@
 
 .equ RESET_RETRY_CNT,      800
 
- // retry count for releasing cores from reset - should be > 0
-.equ  CORE_RELEASE_CNT,    3000 
-
- // retry count for core restart
-.equ  RESTART_RETRY_CNT,  3000
-
  // shifted value for incrementing cluster count in mpidr
 .equ  MPIDR_CLUSTER, 0x100
 
@@ -459,33 +453,9 @@ _soc_core_restart:
     dsb  sy
     isb
 
-     // x4 = core mask lsb
-     // x5 = gicd base addr
-
-    ldr  x3, =RESTART_RETRY_CNT
-
-1:
-    mov  x0, x4
-    mov  x1, #CORE_STATE_DATA
-    bl   _getCoreData
-
-     // x0 = core state
-
-    cmp  x0, #CORE_RELEASED
-    b.eq 2f    
-
-     // decrement the retry cnt and see if we're finished
-    sub  x3, x3, #1
-    cbnz x3, 1b
-
-     // load '1' on failure
-//    mov  x0, #1
-//    b    3f 
-
-2:
      // load '0' on success
     mov  x0, xzr
-3:
+
     mov  x30, x6
     ret
 

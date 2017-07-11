@@ -87,7 +87,6 @@
 .global _soc_set_start_addr
 .global _soc_get_start_addr
 .global _soc_core_release
-.global _soc_core_rls_wait
 .global _soc_core_entr_stdby
 .global _soc_core_exit_stdby
 .global _soc_core_entr_pwrdn
@@ -118,13 +117,6 @@
 
 .global _soc_exit_boot_svcs
 .global _soc_check_sec_enabled
-
-//-----------------------------------------------------------------------------
-
-.equ  RESTART_RETRY_CNT,  3000
-
- // retry count for releasing cores from reset - should be > 0
-.equ  CORE_RELEASE_CNT,   800 
 
 //-----------------------------------------------------------------------------
 
@@ -1249,51 +1241,6 @@ _soc_core_release:
 
 //-----------------------------------------------------------------------------
 
- // part of CPU_ON
- // this function releases a secondary core from reset, and waits til the
- // core signals it is up, or until we exceed the retry count
- // in:   x0 = core_mask_lsb
- // out:  x0 == 0, success
- //       x0 != 0, failure
- // uses: x0, x1, x2, x3, x4, x5
-_soc_core_rls_wait:
-    mov  x5, x30
-    mov  x4, x0
-
-     // release the core from reset
-    bl   _soc_core_release
-
-     // x4 = core_mask_lsb
-
-    ldr  x3, =CORE_RELEASE_CNT
-
-     // x3 = retry count
-     // x4 = core_mask_lsb
-1:
-    sev
-    isb
-    mov  x0, x4
-    mov  x1, #CORE_STATE_DATA
-    bl   _getCoreData
-
-     // see if the core has signaled that it is up
-    cmp  x0, #CORE_RELEASED
-    mov  x0, xzr
-    b.eq 2f
-
-     // see if we used up our retries
-    sub  w3, w3, #1
-    mov  x0, #1
-    cbz  w3, 2f
-
-     // loop back and try again
-    b    1b
-2:
-    mov  x30, x5
-    ret
-
-//-----------------------------------------------------------------------------
-
  // part of CPU_OFF
  // this function programs ARM core registers in preparation for shutting down
  // the core
@@ -1602,38 +1549,9 @@ _soc_core_restart:
     dsb sy
     isb
 
-     // x0 = core mask lsb
-
-     // get the state of the core and loop til the
-     // core state is "RELEASED" or until timeout 
-
-    ldr  x3, =RESTART_RETRY_CNT
-    mov  x4, x0
-
-     // x4 = core mask lsb
-
-1:
-    mov  x0, x4
-    mov  x1, #CORE_STATE_DATA
-    bl   _getCoreData
-
-     // x0 =  core state
-
-    cmp  x0, #CORE_RELEASED
-    b.eq 2f    
-
-     // decrement the retry cnt and see if we're finished
-    sub  x3, x3, #1
-    cbnz x3, 1b
-
-     // load '1' on failure
-//    mov  x0, #1
-//    b    3f 
-
-2:
      // load '0' on success
     mov  x0, xzr
-3:
+
     mov  x30, x5
     ret
 

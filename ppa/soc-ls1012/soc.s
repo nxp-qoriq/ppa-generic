@@ -73,7 +73,6 @@
 .global _soc_set_start_addr
 .global _soc_get_start_addr
 .global _soc_core_release
-.global _soc_core_rls_wait
 .global _soc_core_entr_stdby
 .global _soc_core_exit_stdby
 .global _soc_core_entr_pwrdn
@@ -105,13 +104,6 @@
 .global _set_platform_security
 .global _soc_exit_boot_svcs
 .global _soc_check_sec_enabled
-
-//-----------------------------------------------------------------------------
-
-.equ  RESTART_RETRY_CNT,  3000
-
- // retry count for releasing cores from reset - should be > 0
-.equ  CORE_RELEASE_CNT,   800 
 
 //-----------------------------------------------------------------------------
 
@@ -678,20 +670,6 @@ _soc_ck_disabled:
  // uses: x0, x1, x2, x3
 _soc_core_release:
 
-    ret
-
-//-----------------------------------------------------------------------------
-
- // part of CPU_ON
- // this function releases a secondary core from reset, and waits til the
- // core signals it is up, or until we exceed the retry count
- // in:   x0 = core_mask_lsb
- // out:  x0 == 0, success
- //       x0 != 0, failure
- // uses: x0, x1, x2, x3, x4, x5
-_soc_core_rls_wait:
-
-    mov  x0, xzr
     ret
 
 //-----------------------------------------------------------------------------

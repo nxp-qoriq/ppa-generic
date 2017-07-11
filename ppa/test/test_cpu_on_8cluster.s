@@ -164,7 +164,7 @@ runTest04:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_1
 1:
      // test AFFINITY_INFO of core 1
      // x0 = function id = 0xC4000004
@@ -191,7 +191,7 @@ runTest04:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_2
 2:
      // test AFFINITY_INFO of core 2
      // x0 = function id = 0xC4000004
@@ -218,7 +218,7 @@ runTest04:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_3
 3:
      // test AFFINITY_INFO of core 3
      // x0 = function id = 0xC4000004
@@ -245,7 +245,7 @@ runTest04:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_7
 4:
      // test AFFINITY_INFO of core 7
      // x0 = function id = 0xC4000004
@@ -272,7 +272,7 @@ runTest04:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_5
 5:
      // test AFFINITY_INFO of core 5
      // x0 = function id = 0xC4000004
@@ -299,7 +299,7 @@ runTest04:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_6
 6:
      // test AFFINITY_INFO of core 6
      // x0 = function id = 0xC4000004
@@ -326,7 +326,7 @@ runTest04:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_4
 7:
      // test AFFINITY_INFO of core 4
      // x0 = function id = 0xC4000004
@@ -355,7 +355,7 @@ runTest05:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_8
 8:
      // test AFFINITY_INFO of core 8
     ldr  x0, =PSCI64_AFFINITY_INFO_ID
@@ -380,7 +380,7 @@ runTest05:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_9
 9:
      // test AFFINITY_INFO of core 9
     ldr  x0, =PSCI64_AFFINITY_INFO_ID
@@ -405,7 +405,7 @@ runTest05:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_10
 10:
      // test AFFINITY_INFO of core 10
     ldr  x0, =PSCI64_AFFINITY_INFO_ID
@@ -430,7 +430,7 @@ runTest05:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_11
 11:
      // test AFFINITY_INFO of core 11
     ldr  x0, =PSCI64_AFFINITY_INFO_ID
@@ -455,7 +455,7 @@ runTest05:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_12
 12:
      // test AFFINITY_INFO of core 12
     ldr  x0, =PSCI64_AFFINITY_INFO_ID
@@ -480,7 +480,7 @@ runTest05:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_13
 13:
      // test AFFINITY_INFO of core 13
     ldr  x0, =PSCI64_AFFINITY_INFO_ID
@@ -505,7 +505,7 @@ runTest05:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_14
 14:
      // test AFFINITY_INFO of core 14
     ldr  x0, =PSCI64_AFFINITY_INFO_ID
@@ -530,7 +530,7 @@ runTest05:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_15
 15:
      // test AFFINITY_INFO of core 15
     ldr  x0, =PSCI64_AFFINITY_INFO_ID
@@ -654,5 +654,50 @@ context_id_chk:
 context_chk_fail: 
      // context did not match
     b context_chk_fail
+
+cpu_0_error_core_1:
+    b  cpu_0_error_core_1
+
+cpu_0_error_core_2:
+    b  cpu_0_error_core_2
+
+cpu_0_error_core_3:
+    b  cpu_0_error_core_3
+
+cpu_0_error_core_4:
+    b  cpu_0_error_core_4
+
+cpu_0_error_core_5:
+    b  cpu_0_error_core_5
+
+cpu_0_error_core_6:
+    b  cpu_0_error_core_6
+
+cpu_0_error_core_7:
+    b  cpu_0_error_core_7
+
+cpu_0_error_core_8:
+    b  cpu_0_error_core_8
+
+cpu_0_error_core_9:
+    b  cpu_0_error_core_9
+
+cpu_0_error_core_10:
+    b  cpu_0_error_core_10
+
+cpu_0_error_core_11:
+    b  cpu_0_error_core_11
+
+cpu_0_error_core_12:
+    b  cpu_0_error_core_12
+
+cpu_0_error_core_13:
+    b  cpu_0_error_core_13
+
+cpu_0_error_core_14:
+    b  cpu_0_error_core_14
+
+cpu_0_error_core_15:
+    b  cpu_0_error_core_15
 
 

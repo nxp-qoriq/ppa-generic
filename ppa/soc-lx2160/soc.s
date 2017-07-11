@@ -51,7 +51,6 @@
 .global _soc_set_start_addr
 .global _soc_get_start_addr
 .global _soc_core_release
-.global _soc_core_rls_wait
 
 .global _get_current_mask
 
@@ -112,12 +111,6 @@
 .equ TZASC_REGION_ATTRIBUTES_0_1, 0x01110110
 .equ TZASC_REGION_ID_ACCESS_0_0,  0x01100114
 .equ TZASC_REGION_ID_ACCESS_0_1,  0x01110114
-
- // retry count for releasing cores from reset - should be > 0
-.equ  CORE_RELEASE_CNT,    800 
-
- // retry count for core restart
-.equ  RESTART_RETRY_CNT,  3000
 
 //-----------------------------------------------------------------------------
 
@@ -427,76 +420,6 @@ _soc_core_release:
     isb
 
     mov   x30, x3
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function releases a secondary core from reset, and waits til the
- // core signals it is up, or until we exceed the retry count
- // in:   x0 = core_mask_lsb
- // out:  x0 == 0, success
- //       x0 != 0, failure
- // uses: x0, x1, x2, x3, x4, x5
-_soc_core_rls_wait:
-    mov   x5, x30
-    mov   x4, x0
-
-     // x4 = core mask
-
-     // get mpidr value of target core
-    mov   x0, x4
-    bl    get_mpidr_value
-
-     // x0 = mpidr
-     // x4 = core mask
-
-     // write mpidr value of target core to SCRATCHRW7
-    mov  x1, #DCFG_BASE_ADDR
-    str  w0, [x1, #DCFG_SCRATCHRW7_OFFSET]
-
-     // x4 = core mask
-
-     // read-modify-write BRRL
-    mov  x1, #RESET_BASE_ADDR
-    ldr  w0, [x1, #BRR_OFFSET]
-    orr  w0, w0, w4
-    str  w0, [x1, #BRR_OFFSET]
-    dsb  sy
-    isb
-
-     // send event
-    sev
-    isb
-
-    mov  x3, #CORE_RELEASE_CNT
-
-     // x3 = retry count
-     // x4 = core_mask_lsb
-1:
-    sev
-    isb
-    mov  x0, x4
-    mov  x1, #CORE_STATE_DATA
-    bl   _getCoreData
-
-     // x0 = core state
-
-     // see if the core has signaled that it is up
-    cmp  x0, #CORE_RELEASED
-    mov  x0, xzr
-    b.eq 2f
-
-     // see if we used up our retries
-    sub  x3, x3, #1
-// suppress this error return right now, as the linux kernel does not know
-// what to do with it
-//    mov  x0, #1
-    cbz  x3, 2f
-
-     // loop back and try again
-    b    1b
-2:
-    mov  x30, x5
     ret
 
 //-----------------------------------------------------------------------------

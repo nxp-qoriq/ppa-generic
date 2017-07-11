@@ -129,9 +129,7 @@ _test_psci:
     smc  0x0
     nop
     nop
-    nop
-//    cmp  x0, #PSCI_SUCCESS
-//    b.ne cpu_0_badreturn_01
+    cbnz  x0, cpu_0_error_core_1
 1:
      // test AFFINITY_INFO of core 1
      // x0 = function id = 0xC4000004
@@ -158,9 +156,7 @@ _test_psci:
     smc  0x0
     nop
     nop
-    nop
-//    cmp  x0, #PSCI_SUCCESS
-//    b.ne cpu_0_badreturn_01
+    cbnz  x0, cpu_0_error_core_2
 2:
      // test AFFINITY_INFO of core 2
      // x0 = function id = 0xC4000004
@@ -187,9 +183,7 @@ _test_psci:
     smc  0x0
     nop
     nop
-    nop
-//    cmp  x0, #PSCI_SUCCESS
-//    b.ne cpu_0_badreturn_01
+    cbnz  x0, cpu_0_error_core_3
 3:
      // test AFFINITY_INFO of core 3
      // x0 = function id = 0xC4000004
@@ -216,9 +210,7 @@ _test_psci:
     smc  0x0
     nop
     nop
-    nop
-//    cmp  x0, #PSCI_SUCCESS
-//    b.eq cpu_0_badreturn_02
+    cbnz  x0, cpu_0_error_core_4
 4:
      // test AFFINITY_INFO of core 4
      // x0 = function id = 0xC4000004
@@ -245,7 +237,7 @@ _test_psci:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_7
 7:
      // test AFFINITY_INFO of core 7
      // x0 = function id = 0xC4000004
@@ -272,7 +264,7 @@ _test_psci:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_5
 5:
      // test AFFINITY_INFO of core 5
      // x0 = function id = 0xC4000004
@@ -299,7 +291,7 @@ _test_psci:
     smc  0x0
     nop
     nop
-    nop
+    cbnz  x0, cpu_0_error_core_6
 6:
      // test AFFINITY_INFO of core 6
      // x0 = function id = 0xC4000004
@@ -382,5 +374,26 @@ context_id_chk:
 context_chk_fail: 
      // context did not match
     b context_chk_fail
+
+cpu_0_error_core_1:
+    b  cpu_0_error_core_1
+
+cpu_0_error_core_2:
+    b  cpu_0_error_core_2
+
+cpu_0_error_core_3:
+    b  cpu_0_error_core_3
+
+cpu_0_error_core_4:
+    b  cpu_0_error_core_4
+
+cpu_0_error_core_5:
+    b  cpu_0_error_core_5
+
+cpu_0_error_core_6:
+    b  cpu_0_error_core_6
+
+cpu_0_error_core_7:
+    b  cpu_0_error_core_7
 
 

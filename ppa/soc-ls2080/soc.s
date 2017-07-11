@@ -51,7 +51,6 @@
 .global _soc_set_start_addr
 .global _soc_get_start_addr
 .global _soc_core_release
-.global _soc_core_rls_wait
 
 .global _get_current_mask
 
@@ -112,12 +111,6 @@
 .equ TZASC_REGION_ATTRIBUTES_0_1, 0x01110110
 .equ TZASC_REGION_ID_ACCESS_0_0,  0x01100114
 .equ TZASC_REGION_ID_ACCESS_0_1,  0x01110114
-
- // retry count for releasing cores from reset - should be > 0
-.equ  CORE_RELEASE_CNT,    800 
-
- // retry count for core restart
-.equ  RESTART_RETRY_CNT,  3000
 
 //-----------------------------------------------------------------------------
 
@@ -418,66 +411,6 @@ _soc_core_release:
 
 //-----------------------------------------------------------------------------
 
- // this function releases a secondary core from reset, and waits til the
- // core signals it is up, or until we exceed the retry count
- // in:   x0 = core_mask_lsb
- // out:  x0 == 0, success
- //       x0 != 0, failure
- // uses: x0, x1, x2, x3, x4, x5
-_soc_core_rls_wait:
-    mov  x5, x30
-
-     // write 1 to SCRATCHRW7
-    ldr  x2, =DCFG_BASE_ADDR
-    mov  w1, #1
-    str  w1, [x2, #DCFG_SCRATCHRW7_OFFSET]
-
-     // read-modify-write BRRL
-    ldr  x2, =RESET_BASE_ADDR
-    ldr  w1, [x2, #BRR_OFFSET]
-    orr  w1, w1, w0
-    str  w1, [x2, #BRR_OFFSET]
-    dsb  sy
-    isb
-
-     // send event
-    sev
-    isb
-
-     // x0 = core_mask_lsb
-
-    mov  x4, x0
-    ldr  x3, =CORE_RELEASE_CNT
-
-     // x3 = retry count
-     // x4 = core_mask_lsb
-1:
-    sev
-    isb
-    mov  x0, x4
-    mov  x1, #CORE_STATE_DATA
-    bl   _getCoreData
-
-     // x0 = core state
-
-     // see if the core has signaled that it is up
-    cmp  x0, #CORE_RELEASED
-    mov  x0, xzr
-    b.eq 2f
-
-     // see if we used up our retries
-    sub  x3, x3, #1
-    mov  x0, #1
-    cbz  x3, 2f
-
-     // loop back and try again
-    b    1b
-2:
-    mov  x30, x5
-    ret
-
-//-----------------------------------------------------------------------------
-
  // part of CPU_ON
  // this function restarts a core shutdown via _soc_core_entr_off
  // in:  x0 = core mask lsb (of the target cpu)
@@ -528,33 +461,9 @@ _soc_core_restart:
     dsb  sy
     isb
 
-     // x4 = core mask lsb
-     // x5 = gicd base addr
-
-    ldr  x3, =RESTART_RETRY_CNT
-
-1:
-    mov  x0, x4
-    mov  x1, #CORE_STATE_DATA
-    bl   _getCoreData
-
-     // x0 = core state
-
-    cmp  x0, #CORE_RELEASED
-    b.eq 2f    
-
-     // decrement the retry cnt and see if we're finished
-    sub  x3, x3, #1
-    cbnz x3, 1b
-
-     // load '1' on failure
-//    mov  x0, #1
-//    b    3f 
-
-2:
      // load '0' on success
     mov  x0, xzr
-3:
+
     mov  x30, x6
     ret
 

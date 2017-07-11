@@ -69,7 +69,7 @@
 //             task1_base -------------------------> TASK1_BASE
 // 
 //             reserved        .8byte
-//             reserved        .8byte
+//             pref_dis_mask   .8byte  // prefetch disable mask
 //             boot_svcs_flag  .8byte
 //             bootlocptr      .8byte
 // 0x1801_F7A0 ------------------------------------> SMC_GLBL_BASE
@@ -179,6 +179,7 @@
 #define SMC_GLBL_BASE        ((OCRAM_BASE_ADDR+OCRAM_SIZE_IN_BYTES) - SMC_REGION_OFFSET)
 #define BOOTLOC_OFFSET       0x0
 #define BOOT_SVCS_OSET       0x8
+#define PREFETCH_DIS_OFFSET  0x10  // offset to prefetch disable mask
 
 #define SMC_TASK_OFFSET      0xC
 #define SMC_TASK1_BASE       (SMC_GLBL_BASE + 32)

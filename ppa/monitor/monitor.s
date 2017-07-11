@@ -128,6 +128,10 @@ debug_stop:
     mov  x8, x0
     bl   _gic_init_percpu
 
+     // apply any cpu-specific errata workarounds
+    mov  x0, x8
+    bl   _apply_cpu_errata
+
      // x8 = core mask
 
      // setup the stack
@@ -187,6 +191,10 @@ _secondary_core_init:
 2:
      // set CNTVOFF to 0
     msr  cntvoff_el2, xzr
+
+     // apply any cpu-specific errata workarounds
+    mov  x0, x8
+    bl   _apply_cpu_errata
 
      // soc-specific init on secondary core
     bl   _soc_init_percpu

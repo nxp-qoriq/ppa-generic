@@ -58,6 +58,10 @@ ifeq ($(test), hotplug)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_hotplug.s
 else
+ifeq ($(test), cpu_errata)
+	TEST_PSCI=1
+    TEST_FILE=test_cpu_errata.s
+else
 ifeq ($(test), off_abort)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_hotplug_abort.s
@@ -93,6 +97,7 @@ else
     test=none
 	TEST_PSCI=0
     TEST_FILE=
+endif
 endif
 endif
 endif

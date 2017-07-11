@@ -167,6 +167,11 @@ smc64_sip_svc:
     cmp  w10, w11
     b.eq smc64_membank_data
 
+     // SIP service call PREFETCH_DISABLE_64
+    mov  w10, #SIP_PREFETCH
+    cmp  w10, w11
+    b.eq smc64_prefetch_disable
+
     b    _smc_unimplemented 
 
      //------------------------------------------
@@ -432,6 +437,50 @@ smc64_membank_data:
     mov   x3, xzr
 #endif
 
+    b     _smc_exit
+
+     //------------------------------------------
+
+ // this function marks cores which need to have the prefetch disabled - secondary
+ // cores have prefetch disabled when they are released from reset - the bootcore
+ // has prefetch disabled when this call is made
+ // in:  x0 = function id
+ //      x1 = core mask, where bit[0]=core0, bit[1]=core1, etc
+ //           if a bit in the mask is set, then prefetch is disabled for that core
+ // out: x0 = SMC_SUCCESS
+smc64_prefetch_disable:
+    mov   x12, x30
+    mov   x3, x1
+
+     // x1 = core prefetch disable mask
+     // x3 = core prefetch disable mask
+
+     // store the mask
+    mov   x0, #PREFETCH_DIS_OFFSET
+    bl   _set_global_data
+
+     // x3 = core prefetch disable mask
+
+     // see if we need to disable prefetch on THIS core
+    bl   _get_current_mask
+    
+     // x0 = core mask lsb
+     // x3 = core prefetch disable mask
+
+    tst  x3, x0
+    b.eq 1f
+
+     // disable prefetch for THIS core
+.align 6  // 64-byte cache-line aligned
+    dsb   sy
+    isb
+    mrs   x0, CPUACTLR_EL1
+    orr   x0, x0, #CPUACTLR_DIS_LS_HW_PRE
+    msr   CPUACTLR_EL1, x0
+    isb
+
+1:
+    mov   x0, #SMC_SUCCESS
     b     _smc_exit
 
      //------------------------------------------

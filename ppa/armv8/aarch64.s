@@ -43,23 +43,24 @@
 
 //-----------------------------------------------------------------------------
 
-.global _set_tcr
-.global _is_EL2_supported
+.global _apply_cpu_errata
+.global _cln_inv_L1_dcache
+.global _cln_inv_all_dcache
+.global _cln_inv_L3_dcache
+.global _getCallerEL
 .global _get_exit_mode
-.global _set_spsr_4_exit
-.global _set_spsr_4_startup
 .global _init_core_EL3
 .global _init_core_EL2
 .global _init_core_EL1
 .global _init_secondary_EL3
 .global _init_secondary_EL2
 .global _init_secondary_EL1
-.global _set_EL3_vectors
-.global _cln_inv_L1_dcache
-.global _cln_inv_all_dcache
-.global _cln_inv_L3_dcache
-.global _getCallerEL
+.global _is_EL2_supported
 .global _relocate_rela
+.global _set_tcr
+.global _set_spsr_4_exit
+.global _set_spsr_4_startup
+.global _set_EL3_vectors
 .global _zeroize_bss
 
 //-----------------------------------------------------------------------------
@@ -91,6 +92,85 @@
 
  // 0-based cache level
 .equ L3_LEVEL, 2
+
+//-----------------------------------------------------------------------------
+
+ // this function applies any cpu-specific errata (normally comes from ARM)
+ // in:  x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5
+_apply_cpu_errata:
+    mov   x5, x30
+    mov   x4, x0
+
+     // x4 = core mask lsb
+
+     // read midr_el1
+    mrs   x1, midr_el1
+
+     // x1 = midr_el1
+
+    mov   x0, xzr
+    bfxil x0, x1, #MIDR_PARTNUM_START, #MIDR_PARTNUM_WIDTH
+
+     // x0 = part number (a53, a57, etc)
+     // x1 = midr_el1
+
+     // get the rNpN (variant:revision) number
+    mov   x2, xzr
+    bfxil x2, x1, #MIDR_VARIANT_START, #MIDR_VARIANT_WIDTH
+    lsl   x2, x2, #MIDR_REVISION_WIDTH
+    bfxil x2, x1, #MIDR_REVISION_START, #MIDR_REVISION_WIDTH
+
+     // x0 = part number (a53, a57, etc)
+     // x1 = midr_el1
+     // x2 = rNpN
+
+     // branch to the cpu-specific errata
+    cmp   x0, #MIDR_PARTNUM_A53
+    b.eq  1f
+    cmp   x0, #MIDR_PARTNUM_A57
+    b.eq  2f
+    cmp   x0, #MIDR_PARTNUM_A72
+    b.eq  3f
+     // we don't recognize the core type - do nothing
+    b     4f
+
+1:   // apply a53 errata ------------------------
+
+     // see if we need to apply the dcache cln/invalidate errata
+    cmp   x2, #A53_DCACHE_RNPN_START
+    b.lt  4f
+     // apply the errata - turn dcache cln into dcache cln & inv
+    mrs   x0, CPUACTLR_EL1
+    orr   x0, x0, #CPUACTLR_ENDCCASCI_EN
+    msr   CPUACTLR_EL1, x0
+    b     4f
+
+2:   // apply a57 errata ------------------------
+    nop
+    b     4f
+
+3:   // apply a72 errata ------------------------
+
+     // see if this core is marked for prefetch disable
+    mov  x0, #PREFETCH_DIS_OFFSET
+    bl   _get_global_data
+    tst  x0, x4
+    b.eq 4f
+
+     // disable prefetching for this core
+.align 6  // 64-byte cache-line aligned
+    dsb   sy
+    isb
+    mrs   x0, CPUACTLR_EL1
+    orr   x0, x0, #CPUACTLR_DIS_LS_HW_PRE
+    msr   CPUACTLR_EL1, x0
+    isb
+
+4:   // exit
+    mov  x30, x5
+    ret
 
 //-----------------------------------------------------------------------------
 

@@ -59,6 +59,7 @@
 #define  SIP_PRNG           0xFF10
 #define  SIP_RNG            0xFF11
 #define  SIP_MEMBANK        0xFF12
+#define  SIP_PREFETCH       0xFF13
 
 .equ SIP_PRNG_32BIT,  0
 .equ SIP_PRNG_64BIT,  1
@@ -139,6 +140,14 @@
  //      x1     =  physical start address (not valid unless x0[0]=1)
  //      x2     =  size in bytes (not valid unless x0[0]=1)
 #define  SIP_MEMBANK_64 0xC200FF12
+
+ // this is the 64-bit interface to the LOAD-STORE PREFETCH DISABLE function
+ // in:  x0 = function id
+ //      x1 = core mask for cores to have prefetch disabled,
+ //           where bit[0] = core0, bit[1] = core1, etc - if bit is set,
+ //           then prefetch (CPUACTLR[56]) is disabled for that core.
+ // out: none
+#define  SIP_PREFETCH_DISABLE_64 0xC200FF13
 
 //-----------------------------------------------------------------------------
 
