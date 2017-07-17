@@ -467,17 +467,9 @@ smc64_prefetch_disable:
      // x0 = core mask lsb
      // x3 = core prefetch disable mask
 
-    tst  x3, x0
-    b.eq 1f
-
-     // disable prefetch for THIS core
-.align 6  // 64-byte cache-line aligned
-    dsb   sy
-    isb
-    mrs   x0, CPUACTLR_EL1
-    orr   x0, x0, #CPUACTLR_DIS_LS_HW_PRE
-    msr   CPUACTLR_EL1, x0
-    isb
+    tst   x3, x0
+    b.eq  1f
+    bl    _disable_ldstr_pfetch
 
 1:
     mov   x0, #SMC_SUCCESS

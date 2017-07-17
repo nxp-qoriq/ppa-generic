@@ -62,6 +62,8 @@
 .global _set_spsr_4_startup
 .global _set_EL3_vectors
 .global _zeroize_bss
+.global _disable_ldstr_pfetch
+.global _enable_ldstr_pfetch
 
 //-----------------------------------------------------------------------------
 
@@ -154,22 +156,14 @@ _apply_cpu_errata:
 3:   // apply a72 errata ------------------------
 
      // see if this core is marked for prefetch disable
-    mov  x0, #PREFETCH_DIS_OFFSET
-    bl   _get_global_data
-    tst  x0, x4
-    b.eq 4f
-
-     // disable prefetching for this core
-.align 6  // 64-byte cache-line aligned
-    dsb   sy
-    isb
-    mrs   x0, CPUACTLR_EL1
-    orr   x0, x0, #CPUACTLR_DIS_LS_HW_PRE
-    msr   CPUACTLR_EL1, x0
-    isb
-
+    mov   x0, #PREFETCH_DIS_OFFSET
+    bl    _get_global_data
+    tst   x0, x4
+    b.eq  4f
+    bl    _disable_ldstr_pfetch
+ 
 4:   // exit
-    mov  x30, x5
+    mov   x30, x5
     ret
 
 //-----------------------------------------------------------------------------
@@ -934,6 +928,56 @@ _getCallerEL:
     mov   x0, #SPSR_EL1
 
 4:
+    ret
+
+ //----------------------------------------------------------------------------
+
+ // this function disables the load-store prefetch of the calling core
+ // in:  none
+ // out: none
+ // uses x0
+_disable_ldstr_pfetch:
+
+     // 
+    mrs   x0, CPUACTLR_EL1
+    tst   x0, #CPUACTLR_DIS_LS_HW_PRE
+    b.eq  1f
+    b     2f
+
+.align 6
+1:   // disable prefetch for this core
+    dsb   sy
+    isb
+    orr   x0, x0, #CPUACTLR_DIS_LS_HW_PRE
+    msr   CPUACTLR_EL1, x0
+    isb
+
+2:
+    ret
+
+ //----------------------------------------------------------------------------
+
+ // this function enables the load-store prefetch of the calling core
+ // in:  none
+ // out: none
+ // uses x0
+_enable_ldstr_pfetch:
+
+     // 
+    mrs   x0, CPUACTLR_EL1
+    tst   x0, #CPUACTLR_DIS_LS_HW_PRE
+    b.ne  1f
+    b     2f
+
+.align 6
+1:   // enable prefetch for this core
+    dsb   sy
+    isb
+    bic   x0, x0, #CPUACTLR_DIS_LS_HW_PRE
+    msr   CPUACTLR_EL1, x0
+    isb
+
+2:
     ret
 
  //----------------------------------------------------------------------------
