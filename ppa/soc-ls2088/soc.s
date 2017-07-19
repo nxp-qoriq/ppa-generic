@@ -51,6 +51,7 @@
 .global _soc_set_start_addr
 .global _soc_get_start_addr
 .global _soc_core_release
+.global _soc_core_rls_wait
 
 .global _get_current_mask
 
@@ -101,6 +102,8 @@
 .equ RSTRQSR1_SWRR,         0x800
 
 .equ RESET_RETRY_CNT,       800
+ // retry count for releasing cores from reset - must be > 0
+.equ  CORE_RELEASE_CNT,     3000 
 
 .equ TZPC_BASE,              0x02200000
 .equ TZPCDECPROT_0_SET_BASE, 0x02200804
@@ -384,6 +387,93 @@ _soc_ck_disabled:
 
 //-----------------------------------------------------------------------------
 
+#if 1
+
+ // part of CPU_ON
+ // this function releases a secondary core from reset
+ // in:   x0 = core_mask_lsb
+ // out:  none
+ // uses: x0, x1, x2, x3
+_soc_core_release:
+    mov   x3, x30
+
+     // x0 = core mask
+
+    ldr  x1, =SEC_REGFILE_BASE_ADDR
+     // write to CORE_HOLD to tell the bootrom that we want this core
+     // to run
+    str  w0, [x1, #CORE_HOLD_OFFSET]
+
+     // x0 = core mask
+
+     // read-modify-write BRRL to release core
+    mov  x1, #RESET_BASE_ADDR
+    ldr  w2, [x1, #BRR_OFFSET]
+    orr  w2, w2, w0
+    str  w2, [x1, #BRR_OFFSET]
+    dsb  sy
+    isb
+
+     // send event
+    sev
+    isb
+
+    mov   x30, x3
+    ret
+
+#endif
+
+//-----------------------------------------------------------------------------
+
+#if 0
+
+ // part of CPU_ON
+ // this function releases a secondary core from reset
+ // in:   x0 = core_mask_lsb
+ // out:  none
+ // uses: x0, x1, x2, x3
+_soc_core_release:
+    mov   x3, x30
+
+     // x0 = core mask
+
+    ldr  x1, =SEC_REGFILE_BASE_ADDR
+     // read CORE_HOLD
+    ldr  w2, [x1, #CORE_HOLD_OFFSET]
+
+     // x0 = core mask
+     // x2 = CORE_HOLD
+
+    tst  x2, x0
+    b.eq 1f
+
+     // write to CORE_HOLD to tell the bootrom that we want this core
+     // to run
+    str  w0, [x1, #CORE_HOLD_OFFSET]
+
+1:
+     // read-modify-write BRRL to release core
+    mov  x1, #RESET_BASE_ADDR
+    ldr  w2, [x1, #BRR_OFFSET]
+    orr  w2, w2, w0
+    str  w2, [x1, #BRR_OFFSET]
+    dsb  sy
+    isb
+
+     // send event
+    sev
+    isb
+
+    mov   x30, x3
+    ret
+
+#endif
+
+//-----------------------------------------------------------------------------
+
+#if 0
+
+ // part of CPU_ON
  // this function releases a secondary core from reset
  // in:   x0 = core_mask_lsb
  // out:  none
@@ -421,6 +511,83 @@ _soc_core_release:
 
     mov   x30, x3
     ret
+
+#endif
+
+//-----------------------------------------------------------------------------
+
+#if 0
+
+ // part of CPU_ON
+ // this function releases a secondary core from reset, and waits til the
+ // core signals it is up, or until we exceed the retry count
+ // in:   x0 = core_mask_lsb
+ // out:  none
+ // uses: x0, x1, x2, x3, x4, x5
+_soc_core_release:
+    mov   x5, x30
+    mov   x4, x0
+
+     // x4 = core mask
+
+     // get mpidr value of target core
+    mov   x0, x4
+    bl    get_mpidr_value
+
+     // x0 = mpidr
+     // x4 = core mask
+
+     // write mpidr value of target core to SCRATCHRW7
+    mov  x1, #DCFG_BASE_ADDR
+    str  w0, [x1, #DCFG_SCRATCHRW7_OFFSET]
+
+     // x4 = core mask
+
+     // read-modify-write BRRL
+    mov  x1, #RESET_BASE_ADDR
+    ldr  w0, [x1, #BRR_OFFSET]
+    orr  w0, w0, w4
+    str  w0, [x1, #BRR_OFFSET]
+    dsb  sy
+    isb
+
+     // send event
+    sev
+    isb
+
+    mov  x3, #CORE_RELEASE_CNT
+
+     // x3 = retry count
+     // x4 = core_mask_lsb
+1:
+    sev
+    isb
+    mov  x0, x4
+    mov  x1, #CORE_STATE_DATA
+    bl   _getCoreData
+
+     // x0 = core state
+
+     // see if the core has signaled that it is up
+    cmp  x0, #CORE_RELEASED
+    mov  x0, xzr
+    b.eq 2f
+
+     // see if we used up our retries
+     // we are not going to issue an error if the retry count is maxxed
+     // out - the real reason we are delaying here is to prevent a race
+     // condition on SCRATCHRW7 as the psci uses that reg to interface
+     // with the bootrom on a core-by-core basis
+    sub  x3, x3, #1
+    cbz  x3, 2f
+
+     // loop back and try again
+    b    1b
+2:
+    mov  x30, x5
+    ret
+
+#endif
 
 //-----------------------------------------------------------------------------
 

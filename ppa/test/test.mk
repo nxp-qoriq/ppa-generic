@@ -54,6 +54,26 @@ ifeq ($(test), smp_boot)
     endif
     endif
 else
+ifeq ($(test), speed_boot)
+	TEST_PSCI=1
+    ifeq ($(NUMBER_OF_CLUSTERS), 1)
+        TEST_FILE=test_sboot_1cluster.s
+    else
+    ifeq ($(NUMBER_OF_CLUSTERS), 2)
+        TEST_FILE=test_sboot_2cluster.s
+    else
+    ifeq ($(NUMBER_OF_CLUSTERS), 4)
+        TEST_FILE=test_sboot_4cluster.s
+    else
+    ifeq ($(NUMBER_OF_CLUSTERS), 8)
+        TEST_FILE=test_sboot_8cluster.s
+    else
+        $(error -> Number of Clusters not set!)
+    endif
+    endif
+    endif
+    endif
+else
 ifeq ($(test), hotplug)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_hotplug.s
@@ -97,6 +117,7 @@ else
     test=none
 	TEST_PSCI=0
     TEST_FILE=
+endif
 endif
 endif
 endif

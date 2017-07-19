@@ -46,7 +46,7 @@ target_list="clean rdb rdb-fit qds qds-fit sim"
 
 option_std="dbg dbg=on dbg=off ddr ddr=on ddr=off i2c i2c=on i2c=off"
 option_rest="uart uart=on uart=off"
-option_test="smp_boot hotplug suspend off_abort aarch32 cpu_errata"
+option_test="smp_boot hotplug suspend off_abort aarch32 cpu_errata speed_boot"
 option_list="$option_std+$delimit+$option_rest"
 
 mode_list="production prod ret retail development dev"
