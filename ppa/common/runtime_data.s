@@ -754,8 +754,8 @@ _initialize_psci:
      // generate next core mask
     lsl  x3, x3, #1
     
-     // increment base address to next data area
-    add  x5, x5, #SEC_REGION_OFFSET
+     // decrement base address to next data area
+    sub  x5, x5, #SEC_REGION_OFFSET
     b    2b
 3:
     mov   x30, x7
