@@ -63,6 +63,9 @@
 #define TZPC_BASE_ADDR       0x02200000
 #define SECMON_BASE_ADDR   0x01E90000
 
+ // scfg register file offsets
+#define CORE_HOLD_OFFSET      0x140
+
  // secmon register offsets and bitfields
 #define SECMON_HPCOMR_OFFSET  0x4
 #define SECMON_HPCOMR_NPSWAEN 0x80000000

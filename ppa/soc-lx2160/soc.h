@@ -55,10 +55,14 @@
 #define RESET_FAILURE         0x1
 
  // base addresses
-#define DCFG_BASE_ADDR     0x01E00000
-#define TIMER_BASE_ADDR    0x023E0000
-#define RESET_BASE_ADDR    0x01E60000
-#define SECMON_BASE_ADDR   0x01E90000
+#define DCFG_BASE_ADDR        0x01E00000
+#define TIMER_BASE_ADDR       0x023E0000
+#define RESET_BASE_ADDR       0x01E60000
+#define SECMON_BASE_ADDR      0x01E90000
+#define SEC_REGFILE_BASE_ADDR 0x01E88000
+
+ // secure register file offsets
+#define CORE_HOLD_OFFSET      0x140
 
  // secmon register offsets and bitfields
 #define SECMON_HPCOMR_OFFSET  0x4

@@ -36,7 +36,7 @@
   .section .text, "ax"
  
 //-----------------------------------------------------------------------------
-
+    
 #include "soc.h"
 #include "psci.h"
 
@@ -49,20 +49,13 @@
 .align 3
 .equ  MPIDR_CORE_0,   0x00000000
 .equ  MPIDR_CORE_1,   0x00000001
-.equ  MPIDR_CORE_2,   0x00000100
-.equ  MPIDR_CORE_3,   0x00000101
-.equ  MPIDR_CORE_4,   0x00000200
-.equ  MPIDR_CORE_5,   0x00000201
-.equ  MPIDR_CORE_6,   0x00000300
-.equ  MPIDR_CORE_7,   0x00000301
+.equ  MPIDR_CORE_2,   0x00000002
+.equ  MPIDR_CORE_3,   0x00000003
 
+.equ  CONTEXT_CORE_0, 0x01234567
 .equ  CONTEXT_CORE_1, 0x12345678
-.equ  CONTEXT_CORE_2, 0x23456781
-.equ  CONTEXT_CORE_3, 0x34567812
-.equ  CONTEXT_CORE_4, 0x45678123
-.equ  CONTEXT_CORE_5, 0x56781234
-.equ  CONTEXT_CORE_6, 0x67812345
-.equ  CONTEXT_CORE_7, 0x78123456
+.equ  CONTEXT_CORE_2, 0xA9876543
+.equ  CONTEXT_CORE_3, 0x10208070
 
 //.equ  PSCI_V_MAJOR,   0x00000001
 //.equ  PSCI_V_MINOR,   0x00000000
@@ -74,25 +67,23 @@
 //-----------------------------------------------------------------------------
 
 _test_psci:
-    dsb sy
-    isb
-    nop
 
-    bl Test_01
-    bl Test_02
-    bl Test_03
 
-cpu_0_stop:
-    b  cpu_0_stop
+    bl  Test_01
+
+.if (CPU_MAX_COUNT > 2)
+    bl  Test_02
+    bl  Test_03
+.endif
+
+core_0_stop:
+    b  core_0_stop
 
 cpu_0_fail_version:
     b  cpu_0_fail_version
 
 cpu_0_fail_affinity:
     b  cpu_0_fail_affinity
-
-cpu_0_fail_unimplemented:
-    b  cpu_0_fail_unimplemented
 
 cpu_0_error_core_1:
     b  cpu_0_error_core_1
@@ -103,60 +94,31 @@ cpu_0_error_core_2:
 cpu_0_error_core_3:
     b  cpu_0_error_core_3
 
-cpu_0_error_core_4:
-    b  cpu_0_error_core_4
+ //------------------------------------
 
-cpu_0_error_core_5:
-    b  cpu_0_error_core_5
+core_1a_entry:
+    ldr  w9, =CONTEXT_CORE_1
+    bl context_id_chk
+core_1_pass:
+    b core_1_pass
 
-cpu_0_error_core_6:
-    b  cpu_0_error_core_6
+.if (CPU_MAX_COUNT > 2)
 
-cpu_0_error_core_7:
-    b  cpu_0_error_core_7
-
-     //---------------------------
-
-cpu_1_pass:
-    b cpu_1_pass
-
-cpu_2_start:
+core_2a_entry:
     ldr  w9, =CONTEXT_CORE_2
     bl context_id_chk
-cpu_2_pass:
-    b cpu_2_pass
+core_2_pass:
+    b core_2_pass
 
-cpu_3_start:
+core_3a_entry:
     ldr  w9, =CONTEXT_CORE_3
     bl context_id_chk
-cpu_3_pass:
-    b cpu_3_pass
+core_3_pass:
+    b core_3_pass
 
-cpu_4_start:
-    ldr  w9, =CONTEXT_CORE_4
-    bl context_id_chk
-cpu_4_pass:
-    b cpu_4_pass
+.endif
 
-cpu_5_start:
-    ldr  w9, =CONTEXT_CORE_5
-    bl context_id_chk
-cpu_5_pass:
-    b cpu_5_pass
-
-cpu_6_start:
-    ldr  w9, =CONTEXT_CORE_6
-    bl context_id_chk
-cpu_6_pass:
-    b cpu_6_pass
-
-cpu_7_start:
-    ldr  w9, =CONTEXT_CORE_7
-    bl context_id_chk
-cpu_7_pass:
-    b cpu_7_pass
-
-     //---------------------------
+ //------------------------------------
 
 Test_01:
      // test PSCI_VERSION
@@ -188,102 +150,68 @@ Test_01:
     cmp  w0, w1
     b.ne cpu_0_fail_affinity
 
-     // test an unimplemented psci function
-    ldr  x0, =PSCI32_MIGRATE_ID
-    ldr  x1, =MPIDR_CORE_1
-    smc  0x0
-    nop
-    nop
-    nop
-    ldr  x1, =PSCI_NOT_SUPPORTED
-    cmp  w0, w1
-    b.ne cpu_0_fail_unimplemented
-
     // test PSCI_CPU_ON
 
     //-------
-    // (Core 1)     
-    ldr  w1, =MPIDR_CORE_1
-    adr  x2, cpu_1_pass
-    ldr  w3, =CONTEXT_CORE_1
-    ldr  w0, =PSCI64_CPU_ON_ID
+     // test PSCI_CPU_ON (core 1)
+     // x0 = function id = 0xC4000003
+     // x1 = mpidr       = 0x0001
+     // x2 = start addr  = core_1a_entry
+     // x3 = context id  = CONTEXT_CORE_1
+    dsb sy
+    isb
+    nop
+    ldr  x0, =PSCI64_CPU_ON_ID
+    ldr  x1, =MPIDR_CORE_1
+    adr  x2, core_1a_entry
+    ldr  x3, =CONTEXT_CORE_1
     smc  0x0
     nop
     nop
     cbnz  x0, cpu_0_error_core_1
     ret
 
-    //-------
+.if (CPU_MAX_COUNT > 2)
 
 Test_02:
-    // (Core 2)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_2
-    adr  x2, cpu_2_start
-    ldr  w3, =CONTEXT_CORE_2
+     // test PSCI_CPU_ON (core 2)
+     // x0 = function id = 0xC4000003
+     // x1 = mpidr       = 0x0002
+     // x2 = start addr  = core_2a_entry
+     // x3 = context id  = CONTEXT_CORE_2
+    nop
+    ldr  x0, =PSCI64_CPU_ON_ID
+    ldr  x1, =MPIDR_CORE_2
+    adr  x2, core_2a_entry
+    ldr  x3, =CONTEXT_CORE_2
     smc  0x0
     nop
     nop
     cbnz  x0, cpu_0_error_core_2
+    ret
 
-    //-------
-    // (Core 3)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_3
-    adr  x2, cpu_3_start
-    ldr  w3, =CONTEXT_CORE_3
+ //------------------------------------
+
+Test_03:
+     // test PSCI_CPU_ON (core 3)
+     // x0 = function id = 0xC4000003
+     // x1 = mpidr       = 0x0003
+     // x2 = start addr  = core_3a_entry
+     // x3 = context id  = CONTEXT_CORE_3
+    nop
+    ldr  x0, =PSCI64_CPU_ON_ID
+    ldr  x1, =MPIDR_CORE_3
+    adr  x2, core_3a_entry
+    ldr  x3, =CONTEXT_CORE_3
     smc  0x0
     nop
     nop
     cbnz  x0, cpu_0_error_core_3
     ret
 
-    //-------
+.endif
 
-Test_03:
-    // (Core 7)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_7
-    adr  x2, cpu_7_start
-    ldr  w3, =CONTEXT_CORE_7
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_7
-
-    //-------
-    // (Core 5)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_5
-    adr  x2, cpu_5_start
-    ldr  w3, =CONTEXT_CORE_5
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_5
-
-    //-------
-    // (Core 6)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_6
-    adr  x2, cpu_6_start
-    ldr  w3, =CONTEXT_CORE_6
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_6
-
-    //-------
-    // (Core 4)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_4
-    adr  x2, cpu_4_start
-    ldr  w3, =CONTEXT_CORE_4
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_4
-    ret
+ //------------------------------------
 
  // CPU_ON context id check
 context_id_chk:
@@ -294,6 +222,7 @@ context_chk_fail:
      // context did not match
     b context_chk_fail
 
+ //------------------------------------
 
 
 

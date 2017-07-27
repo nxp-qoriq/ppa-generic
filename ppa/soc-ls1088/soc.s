@@ -363,34 +363,28 @@ _soc_ck_disabled:
 
 //-----------------------------------------------------------------------------
 
+ // part of CPU_ON
  // this function releases a secondary core from reset
  // in:   x0 = core_mask_lsb
  // out:  none
  // uses: x0, x1, x2, x3
 _soc_core_release:
     mov   x3, x30
-    mov   x2, x0
 
-     // x2 = core mask
+     // x0 = core mask
 
-     // get mpidr value of target core
-    mov   x0, x2
-    bl    get_mpidr_value
+    ldr  x1, =SCFG_BASE_ADDR
+     // write to CORE_HOLD to tell the bootrom that we want this core
+     // to run
+    str  w0, [x1, #CORE_HOLD_OFFSET]
 
-     // x0 = mpidr
-     // x2 = core mask
+     // x0 = core mask
 
-     // write mpidr value of target core to SCRATCHRW7
-    mov  x1, #DCFG_BASE_ADDR
-    str  w0, [x1, #DCFG_SCRATCHRW7_OFFSET]
-
-     // x2 = core mask
-
-     // read-modify-write BRRL
+     // read-modify-write BRRL to release core
     mov  x1, #RESET_BASE_ADDR
-    ldr  w0, [x1, #BRR_OFFSET]
-    orr  w0, w0, w2
-    str  w0, [x1, #BRR_OFFSET]
+    ldr  w2, [x1, #BRR_OFFSET]
+    orr  w2, w2, w0
+    str  w2, [x1, #BRR_OFFSET]
     dsb  sy
     isb
 

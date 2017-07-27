@@ -59,12 +59,10 @@ non_boot_core:
     tst   w0, w3
     b.ne  core_disable
 
-#if (!SIMULATOR_BUILD)
      // see if this core has been released via core_hold
     mov   x0, x3
     bl    is_core_released_tester
     cbnz  x0, fast_path
-#endif
 
      // see if this core has been released via mpidr
     bl    is_core_released_mpidr

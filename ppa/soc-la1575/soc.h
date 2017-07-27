@@ -63,6 +63,9 @@
 #define TZPC_BASE_ADDR     0x02200000
 #define CCI_400_BASE_ADDR  0x04090000
 
+ // scfg register file offsets
+#define CORE_HOLD_OFFSET      0x140
+
 #define GICR_RD_BASE_ADDR  0x06080000
 #define GICR_SGI_BASE_ADDR 0x06090000
 #define GICD_BASE_ADDR     0x06000000
