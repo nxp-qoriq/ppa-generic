@@ -1,6 +1,5 @@
 #------------------------------------------------------------------------------
-#
-# Copyright (C) 2015-2017 Freescale Semiconductor, Inc. 
+# 
 # Copyright 2017 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without

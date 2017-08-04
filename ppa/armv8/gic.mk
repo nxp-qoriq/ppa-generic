@@ -1,6 +1,5 @@
 #------------------------------------------------------------------------------
-#
-# Copyright (C) 2015-2017 Freescale Semiconductor, Inc. 
+# 
 # Copyright 2017 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -32,46 +31,17 @@
 # Author Rod Dorris <rod.dorris@nxp.com>
 # 
 #------------------------------------------------------------------------------
-#
-# Define the following environment variables (and make sure they point to your
-# gcc ARM toolchain):
-#
-# ARMV8_TOOLS_DIR=/c/utils/linaro_gcc/gcc-linaro-aarch64-none-elf-4.8-2014.01_win32/bin
-# ARMV8_TOOLS_PREFIX=aarch64-none-elf-
-# FILE_NAMES_DIR=/tmp
-# export ARMV8_TOOLS_DIR
-# export ARMV8_TOOLS_PREFIX
-# export FILE_NAMES_DIR
-#
-# Put the tools dir on your path:
-#
-# PATH=$ARMV8_TOOLS_DIR:$PATH
-#
-# -----------------------------------------------------------------------------
 
- # include the basic SoC architecture
-include $(PRE_PATH)soc.def
-
-# -----------------------------------------------------------------------------
-
- # include the gic architecture file
-include $(PRE_PATH)../armv8/gic.mk
-
-# -----------------------------------------------------------------------------
-
- # include the interconnect architecture file
-include $(PRE_PATH)../armv8/inter.mk
-
-# -----------------------------------------------------------------------------
-
-# include the test infrastructure
-TEST_SRC= $(PRE_PATH)../test
-include $(TEST_SRC)/test.mk
-
-# -----------------------------------------------------------------------------
-
-CMMN_SRC= $(PRE_PATH)../common
-include $(CMMN_SRC)/makefile.inc
+# select the gic file ------------
+ifeq ($(GIC), GIC400)
+	GIC_FILE=gicv2
+else
+ifeq ($(GIC), GIC500)
+	GIC_FILE=gicv3
+else
+    $(error -> GIC type not set!)
+endif
+endif
 
 # -----------------------------------------------------------------------------
 

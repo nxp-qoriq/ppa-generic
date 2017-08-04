@@ -1,6 +1,5 @@
 #------------------------------------------------------------------------------
-#
-# Copyright (C) 2015-2017 Freescale Semiconductor, Inc. 
+# 
 # Copyright 2017 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -33,45 +32,79 @@
 # 
 #------------------------------------------------------------------------------
 #
-# Define the following environment variables (and make sure they point to your
-# gcc ARM toolchain):
+# generic platform specific definitions
 #
-# ARMV8_TOOLS_DIR=/c/utils/linaro_gcc/gcc-linaro-aarch64-none-elf-4.8-2014.01_win32/bin
-# ARMV8_TOOLS_PREFIX=aarch64-none-elf-
-# FILE_NAMES_DIR=/tmp
-# export ARMV8_TOOLS_DIR
-# export ARMV8_TOOLS_PREFIX
-# export FILE_NAMES_DIR
-#
-# Put the tools dir on your path:
-#
-# PATH=$ARMV8_TOOLS_DIR:$PATH
+# supported targets:
+#   generic     - binary image
+#   generic-fit - fit image
 #
 # -----------------------------------------------------------------------------
+#
+# builds a binary image for a generic la17xx device platform
+generic: 
+	$(MAKE) SIM_BUILD=0 generic_out
+	$(MAKE) SIM_BUILD=0 generic_bin
+generic_out:
+	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
+	@echo
+generic_bin: monitor.bin
 
- # include the basic SoC architecture
-include $(PRE_PATH)soc.def
-
-# -----------------------------------------------------------------------------
-
- # include the gic architecture file
-include $(PRE_PATH)../armv8/gic.mk
-
-# -----------------------------------------------------------------------------
-
- # include the interconnect architecture file
-include $(PRE_PATH)../armv8/inter.mk
-
-# -----------------------------------------------------------------------------
-
-# include the test infrastructure
-TEST_SRC= $(PRE_PATH)../test
-include $(TEST_SRC)/test.mk
-
-# -----------------------------------------------------------------------------
-
-CMMN_SRC= $(PRE_PATH)../common
-include $(CMMN_SRC)/makefile.inc
+# builds a fit image for a generic la17xx device platform
+generic-fit: 
+	$(MAKE) SIM_BUILD=0 generic_fit_out
+	$(MAKE) SIM_BUILD=0 generic_fit_bin
+generic_fit_out:
+	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
+	@echo
+generic_fit_bin: ppa.itb
 
 # -----------------------------------------------------------------------------
 
+# add soc-specific asm source and headers here
+SRC_SOC    =soc.s
+HDRS_SOC   =soc.mac soc.h
+
+# add soc-specific C source and headers here
+CSRC_SOC   =errata.c
+CHDRS_SOC  =
+
+# add arm-specific source and headers here
+SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
+HDRS_ARMV8 =aarch64.h
+
+# add security-monitor source and headers here
+SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
+HDRS_MNTR  =smc.h
+
+# add platform-specific asm here
+PLAT_ASM =
+
+# add platform-specific C source and headers here
+SRC_PLAT   =
+HDRS_PLAT  =policy.h
+
+# add platform-test-specific asm files here
+TEST_ASM =$(TEST_FILE)
+
+ifeq ($(DDR_BLD), 1)
+   # add ddr-specific source and headers here
+  DDR_C    =ddr_init.c
+  DDR_HDRS =plat.h config.h
+  DDR_CMN_C    = ddr.c ddrc.c dimm.c utility.c regs.c opts.c debug.c crc32.c \
+                 spd.c addr.c timer.c
+  DDR_CMN_HDRS = ddr.h dimm.h utility.h immap.h opts.h regs.h debug.h \
+                 timer.h
+  UART_C = uart.c
+  I2C_C  = i2c.c
+else
+  DDR_C        =
+  DDR_HDRS     =
+  DDR_CMN_C    =
+  DDR_CMN_HDRS =
+  UART_C       =
+  I2C_C        =
+endif
+
+# -----------------------------------------------------------------------------
+
+TEXTBASE=0x30100000

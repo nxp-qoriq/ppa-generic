@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
-#
-# Copyright (C) 2015-2017 Freescale Semiconductor, Inc. 
+# 
+# Copyright (C) 2015, 2016 Freescale Semiconductor, Inc.
 # Copyright 2017 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -33,45 +33,75 @@
 # 
 #------------------------------------------------------------------------------
 #
-# Define the following environment variables (and make sure they point to your
-# gcc ARM toolchain):
+# sim platform specific definitions
 #
-# ARMV8_TOOLS_DIR=/c/utils/linaro_gcc/gcc-linaro-aarch64-none-elf-4.8-2014.01_win32/bin
-# ARMV8_TOOLS_PREFIX=aarch64-none-elf-
-# FILE_NAMES_DIR=/tmp
-# export ARMV8_TOOLS_DIR
-# export ARMV8_TOOLS_PREFIX
-# export FILE_NAMES_DIR
-#
-# Put the tools dir on your path:
-#
-# PATH=$ARMV8_TOOLS_DIR:$PATH
+# supported targets:
+#   sim - binary image linked with bootrom code
 #
 # -----------------------------------------------------------------------------
-
- # include the basic SoC architecture
-include $(PRE_PATH)soc.def
-
-# -----------------------------------------------------------------------------
-
- # include the gic architecture file
-include $(PRE_PATH)../armv8/gic.mk
-
-# -----------------------------------------------------------------------------
-
- # include the interconnect architecture file
-include $(PRE_PATH)../armv8/inter.mk
+#
+# builds a ppa bound in with the bootrom code, suitable for execution on any target which
+# does not contain bootrom (simulator, emulator)
+sim:
+	$(MAKE) SIM_BUILD=1 sim_out
+	$(MAKE) SIM_BUILD=1 sim_bin
+sim_out:
+	@echo 'build: image=sim \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr):$(plat) \ debug $(dbg) \ test "$(test)"'
+	@echo
+sim_bin: bootmain.64.bin
 
 # -----------------------------------------------------------------------------
 
-# include the test infrastructure
-TEST_SRC= $(PRE_PATH)../test
-include $(TEST_SRC)/test.mk
+# add soc-specific source and headers here
+SRC_SOC    =bootmain.64.s nonboot64.s soc.s
+HDRS_SOC   =soc.h soc.mac boot.h
+
+# add arm-specific source and headers here
+SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
+HDRS_ARMV8 =aarch64.h
+
+# add security-monitor source and headers here
+SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
+HDRS_MNTR  =smc.h
+
+ # add platform-specific asm sources here
+PLAT_ASM =
+
+# add platform-specific C source and headers here
+SRC_PLAT   =
+HDRS_PLAT  =policy.h
+
+ # add platform-test-specific asm sources here
+TEST_ASM =$(TEST_FILE)
+
+ifeq ($(DDR_BLD), 1)
+  # add ddr-specific source and headers here
+  CSRC_SOC   =errata.c
+  CHDRS_SOC  =
+
+  DDR_C    =ddr_init.c
+  DDR_HDRS =plat.h config.h
+  DDR_CMN_C    = ddr.c ddrc.c dimm.c utility.c regs.c opts.c debug.c crc32.c \
+                 spd.c addr.c timer.c
+  DDR_CMN_HDRS = ddr.h dimm.h utility.h immap.h opts.h regs.h debug.h \
+                 timer.h
+  UART_C = uart.c
+  I2C_C  = i2c.c
+else
+  CSRC_SOC     =
+  CHDRS_SOC    =
+  DDR_C        =
+  DDR_HDRS     =
+  DDR_CMN_C    =
+  DDR_CMN_HDRS =
+  UART_C       =
+  I2C_C        =
+endif
 
 # -----------------------------------------------------------------------------
 
-CMMN_SRC= $(PRE_PATH)../common
-include $(CMMN_SRC)/makefile.inc
+#bootmain.64.elf.rom.rmh0.rmh: bootmain.64.elf bootmain.64.bin
+#	perl $(CMMN_SRC)/elf-to-rmh.prl -f $(OBJ_DIR)/bootmain.64.elf > $(OBJ_DIR)/log.txt
 
 # -----------------------------------------------------------------------------
 

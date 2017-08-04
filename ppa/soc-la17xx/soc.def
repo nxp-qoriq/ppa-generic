@@ -1,6 +1,5 @@
 #------------------------------------------------------------------------------
-#
-# Copyright (C) 2015-2017 Freescale Semiconductor, Inc. 
+# 
 # Copyright 2017 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -33,45 +32,27 @@
 # 
 #------------------------------------------------------------------------------
 #
-# Define the following environment variables (and make sure they point to your
-# gcc ARM toolchain):
-#
-# ARMV8_TOOLS_DIR=/c/utils/linaro_gcc/gcc-linaro-aarch64-none-elf-4.8-2014.01_win32/bin
-# ARMV8_TOOLS_PREFIX=aarch64-none-elf-
-# FILE_NAMES_DIR=/tmp
-# export ARMV8_TOOLS_DIR
-# export ARMV8_TOOLS_PREFIX
-# export FILE_NAMES_DIR
-#
-# Put the tools dir on your path:
-#
-# PATH=$ARMV8_TOOLS_DIR:$PATH
+# This file contains the basic architecture definitions that drive the build
 #
 # -----------------------------------------------------------------------------
 
- # include the basic SoC architecture
-include $(PRE_PATH)soc.def
+ # set the basic SoC architecture
+NUMBER_OF_CLUSTERS=1
+NUMBER_OF_CORES=2
+CORES_PER_CLUSTER=2
 
-# -----------------------------------------------------------------------------
+ # set to 1 if all clusters contain the same number of cores,
+ # else set to 0
+CLUSTER_SYMMETRY=1
 
- # include the gic architecture file
-include $(PRE_PATH)../armv8/gic.mk
+ # set to GIC400 or GIC500
+GIC=GIC500
 
-# -----------------------------------------------------------------------------
+ # set to CCI400 or CCN504
+INTERCONNECT=CCN502
 
- # include the interconnect architecture file
-include $(PRE_PATH)../armv8/inter.mk
-
-# -----------------------------------------------------------------------------
-
-# include the test infrastructure
-TEST_SRC= $(PRE_PATH)../test
-include $(TEST_SRC)/test.mk
-
-# -----------------------------------------------------------------------------
-
-CMMN_SRC= $(PRE_PATH)../common
-include $(CMMN_SRC)/makefile.inc
+ # indicate layerscape chassis level - set to 3=LSCH3 or 2=LSCH2
+CHASSIS=3
 
 # -----------------------------------------------------------------------------
 

@@ -68,7 +68,7 @@ CC64		= $(CROSS_COMPILE)gcc
 LD64		= $(CROSS_COMPILE)ld
 OBJ64		= $(CROSS_COMPILE)objcopy
 MKIMAGE		= mkimage
-NM		= $(CROSS_COMPILE)nm
+NM		    = $(CROSS_COMPILE)nm
 
 MAKE        = @make --no-print-directory
 GENITS      = $(CMN_SRC)/gen_its
@@ -79,6 +79,173 @@ CFLAGS64		= $(CFLAGS) -Wa,-march=armv8-a -Wa,-EL -c -fno-stack-protector
 LDFLAGS64		= --oformat=elf64-littleaarch64
 ASFLAGS64		= -Wa,-march=armv8-a -Wa,-EL -x assembler-with-cpp -c
 OPTFLAGS		= -dumpmachine
+
+#------------------------------------------------
+
+PLATFLAGS = $(DBG_FLAGS)                   \
+	-DDEBUG_BUILD=$(DBG_BLD)               \
+    -DDDR_INIT=$(DDR_BLD)                  \
+	-DSIMULATOR_BUILD=$(SIM_BUILD)         \
+	-DPSCI_TEST=$(TEST_PSCI)               \
+	-DCPU_MAX_COUNT=$(NUMBER_OF_CORES)     \
+	-DCLUSTER_COUNT=$(NUMBER_OF_CLUSTERS)  \
+	-DCPU_PER_CLUSTER=$(CORES_PER_CLUSTER) \
+	-DSYMMETRICAL_CLUSTERS=$(CLUSTER_SYMMETRY) \
+	-DL3_VIA_CCN504=$(CCN504_L3)           \
+	-DCNFG_DDR=$(DDR_BLD)                  \
+	-DCNFG_I2C=$(I2C_BLD)                  \
+	-DCNFG_UART=$(UART_BLD)                \
+    -DLSCH=$(CHASSIS)
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+# select the debug/release build -
+ifeq ($(dbg), on)
+    DBG_BLD=1
+    DBG_FLAGS=-Wl,-g -Wa,-g
+else
+    dbg=off
+    DBG_BLD=0
+    DBG_FLAGS=
+endif
+
+# select if ddr/i2c driver(s) are built
+ifeq ($(ddr), on)
+    DDR_BLD=1
+    I2C_BLD=1
+    UART_BLD=1
+else
+    ddr=off
+    DDR_BLD=0
+    I2C_BLD=0
+    UART_BLD=0
+endif
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# include the platform specifics
+ifeq ($(PLAT_BUILD), 1)
+     # for a platform-level build, the file is local
+    PLAT_PATH=.
+else
+    ifeq ($(MAKECMDGOALS), sim)
+        PLAT_PATH=platform-sim
+    else
+    ifeq ($(MAKECMDGOALS), sim_out)
+        PLAT_PATH=platform-sim
+    else
+    ifeq ($(MAKECMDGOALS), sim_bin)
+        PLAT_PATH=platform-sim
+    else
+
+    ifeq ($(MAKECMDGOALS), rdb)
+        PLAT_PATH=platform-rdb
+    else
+    ifeq ($(MAKECMDGOALS), rdb_out)
+        PLAT_PATH=platform-rdb
+    else
+    ifeq ($(MAKECMDGOALS), rdb_bin)
+        PLAT_PATH=platform-rdb
+    else
+
+    ifeq ($(MAKECMDGOALS), rdb-fit)
+        PLAT_PATH=platform-rdb
+    else
+    ifeq ($(MAKECMDGOALS), rdb_fit_out)
+        PLAT_PATH=platform-rdb
+    else
+    ifeq ($(MAKECMDGOALS), rdb_fit_bin)
+        PLAT_PATH=platform-rdb
+    else
+
+    ifeq ($(MAKECMDGOALS), qds)
+        PLAT_PATH=platform-qds
+    else
+    ifeq ($(MAKECMDGOALS), qds_out)
+        PLAT_PATH=platform-qds
+    else
+    ifeq ($(MAKECMDGOALS), qds_bin)
+        PLAT_PATH=platform-qds
+    else
+
+    ifeq ($(MAKECMDGOALS), qds-fit)
+        PLAT_PATH=platform-qds
+    else
+    ifeq ($(MAKECMDGOALS), qds_fit_out)
+        PLAT_PATH=platform-qds
+    else
+    ifeq ($(MAKECMDGOALS), qds_fit_bin)
+        PLAT_PATH=platform-qds
+    else
+
+    ifeq ($(MAKECMDGOALS), generic)
+        PLAT_PATH=platform-generic
+    else
+    ifeq ($(MAKECMDGOALS), generic_out)
+        PLAT_PATH=platform-generic
+    else
+    ifeq ($(MAKECMDGOALS), generic_bin)
+        PLAT_PATH=platform-generic
+    else
+
+    ifeq ($(MAKECMDGOALS), generic-fit)
+        PLAT_PATH=platform-generic
+    else
+    ifeq ($(MAKECMDGOALS), generic_fit_out)
+        PLAT_PATH=platform-generic
+    else
+    ifeq ($(MAKECMDGOALS), generic_fit_bin)
+        PLAT_PATH=platform-generic
+    else
+        PLAT_PATH=
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+    endif
+endif
+ifneq ($(PLAT_PATH),)
+    include $(PLAT_PATH)/plat.mk
+endif
+
+#------------------------------------------------
+
+# set the path to the ddr-specific sources
+ifeq ($(PLAT_PATH), platform-sim)
+    ifeq ($(plat), rdb)
+        DDR_PATH=platform-rdb
+    else
+        ifeq ($(plat), qds)
+            DDR_PATH=platform-qds
+        else
+            ifeq ($(DDR), on)
+                DDR_PATH=
+                $(error -> simulated ddr platform (PLAT) not specified!)
+            else
+                DDR_PATH=
+            endif
+        endif
+    endif
+else
+    DDR_PATH=$(PLAT_PATH)
+endif
 
 #------------------------------------------------
 
@@ -115,6 +282,18 @@ DRIVER_C    = $(DDR_CMN_C) $(I2C_C) $(UART_C)
 DRIVER_HDRS = $(DDR_CMN_HDRS) $(I2C_HDRS) $(UART_HDRS)
 
 #------------------------------------------------
+
+help:	help_out
+help_out:
+	@echo
+	@echo 'make rdb|rdb-fit|sim|generic [options]'
+	@echo
+	@echo 'options:'
+	@echo '  test=smp_boot|hotplug|off_abort|suspend'
+	@echo '  dbg'
+	@echo
+
+# -----------------------------------------------------------------------------
 
 TARGETS    =monitor.bin bootmain.64.bin
 PRE_TARG   =monitor.elf
