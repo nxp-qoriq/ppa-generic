@@ -52,16 +52,8 @@ sim_bin: bootmain.64.bin
 # -----------------------------------------------------------------------------
 
 # add soc-specific source and headers here
-SRC_SOC    =bootmain.64.s nonboot64.s soc.s
-HDRS_SOC   =soc.h soc.mac boot.h
-
-# add arm-specific source and headers here
-SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
-HDRS_ARMV8 =aarch64.h
-
-# add security-monitor source and headers here
-SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
-HDRS_MNTR  =smc.h
+SRC_SOC  += bootmain.64.s nonboot64.s
+HDRS_SOC += boot.h
 
  # add platform-specific asm sources here
 PLAT_ASM =
@@ -81,21 +73,11 @@ ifeq ($(DDR_BLD), 1)
   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
   DDR_HDRS =plat.h config.h
-  DDR_CMN_C    = ddr.c ddrc.c dimm.c utility.c regs.c opts.c debug.c crc32.c \
-                 spd.c addr.c timer.c
-  DDR_CMN_HDRS = ddr.h dimm.h utility.h immap.h opts.h regs.h debug.h \
-                 timer.h
-  UART_C = uart.c
-  I2C_C  = i2c.c
 else
-  CSRC_SOC     =
-  CHDRS_SOC    =
-  DDR_C        =
-  DDR_HDRS     =
-  DDR_CMN_C    =
-  DDR_CMN_HDRS =
-  UART_C       =
-  I2C_C        =
+  CSRC_SOC  =
+  CHDRS_SOC =
+  DDR_C     =
+  DDR_H     =
 endif
 
 # -----------------------------------------------------------------------------

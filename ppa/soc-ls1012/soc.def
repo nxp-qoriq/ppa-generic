@@ -52,6 +52,12 @@ GIC=GIC400
  # set to CCI400 or CCN504
 INTERCONNECT=CCI400
 
+ # ddr controller - set to MMDC or NXP
+DDRCNTLR=MMDC
+
+ # ddr phy - set to NXP or SNPS or ""
+DDRPHY=
+
  # indicate layerscape chassis level - set to 3=LSCH3 or 2=LSCH2
 CHASSIS=2
 

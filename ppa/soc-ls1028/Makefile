@@ -70,6 +70,16 @@ include $(TEST_SRC)/test.mk
 
 # -----------------------------------------------------------------------------
 
+# add soc-specific asm source and headers here
+SRC_SOC   =soc.s
+HDRS_SOC  =soc.mac soc.h
+
+# add soc-specific C source and headers here
+CSRC_SOC  =
+CHDRS_SOC =
+
+DIMM_C = dimm.c
+
 CMMN_SRC= $(PRE_PATH)../common
 include $(CMMN_SRC)/makefile.inc
 

@@ -61,22 +61,6 @@ rdb_fit_bin: ppa.itb
 
 # -----------------------------------------------------------------------------
 
- # add soc-specific source and headers here
-SRC_SOC    =soc.s
-HDRS_SOC   =soc.h soc.mac
-
- # add soc-specific C source and headers here
-CSRC_SOC   =
-CHDRS_SOC  =
-
- # add arm-specific source and headers here
-SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
-HDRS_ARMV8 =aarch64.h
-
- # add security-monitor source and headers here
-SRC_MNTR   =monitor.s smc64.s smc32.s vector.s
-HDRS_MNTR  =smc.h
-
  # add platform-specific asm here
 PLAT_ASM =
 
@@ -90,16 +74,11 @@ TEST_ASM =$(TEST_FILE)
  # add platform-specific source and headers here
 ifeq ($(DDR_BLD), 1)
    # add ddr-specific source and headers here
-  DDR_C    =ddr_init.c
-  DDR_HDRS =config.h
-
-  DDR_CMN_C    = fsl_mmdc.c timer.c uart.c
-  DDR_CMN_HDRS = fsl_mmdc.h timer.h
+  DDR_C =ddr_init.c
+  DDR_H =config.h
 else
-  DDR_C        =
-  DDR_HDRS     =
-  DDR_CMN_C    =
-  DDR_CMN_HDRS =
+  DDR_C =
+  DDR_H =
 endif
 
 # -----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2016, NXP Semiconductors
+// Copyright (c) 2015-2016, Freescale Semiconductor, Inc.
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -29,42 +29,57 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
-// Author York Sun <york.sun@nxp.com>
+// Author Rod Dorris <rod.dorris@nxp.com>
 // 
 //-----------------------------------------------------------------------------
 
-#include "soc.h"
-#include "io.h"
-#include "i2c.h"
-#include "types.h"
+#ifndef _POLICY_H
+#define	_POLICY_H
 
-#define SVR			0x01e000a4
-#define SVR_WO_E		0xFFFFFE
-#define SVR_LS2088		0x870900
-#define SVR_LS2084		0x870910
-#define SVR_SOC_VER(svr)	(((svr) >> 8) & SVR_WO_E)
+ // the following defines affect the PLATFORM SECURITY POLICY
 
-/* Fix me: shall avoid setting register for disabled DDR controller */
-static void erratum_a008336(void)
-{
-	unsigned int *eddrtqcr1;
+ // set this to 0x0 if secure instruction fetch from non-secure memory is allowed
+ // set this to 0x1 if secure instruction fetch from non-secure memory is prohibited
+ // sets SCR_EL3.SIF (bit[9])
+.equ  POLICY_SIF_NS, 0x0
 
-	eddrtqcr1 = (void *)0x70012c000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
+ // set this to 0x0 if FIQ interrupts are not reserved for EL3
+ // set this to 0x1 if FIQ interrupts are reserved for EL3
+ // sets SCR_EL3.FIQ (bit[2])
+.equ  POLICY_FIQ_EL3, 0x1
 
-	eddrtqcr1 = (void *)0x70012d000ULL + 0x800;
-	out_le32(eddrtqcr1, 0x63b30002);
-}
+ // set this to 0x0 if the platform is not using/responding to ECC errors
+ // set this to 0x1 if ECC is being used (we have to do some init)
+.equ  POLICY_USING_ECC, 0x1
 
-static void erratum_a009203(void)
-{
-	struct ls_i2c *ccsr_i2c = (void *)CONFIG_SYS_I2C_BASE;
+ // the following affect system performance
 
-	i2c_out(&ccsr_i2c->dbg, I2C_GLITCH_EN);
-}
+ // set this to 0x0 to optimize PCIe write traffic
+ // set this to 0x1 to optimize WRIOP packet data writes
+.equ  POLICY_PERF_WRIOP, 0x0
 
-void soc_errata(void)
-{
-	erratum_a008336();
-	erratum_a009203();
-}
+ // the following are general system settings
+
+ // set this to 0x0 if EL2 is Aarch32
+ // set this to 0x1 if EL2 is Aarch64
+ // sets SCR_EL3.RW (bit[10])
+.equ  POLICY_EL2_WIDTH, 0x1
+
+ // set this to 0x0 if EL2 is little endian (LE)
+ // set this to 0x1 if EL2 is big endian (BE)
+ // sets SCTLR_EL2.EE
+.equ  POLICY_EL2_EE, 0x0
+
+ // set this to 0x0 if EL1 is Aarch32
+ // set this to 0x1 if EL1 is Aarch64
+ // sets HCR_EL2.RW (bit[31])
+.equ  POLICY_EL1_WIDTH, 0x1
+
+ // set this to 0x0 if EL1 is little endian (LE)
+ // set this to 0x1 if EL1 is big endian (BE)
+ // sets SCTLR_EL1.EE
+.equ  POLICY_EL1_EE, 0x0
+
+//-----------------------------------------------------------------------------
+
+#endif // _POLICY_H

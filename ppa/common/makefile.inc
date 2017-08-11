@@ -80,24 +80,6 @@ LDFLAGS64		= --oformat=elf64-littleaarch64
 ASFLAGS64		= -Wa,-march=armv8-a -Wa,-EL -x assembler-with-cpp -c
 OPTFLAGS		= -dumpmachine
 
-#------------------------------------------------
-
-PLATFLAGS = $(DBG_FLAGS)                   \
-	-DDEBUG_BUILD=$(DBG_BLD)               \
-    -DDDR_INIT=$(DDR_BLD)                  \
-	-DSIMULATOR_BUILD=$(SIM_BUILD)         \
-	-DPSCI_TEST=$(TEST_PSCI)               \
-	-DCPU_MAX_COUNT=$(NUMBER_OF_CORES)     \
-	-DCLUSTER_COUNT=$(NUMBER_OF_CLUSTERS)  \
-	-DCPU_PER_CLUSTER=$(CORES_PER_CLUSTER) \
-	-DSYMMETRICAL_CLUSTERS=$(CLUSTER_SYMMETRY) \
-	-DL3_VIA_CCN504=$(CCN504_L3)           \
-	-DCNFG_DDR=$(DDR_BLD)                  \
-	-DCNFG_I2C=$(I2C_BLD)                  \
-	-DCNFG_UART=$(UART_BLD)                \
-    -DLSCH=$(CHASSIS)
-
-# -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
 # select the debug/release build -
@@ -123,6 +105,22 @@ else
 endif
 
 # -----------------------------------------------------------------------------
+
+PLATFLAGS = $(DBG_FLAGS)                   \
+	-DDEBUG_BUILD=$(DBG_BLD)               \
+    -DDDR_INIT=$(DDR_BLD)                  \
+	-DSIMULATOR_BUILD=$(SIM_BUILD)         \
+	-DPSCI_TEST=$(TEST_PSCI)               \
+	-DCPU_MAX_COUNT=$(NUMBER_OF_CORES)     \
+	-DCLUSTER_COUNT=$(NUMBER_OF_CLUSTERS)  \
+	-DCPU_PER_CLUSTER=$(CORES_PER_CLUSTER) \
+	-DSYMMETRICAL_CLUSTERS=$(CLUSTER_SYMMETRY) \
+	-DL3_VIA_CCN504=$(CCN504_L3)           \
+	-DCNFG_DDR=$(DDR_BLD)                  \
+	-DCNFG_I2C=$(I2C_BLD)                  \
+	-DCNFG_UART=$(UART_BLD)                \
+    -DLSCH=$(CHASSIS)
+
 # -----------------------------------------------------------------------------
 # include the platform specifics
 ifeq ($(PLAT_BUILD), 1)
@@ -249,24 +247,6 @@ endif
 
 #------------------------------------------------
 
- # add the prng driver files here
-HASH_DRBG_HDRS  = $(wildcard  $(DRVR_SRC)/hash_drbg/include/*.h) 
-HASH_DRBG_HDRS := $(notdir $(HASH_DRBG_HDRS))
-HASH_DRBG_C     = $(wildcard  $(DRVR_SRC)/hash_drbg/src/*.c) 
-HASH_DRBG_C    := $(notdir $(HASH_DRBG_C))
-
-#add the SEC files here
-SEC_HDRS =  $(wildcard  $(DRVR_SRC)/fsl_sec/include/*.h) 
-SEC_HDRS := $(notdir $(SEC_HDRS))
-SEC_C =  $(wildcard  $(DRVR_SRC)/fsl_sec/src/*.c) 
-SEC_C := $(notdir $(SEC_C))
-
-# add psci-related source and headers here
-SRC_PSCI   =psci.s
-HDRS_PSCI  =psci.h
-
-#------------------------------------------------
-
  # select the chassis file ---
 ifeq ($(CHASSIS), 3)
     CHASSIS_FILE=lsch3
@@ -278,8 +258,77 @@ else
 endif
 endif
 
-DRIVER_C    = $(DDR_CMN_C) $(I2C_C) $(UART_C)
-DRIVER_HDRS = $(DDR_CMN_HDRS) $(I2C_HDRS) $(UART_HDRS)
+#------------------------------------------------
+
+LINK_ASM   =ppa.ld.s
+COMMON_ASM =utils.s runtime_data.s
+COMMON_C   =ppa_main.c lib.c alloc.c
+COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h runtime_data.h \
+			$(CHASSIS_FILE).h lnkr.cmd
+
+#------------------------------------------------
+
+ifeq ($(DDR_BLD), 1)
+  ifeq ($(DDRCNTLR), NXP)
+    DDR_CNTLR_PATH=$(DRVR_SRC)/ddr/nxp-ddr
+
+    ifeq ($(DDRPHY), NXP)
+      DDR_PHY_PATH=$(DRVR_SRC)/ddr/nxp-phy
+      include $(DDR_PHY_PATH)/ddrphy.mk
+    else
+      ifeq ($(DDRPHY), SNPS)
+        DDR_PHY_PATH=$(DRVR_SRC)/ddr/snps-phy
+        include $(DDR_PHY_PATH)/ddrphy.mk
+      else
+        $(error -> DDR PHY unknown or not specified!)
+      endif
+    endif
+  else
+    ifeq ($(DDRCNTLR), MMDC)
+      DDR_CNTLR_PATH=$(DRVR_SRC)/ddr/fsl-mmdc
+    else
+      $(error -> DDR CNTLR unknown or not specified!)
+    endif
+  endif
+
+I2C_PATH=$(DRVR_SRC)/i2c
+UART_PATH=$(DRVR_SRC)/uart
+TIMER_PATH=$(DRVR_SRC)/timer
+
+COMMON_C += crc32.c
+
+# get the driver makefiles
+include $(DDR_CNTLR_PATH)/ddrcntlr.mk
+include $(I2C_PATH)/i2c.mk
+include $(UART_PATH)/uart.mk
+include $(TIMER_PATH)/timer.mk
+
+$(DDR_C): $(DDR_H) src
+	@cp -r "$(DDR_PATH)/$@" "$(SRC_DIR)/$@"
+
+$(DDR_H): src
+	@cp -r "$(DDR_PATH)/$@" "$(SRC_DIR)/$@"
+
+$(DIMM_C): $(DDR_H) src
+	@cp -r "$(DDR_CNTLR_PATH)/$@" "$(SRC_DIR)/$@"
+
+DRIVER_C = $(DDR_CNTLR_C) $(DDR_PHY_C) $(I2C_C) $(UART_C) $(TIMER_C) $(DDR_C) $(DIMM_C)
+DRIVER_H = $(DDR_CNTLR_H) $(DDR_PHY_H) $(I2C_H) $(UART_H) $(TIMER_H) $(DDR_H)
+
+endif
+
+PRNG_PATH=$(DRVR_SRC)/hash_drbg
+SEC_PATH=$(DRVR_SRC)/fsl_sec
+PSCI_PATH=$(PSCI_SRC)
+MNTR_PATH=$(MONITOR_SRC)
+ARMV8_PATH=$(ARMV8_SRC)
+
+# get the subsystem makefiles
+include $(PRNG_PATH)/hash_drbg.mk
+include $(SEC_PATH)/sec.mk
+include $(PSCI_PATH)/psci.mk
+include $(MNTR_PATH)/mntr.mk
+include $(ARMV8_PATH)/armv8.mk
 
 #------------------------------------------------
 
@@ -298,16 +347,10 @@ help_out:
 TARGETS    =monitor.bin bootmain.64.bin
 PRE_TARG   =monitor.elf
 
-LINK_ASM   =ppa.ld.s
-COMMON_ASM =utils.s runtime_data.s
-COMMON_C   =ppa_main.c lib.c alloc.c
-COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h runtime_data.h \
-			$(CHASSIS_FILE).h lnkr.cmd
-
 BUILD_ASM  =$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
 BUILD_C    =$(HASH_DRBG_C) $(SEC_C) $(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C)
-HDRS_ASM   =$(HDRS_ARMV8) $(HDRS_PLAT)  $(HDRS_MNTR) $(DRIVER_HDRS) $(DDR_HDRS) $(HDRS_PSCI) \
+HDRS_ASM   =$(HDRS_ARMV8) $(HDRS_PLAT)  $(HDRS_MNTR) $(DRIVER_H) $(DDR_H) $(HDRS_PSCI) \
 			$(HASH_DRBG_HDRS) $(SEC_HDRS) $(HDRS_SOC)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 
@@ -378,29 +421,11 @@ $(HDRS_SOC): src
 $(LINK_ASM): $(HDRS_SOC) $(COMMON_HDRS) src
 	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
-$(SRC_PSCI): $(HDRS_PSCI) $(HDRS_SOC) $(COMMON_HDRS) src
-	@cp -r "$(PSCI_SRC)/$@" "$(SRC_DIR)/$@"
-
-$(HDRS_PSCI): src
-	@cp -r "$(PSCI_SRC)/$@" "$(SRC_DIR)/$@"
-
 $(CSRC_SOC): $(CHDRS_SOC) $(HDRS_SOC) src
 	@cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(CHDRS_SOC): src
 	@cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
-
-$(SRC_ARMV8): $(HDRS_ARMV8) $(HDRS_SOC) $(COMMON_HDRS) src
-	@cp -r "$(ARMV8_SRC)/$@" "$(SRC_DIR)/$@"
-
-$(HDRS_ARMV8): src
-	@cp -r "$(ARMV8_SRC)/$@" "$(SRC_DIR)/$@"
-
-$(SRC_MNTR): $(HDRS_MNTR) $(HDRS_SOC) $(COMMON_HDRS) src
-	@cp -r "$(MONITOR_SRC)/$@" "$(SRC_DIR)/$@"
-
-$(HDRS_MNTR): src
-	@cp -r "$(MONITOR_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(SRC_PLAT): $(HDRS_PLAT) src
 	@cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
@@ -414,12 +439,6 @@ $(PLAT_ASM): src
 $(TEST_ASM): $(HDRS_SOC) src
 	@cp -r "$(TEST_SRC)/$@" "$(SRC_DIR)/$@"
 
-$(DDR_C): $(DDR_HDRS) src
-	@cp -r "$(DDR_PATH)/$@" "$(SRC_DIR)/$@"
-
-$(DDR_HDRS): src
-	@cp -r "$(DDR_PATH)/$@" "$(SRC_DIR)/$@"
-
 $(COMMON_ASM): $(HDRS_ARMV8) $(HDRS_PSCI) src
 	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
@@ -428,24 +447,6 @@ $(COMMON_C): $(COMMON_HDRS) src
 
 $(COMMON_HDRS): src
 	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
-
-$(DRIVER_C): $(DRIVER_HDRS) src
-	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
-
-$(DRIVER_HDRS): src
-	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
-
-$(HASH_DRBG_C): $(HASH_DRBG_HDRS) src
-	@cp -r "$(DRVR_SRC)/hash_drbg/src/$@" "$(SRC_DIR)/$@"
-
-$(HASH_DRBG_HDRS): src
-	@cp -r "$(DRVR_SRC)/hash_drbg/include/$@" "$(SRC_DIR)/$@"
-
-$(SEC_C): $(SEC_HDRS) src
-	@cp -r "$(DRVR_SRC)/fsl_sec/src/$@" "$(SRC_DIR)/$@"
-
-$(SEC_HDRS): src
-	@cp -r "$(DRVR_SRC)/fsl_sec/include/$@" "$(SRC_DIR)/$@"
 
 #------------------------------------------------
 
