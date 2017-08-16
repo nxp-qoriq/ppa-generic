@@ -28,6 +28,7 @@ Services provided:
     Aarch32 kernel support
     Memory Bank query when secure fw initializes ddr
     HWRNG - hw randon number generator
+    Prefetch disable for DPDK performance boost
 
 Devices Supported:
     LS1012A
@@ -38,7 +39,30 @@ Devices Supported:
     LS2080A/2085A
     LS2088A
     LA1575
+    LA17xx
     LX2160
+
+Date: 08/16/2017 --------------------------------------------------------------
+
+1) Potential race condition between ppa and bootrom fixed.
+
+2) Added smc function smc64_prefetch_disable(), which will mark a core to have
+   L2 load/store prefetching disabled when the core is released from reset. If
+   the core executing the function is marked, then that core has prefetching
+   immediately disabled. This function is used to gain performance when a
+   core will be executing DPDK.
+
+3) Fixed defect where initialization of cpu data areas was overwriting some
+   stack space.
+
+4) Initial ppa for LA17xx added.
+
+5) Fixed ordering in makefile.inc which caused builds using earlier than
+   GCC 6.2 to fail. 
+
+6) Split sources for drivers out into separate folders.
+
+//- end 08/16/2017 update -----------------------------------------------------
 
 Date: 06/29/2017 --------------------------------------------------------------
 

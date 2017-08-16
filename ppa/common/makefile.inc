@@ -39,89 +39,6 @@ SHELL := /bin/bash
 #
 #-----------------------------------------------------------------------------
 
-MONITOR_SRC = $(PRE_PATH)../monitor
-ARMV8_SRC   = $(PRE_PATH)../armv8
-PSCI_SRC    = $(PRE_PATH)../psci
-CMN_SRC     = $(PRE_PATH)../common
-DRVR_SRC    = $(PRE_PATH)../drivers
-SOC_SRC     = $(PRE_PATH).
-TEST_SRC    = $(PRE_PATH)../test
-TOOL_SRC    = $(PRE_PATH)../tools
-SRC_DIR     = build/src
-OBJ_DIR     = build/obj
-
-BMAP   = -Map $(OBJ_DIR)/bootmain.64.map
-BENTRY = --entry=0 -Ttext=0x0
-MMAP   = -Map $(OBJ_DIR)/monitor.map
-
-ifneq ($(TEXTBASE),)
-MSCRIPT += -Ttext $(TEXTBASE)
-else
-TEXTBASE = 0
-endif
-
-MSCRIPT += --script $(OBJ_DIR)/ppa.ld -pie -Bsymbolic
-
-CROSS_COMPILE	?= $(ARMV8_TOOLS_DIR)/$(ARMV8_TOOLS_PREFIX)
-
-CC64		= $(CROSS_COMPILE)gcc
-LD64		= $(CROSS_COMPILE)ld
-OBJ64		= $(CROSS_COMPILE)objcopy
-MKIMAGE		= mkimage
-NM		    = $(CROSS_COMPILE)nm
-
-MAKE        = @make --no-print-directory
-GENITS      = $(CMN_SRC)/gen_its
-
-GIT_VERSION    := $(shell git describe --dirty --always 2>/dev/null)
-CFLAGS		    = -fno-builtin -ggdb -mstrict-align -DVERSION=\"$(GIT_VERSION)\"
-CFLAGS64		= $(CFLAGS) -Wa,-march=armv8-a -Wa,-EL -c -fno-stack-protector
-LDFLAGS64		= --oformat=elf64-littleaarch64
-ASFLAGS64		= -Wa,-march=armv8-a -Wa,-EL -x assembler-with-cpp -c
-OPTFLAGS		= -dumpmachine
-
-# -----------------------------------------------------------------------------
-
-# select the debug/release build -
-ifeq ($(dbg), on)
-    DBG_BLD=1
-    DBG_FLAGS=-Wl,-g -Wa,-g
-else
-    dbg=off
-    DBG_BLD=0
-    DBG_FLAGS=
-endif
-
-# select if ddr/i2c driver(s) are built
-ifeq ($(ddr), on)
-    DDR_BLD=1
-    I2C_BLD=1
-    UART_BLD=1
-else
-    ddr=off
-    DDR_BLD=0
-    I2C_BLD=0
-    UART_BLD=0
-endif
-
-# -----------------------------------------------------------------------------
-
-PLATFLAGS = $(DBG_FLAGS)                   \
-	-DDEBUG_BUILD=$(DBG_BLD)               \
-    -DDDR_INIT=$(DDR_BLD)                  \
-	-DSIMULATOR_BUILD=$(SIM_BUILD)         \
-	-DPSCI_TEST=$(TEST_PSCI)               \
-	-DCPU_MAX_COUNT=$(NUMBER_OF_CORES)     \
-	-DCLUSTER_COUNT=$(NUMBER_OF_CLUSTERS)  \
-	-DCPU_PER_CLUSTER=$(CORES_PER_CLUSTER) \
-	-DSYMMETRICAL_CLUSTERS=$(CLUSTER_SYMMETRY) \
-	-DL3_VIA_CCN504=$(CCN504_L3)           \
-	-DCNFG_DDR=$(DDR_BLD)                  \
-	-DCNFG_I2C=$(I2C_BLD)                  \
-	-DCNFG_UART=$(UART_BLD)                \
-    -DLSCH=$(CHASSIS)
-
-# -----------------------------------------------------------------------------
 # include the platform specifics
 ifeq ($(PLAT_BUILD), 1)
      # for a platform-level build, the file is local
@@ -223,7 +140,91 @@ ifneq ($(PLAT_PATH),)
     include $(PLAT_PATH)/plat.mk
 endif
 
-#------------------------------------------------
+# -----------------------------------------------------------------------------
+
+MONITOR_SRC = $(PRE_PATH)../monitor
+ARMV8_SRC   = $(PRE_PATH)../armv8
+PSCI_SRC    = $(PRE_PATH)../psci
+CMN_SRC     = $(PRE_PATH)../common
+DRVR_SRC    = $(PRE_PATH)../drivers
+SOC_SRC     = $(PRE_PATH).
+TEST_SRC    = $(PRE_PATH)../test
+TOOL_SRC    = $(PRE_PATH)../tools
+SRC_DIR     = build/src
+OBJ_DIR     = build/obj
+
+BMAP   = -Map $(OBJ_DIR)/bootmain.64.map
+BENTRY = --entry=0 -Ttext=0x0
+MMAP   = -Map $(OBJ_DIR)/monitor.map
+
+ifneq ($(TEXTBASE),)
+MSCRIPT += -Ttext $(TEXTBASE)
+else
+TEXTBASE = 0
+endif
+
+MSCRIPT += --script $(OBJ_DIR)/ppa.ld -pie -Bsymbolic
+
+CROSS_COMPILE	?= $(ARMV8_TOOLS_DIR)/$(ARMV8_TOOLS_PREFIX)
+
+CC64		= $(CROSS_COMPILE)gcc
+LD64		= $(CROSS_COMPILE)ld
+OBJ64		= $(CROSS_COMPILE)objcopy
+MKIMAGE		= mkimage
+NM		    = $(CROSS_COMPILE)nm
+
+MAKE        = @make --no-print-directory
+GENITS      = $(CMN_SRC)/gen_its
+
+GIT_VERSION    := $(shell git describe --dirty --always 2>/dev/null)
+CFLAGS		    = -fno-builtin -ggdb -mstrict-align -DVERSION=\"$(GIT_VERSION)\"
+CFLAGS64		= $(CFLAGS) -Wa,-march=armv8-a -Wa,-EL -c -fno-stack-protector
+LDFLAGS64		= --oformat=elf64-littleaarch64
+ASFLAGS64		= -Wa,-march=armv8-a -Wa,-EL -x assembler-with-cpp -c
+OPTFLAGS		= -dumpmachine
+
+# -----------------------------------------------------------------------------
+
+# select the debug/release build -
+ifeq ($(dbg), on)
+    DBG_BLD=1
+    DBG_FLAGS=-Wl,-g -Wa,-g
+else
+    dbg=off
+    DBG_BLD=0
+    DBG_FLAGS=
+endif
+
+# select if ddr/i2c driver(s) are built
+ifeq ($(ddr), on)
+    DDR_BLD=1
+    I2C_BLD=1
+    UART_BLD=1
+else
+    ddr=off
+    DDR_BLD=0
+    I2C_BLD=0
+    UART_BLD=0
+endif
+
+# -----------------------------------------------------------------------------
+
+PLATFLAGS = $(DBG_FLAGS)                   \
+	-DDEBUG_BUILD=$(DBG_BLD)               \
+    -DDDR_INIT=$(DDR_BLD)                  \
+	-DSIMULATOR_BUILD=$(SIM_BUILD)         \
+	-DPSCI_TEST=$(TEST_PSCI)               \
+	-DCPU_MAX_COUNT=$(NUMBER_OF_CORES)     \
+	-DCLUSTER_COUNT=$(NUMBER_OF_CLUSTERS)  \
+	-DCPU_PER_CLUSTER=$(CORES_PER_CLUSTER) \
+	-DSYMMETRICAL_CLUSTERS=$(CLUSTER_SYMMETRY) \
+	-DL3_VIA_CCN504=$(CCN504_L3)           \
+	-DCNFG_DDR=$(DDR_BLD)                  \
+	-DCNFG_I2C=$(I2C_BLD)                  \
+	-DCNFG_UART=$(UART_BLD)                \
+    -DLSCH=$(CHASSIS)
+
+# -----------------------------------------------------------------------------
 
 # set the path to the ddr-specific sources
 ifeq ($(PLAT_PATH), platform-sim)
@@ -245,7 +246,7 @@ else
     DDR_PATH=$(PLAT_PATH)
 endif
 
-#------------------------------------------------
+# -----------------------------------------------------------------------------
 
  # select the chassis file ---
 ifeq ($(CHASSIS), 3)
@@ -258,7 +259,7 @@ else
 endif
 endif
 
-#------------------------------------------------
+# -----------------------------------------------------------------------------
 
 LINK_ASM   =ppa.ld.s
 COMMON_ASM =utils.s runtime_data.s
@@ -266,7 +267,7 @@ COMMON_C   =ppa_main.c lib.c alloc.c
 COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h runtime_data.h \
 			$(CHASSIS_FILE).h lnkr.cmd
 
-#------------------------------------------------
+# -----------------------------------------------------------------------------
 
 ifeq ($(DDR_BLD), 1)
   ifeq ($(DDRCNTLR), NXP)
@@ -330,7 +331,7 @@ include $(PSCI_PATH)/psci.mk
 include $(MNTR_PATH)/mntr.mk
 include $(ARMV8_PATH)/armv8.mk
 
-#------------------------------------------------
+# -----------------------------------------------------------------------------
 
 help:	help_out
 help_out:
@@ -354,7 +355,8 @@ HDRS_ASM   =$(HDRS_ARMV8) $(HDRS_PLAT)  $(HDRS_MNTR) $(DRIVER_H) $(DDR_H) $(HDRS
 			$(HASH_DRBG_HDRS) $(SEC_HDRS) $(HDRS_SOC)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 
-#------------------------------------------------
+# -----------------------------------------------------------------------------
+
 # generic build targets:
 
 #.NOTPARALLEL:
@@ -366,11 +368,16 @@ cleanout:
 	@rm -f build/obj/*.*
 	@rm -f build/src/*.*
 
-#------------------------------------------------
-GCC_VERSION_GE_62:=$(shell test `$(CC64) -dumpversion | sed 's/^\([0-9]\)\.\([0-9]\).*/\1\2/'` -ge 62 && echo true || echo false)
+# -----------------------------------------------------------------------------
 
-# relocate_rela is available in tools folder
+# test the relocate-rela tool when GCC is 6.2
+ifeq ($(tst-rela), on)
+  GCC_VERSION_GE_62:=false
+else
+  GCC_VERSION_GE_62:=$(shell test `$(CC64) -dumpversion | sed 's/^\([0-9]\)\.\([0-9]\).*/\1\2/'` -ge 62 && echo true || echo false)
+endif
 
+# relocate-rela is available in tools folder
 ifeq ($(GCC_VERSION_GE_62),false)
 DO_STATIC_RELA_RELOC = \
         start=$$($(NM) $(1) | grep __rel_dyn_start | cut -f 1 -d ' '); \
@@ -379,6 +386,8 @@ DO_STATIC_RELA_RELOC = \
 else
 DO_STATIC_RELA_RELOC =
 endif
+
+# -----------------------------------------------------------------------------
 
 monitor.bin: monitor.elf ppa.its
 monitor.elf: $(BUILD_C) $(BUILD_ASM) $(HDRS_ASM) $(COMMON_HDRS) $(OBJECTS)
@@ -401,7 +410,7 @@ bootmain.64.elf: $(HDRS_ASM) $(OBJECTS)
 ppa.ld: ppa.ld.s lnkr.cmd src obj
 	$(CC64) $(ASFLAGS64) $(PLATFLAGS) -P -E $(SRC_DIR)/$< -o $(OBJ_DIR)/$@ 
 
-#------------------------------------------------
+# -----------------------------------------------------------------------------
 
 .s.o: $(BUILD_ASM) $(HDRS_ASM)
 	$(CC64) $(ASFLAGS64) $(PLATFLAGS) $(SRC_DIR)/$< -o $(OBJ_DIR)/$@
@@ -448,7 +457,7 @@ $(COMMON_C): $(COMMON_HDRS) src
 $(COMMON_HDRS): src
 	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
-#------------------------------------------------
+# -----------------------------------------------------------------------------
 
 src: Makefile build
 	@mkdir -p $(SRC_DIR)
@@ -459,5 +468,5 @@ obj: Makefile build
 build: Makefile
 	@mkdir -p build
 
-#------------------------------------------------
+# -----------------------------------------------------------------------------
 

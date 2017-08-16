@@ -44,10 +44,10 @@ device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 la1575 la17xx lx21
 device_found="none"
 target_list="clean rdb rdb-fit qds qds-fit sim generic generic-fit"
 
-option_std="dbg dbg=on dbg=off ddr ddr=on ddr=off i2c i2c=on i2c=off"
+option_std="dbg dbg=on dbg=off ddr ddr=on ddr=off i2c i2c=on i2c=off tst-rela"
 option_rest="uart uart=on uart=off"
 option_test="smp_boot hotplug suspend off_abort aarch32 cpu_errata speed_boot"
-option_list="$option_std+$delimit+$option_rest"
+option_list="$option_std $delimit $option_rest"
 
 mode_list="production prod ret retail development dev"
 
@@ -293,6 +293,7 @@ get_opt="false"
 if [ "$options_done" == "false" ]; then
 if [ "$get_opt" == "false" ]; then
 for option in $option_list ; do
+
     if [ "$tmp1" == "$option" ]; then
 
         if [ "${tmp1/"=on"}" != "$tmp1" ]; then
