@@ -137,7 +137,7 @@ _soc_init_start:
 
      // make sure the personality has been established by releasing cores
      // that are marked "to-be-disabled" from reset
-    bl  release_disabled  // 0-3
+    bl  release_disabled  // 0-8
 
      // init the task flags
     bl  _init_task_flags   // 0-1
@@ -1325,9 +1325,57 @@ _soc_check_sec_enabled:
  // released from reset - if not, it releases them
  // in:  none
  // out: none
- // uses x0, x1, x2, x3
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8
 release_disabled:
+    mov  x8, x30
 
+     // read COREDISABLESR
+    mov  x0, #DCFG_BASE_ADDR
+    ldr  w4, [x0, #COREDISABLEDSR_OFFSET]
+
+     // get the number of cpus on this device
+    mov   x6, #CPU_MAX_COUNT
+
+    mov  x0, #RESET_BASE_ADDR
+    ldr  w5, [x0, #BRR_OFFSET]
+
+     // load the core mask for the first core
+    mov  x7, #1
+
+     // x4 = COREDISABLESR
+     // x5 = BRR
+     // x6 = loop count
+     // x7 = core mask bit
+2:
+     // check if the core is to be disabled
+    tst  x4, x7
+    b.eq 1f
+
+     // see if disabled cores have already been released from reset
+    tst  x5, x7
+    b.ne 1f
+
+     // if core has not been released, then release it (0-3)
+    mov  x0, x7
+    bl   _soc_core_release
+
+     // record the core state in the data area (0-3)
+    mov  x0, x7
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_DISABLED
+    bl   _setCoreData
+
+1:
+     // decrement the counter
+    subs  x6, x6, #1
+    b.le  3f
+    
+     // shift the core mask to the next core
+    lsl   x7, x7, #1
+     // continue
+    b     2b
+3:
+    mov  x30, x8
     ret
 
 //-----------------------------------------------------------------------------
