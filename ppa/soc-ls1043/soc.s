@@ -39,7 +39,6 @@
 
 #define SWLPM20_WA 1
 
-
  // the BASE address for these offsets is AUX_01_DATA in the
  // bootcore's psci data region
 #define DEVDISR2_MASK_OFFSET  0x0    // references AUX_01_DATA
@@ -73,11 +72,8 @@
 
 //-----------------------------------------------------------------------------
 
-#include "aarch64.h"
-#include "soc.h"
-#include "policy.h"
+#include "lsch2.h"
 #include "psci.h"
-#include "runtime_data.h"
 #include "soc.mac"
 
 //-----------------------------------------------------------------------------

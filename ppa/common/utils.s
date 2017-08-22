@@ -37,11 +37,14 @@
 
 //-----------------------------------------------------------------------------
 
-#include "aarch64.h"
 #include "smc.h"
 #include "psci.h"
-#include "soc.h"
-#include "runtime_data.h"
+
+#if (LSCH == 3)
+#include "lsch3.h"
+#elif (LSCH == 2)
+#include "lsch2.h"
+#endif
 
 //-----------------------------------------------------------------------------
 

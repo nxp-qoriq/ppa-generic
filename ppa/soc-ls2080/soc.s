@@ -37,12 +37,9 @@
 
 //-----------------------------------------------------------------------------
 
-#include "aarch64.h"
-#include "soc.h"
-#include "soc.mac"
+#include "lsch3.h"
 #include "psci.h"
-#include "policy.h"
-#include "runtime_data.h"
+#include "soc.mac"
 
 //-----------------------------------------------------------------------------
 
@@ -86,21 +83,6 @@
 .global _soc_check_sec_enabled
 
 //-----------------------------------------------------------------------------
-
- // register offsets
-.equ BOOTLOCPTRL_OFFSET,    0x400
-.equ BOOTLOCPTRH_OFFSET,    0x404
-.equ COREDISR_OFFSET,       0x94
-.equ RST_RSTCR_OFFSET,      0x0
-.equ RST_RSTRQMR1_OFFSET,   0x10
-.equ RST_RSTRQSR1_OFFSET,   0x18
-.equ BRR_OFFSET,            0x60
-
- // bit masks
-.equ RSTCR_RESET_REQ,       0x2
-.equ RSTRQSR1_SWRR,         0x800
-
-.equ RESET_RETRY_CNT,       800
 
 .equ TZPC_BASE,              0x02200000
 .equ TZPCDECPROT_0_SET_BASE, 0x02200804
@@ -1218,7 +1200,7 @@ get_gic_rd_base:
      // x2 = core number / loop counter
 
     ldr  x0, =GICR_RD_BASE_ADDR
-    mov  x1, #GICR_OFFSET
+    mov  x1, #GIC_RD_OFFSET
 2:
     cbz  x2, 1f
     add  x0, x0, x1
@@ -1244,7 +1226,7 @@ get_gic_sgi_base:
      // x2 = core number / loop counter
 
     ldr  x0, =GICR_SGI_BASE_ADDR
-    mov  x1, #GICR_OFFSET
+    mov  x1, #GIC_SGI_OFFSET
 2:
     cbz  x2, 1f
     add  x0, x0, x1

@@ -37,11 +37,8 @@
 
 //-----------------------------------------------------------------------------
 
-#include "aarch64.h"
-#include "soc.h"
+#include "lsch3.h"
 #include "psci.h"
-#include "policy.h"
-#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 
@@ -1310,6 +1307,9 @@ release_disabled:
      // read COREDISABLESR
     mov  x0, #DCFG_BASE_ADDR
     ldr  w4, [x0, #COREDISABLEDSR_OFFSET]
+
+// uncomment to test core disabling
+//mov  x4, #0xFC
 
      // get the number of cpus on this device
     mov   x6, #CPU_MAX_COUNT

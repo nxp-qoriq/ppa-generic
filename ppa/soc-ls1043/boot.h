@@ -1,6 +1,5 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2015-2016, Freescale Semiconductor, Inc.
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -33,53 +32,48 @@
 // 
 //-----------------------------------------------------------------------------
 
-#ifndef _POLICY_H
-#define	_POLICY_H
+#ifndef _BOOT_H
+#define	_BOOT_H
 
- // the following defines affect the PLATFORM SECURITY POLICY
+ // base addresses
+#define SCFG_BASE_ADDR            0x01570000
+#define DCFG_BASE_ADDR            0x01EE0000
+#define RCPM_BASE_ADDR            0x01EE2000
+#define DCSR_RCPM2_BASE           0x20170000
+#define SYS_COUNTER_BASE          0x02b00000
+#define TIMER_BASE_ADDR           0x02B00000
+#define WDT1_BASE                 0x02AD0000
+#define WDT3_BASE                 0x02A70000  
+#define WDT4_BASE                 0x02A80000
+#define WDT5_BASE                 0x02A90000
+#define CCI_400_BASE_ADDR         0x01180000
 
- // set this to 0x0 if secure instruction fetch from non-secure memory is allowed
- // set this to 0x1 if secure instruction fetch from non-secure memory is prohibited
- // sets SCR_EL3.SIF (bit[9])
-#define  POLICY_SIF_NS 0x0
+ // retry count for cci400 status bit
+#define CCI400_PEND_CNT           0x800
 
- // set this to 0x0 if FIQ interrupts are not reserved for EL3
- // set this to 0x1 if FIQ interrupts are reserved for EL3
- // sets SCR_EL3.FIQ (bit[2])
-#define  POLICY_FIQ_EL3 0x1
+ // 25mhz
+#define  COUNTER_FRQ_EL0  0x017D7840    
 
- // set this to 0x0 if the platform is not using/responding to ECC errors
- // set this to 0x1 if ECC is being used (we have to do some init)
-#define  POLICY_USING_ECC 0x1
+ //----------------------------------------------------------------------------
 
- // the following affect system performance
+ // base addresses
+#define GICD_BASE_ADDR_4K  0x01401000
+#define GICC_BASE_ADDR_4K  0x01402000
+#define GICD_BASE_ADDR_64K 0x01410000
+#define GICC_BASE_ADDR_64K 0x01420000
 
- // set this to 0x0 to optimize PCIe write traffic
- // set this to 0x1 to optimize WRIOP packet data writes
-#define  POLICY_PERF_WRIOP 0x0
+#define GIC400_ADDR_ALIGN_4KMODE_MASK  0x80000000
+#define GIC400_ADDR_ALIGN_4KMODE_EN    0x80000000
+#define GIC400_ADDR_ALIGN_4KMODE_DIS   0x0
 
- // the following are general system settings
+ // OCRAM
+#define  OCRAM_SIZE_IN_BYTES 0x20000
+#define  OCRAM_MID_ADDR      0x10010000
 
- // set this to 0x0 if EL2 is Aarch32
- // set this to 0x1 if EL2 is Aarch64
- // sets SCR_EL3.RW (bit[10])
-#define  POLICY_EL2_WIDTH 0x1
-
- // set this to 0x0 if EL2 is little endian (LE)
- // set this to 0x1 if EL2 is big endian (BE)
- // sets SCTLR_EL2.EE
-#define  POLICY_EL2_EE 0x0
-
- // set this to 0x0 if EL1 is Aarch32
- // set this to 0x1 if EL1 is Aarch64
- // sets HCR_EL2.RW (bit[31])
-#define  POLICY_EL1_WIDTH 0x1
-
- // set this to 0x0 if EL1 is little endian (LE)
- // set this to 0x1 if EL1 is big endian (BE)
- // sets SCTLR_EL1.EE
-#define  POLICY_EL1_EE 0x0
+ // defines for the ddr driver
+#define CONFIG_SYS_FSL_ERRATUM_A009942
+#define CONFIG_SYS_FSL_ERRATUM_A009663
 
 //-----------------------------------------------------------------------------
 
-#endif // _POLICY_H
+#endif // _BOOT_H

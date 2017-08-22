@@ -38,7 +38,7 @@
 DDR_CNTLR_C  = addr.c ddr.c ddrc.c debug.c opts.c regs.c spd.c utility.c
 DDR_CNTLR_H  = ddr.h debug.h dimm.h immap.h opts.h regs.h utility.h
 
-$(DDR_CNTLR_C): $(DDR_CNTLR_H) $(COMMON_HDRS) src
+$(DDR_CNTLR_C): $(DDR_CNTLR_H) $(DDR_H) $(COMMON_HDRS) src
 	@cp -r "$(DDR_CNTLR_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(DDR_CNTLR_H): src

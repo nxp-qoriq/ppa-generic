@@ -37,12 +37,9 @@
 
 //-----------------------------------------------------------------------------
 
-#include "aarch64.h"
-#include "soc.h"
-#include "soc.mac"
+#include "lsch3.h"
 #include "psci.h"
-#include "policy.h"
-#include "runtime_data.h"
+#include "soc.mac"
 
 //-----------------------------------------------------------------------------
 
@@ -86,23 +83,6 @@
 .global _soc_check_sec_enabled
 
 //-----------------------------------------------------------------------------
-
- // register offsets
-.equ BOOTLOCPTRL_OFFSET,    0x400
-.equ BOOTLOCPTRH_OFFSET,    0x404
-.equ COREDISR_OFFSET,       0x94
-.equ RST_RSTCR_OFFSET,      0x0
-.equ RST_RSTRQMR1_OFFSET,   0x10
-.equ RST_RSTRQSR1_OFFSET,   0x18
-.equ BRR_OFFSET,            0x60
-
- // bit masks
-.equ RSTCR_RESET_REQ,       0x2
-.equ RSTRQSR1_SWRR,         0x800
-
-.equ RESET_RETRY_CNT,       800
- // retry count for releasing cores from reset - must be > 0
-.equ  CORE_RELEASE_CNT,     3000 
 
 .equ TZPC_BASE,              0x02200000
 .equ TZPCDECPROT_0_SET_BASE, 0x02200804

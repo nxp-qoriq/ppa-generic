@@ -37,12 +37,9 @@
 
 //-----------------------------------------------------------------------------
 
-#include "aarch64.h"
-#include "soc.h"
-#include "soc.mac"
-#include "policy.h"
+#include "lsch2.h"
 #include "psci.h"
-#include "runtime_data.h"
+#include "soc.mac"
 
 //-----------------------------------------------------------------------------
 

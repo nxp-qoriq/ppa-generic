@@ -118,9 +118,91 @@ _test_psci:
     cmp  w0, w1
     b.ne cpu_0_fail_unimplemented
 
-    // test PSCI_CPU_ON
+    bl  test_01
+    bl  test_02
+    bl  test_03
+    bl  test_04
 
-    //-------
+cpu_0_stop:
+    b  cpu_0_stop
+
+cpu_0_badreturn_01:
+    b  cpu_0_badreturn_01
+
+cpu_0_badreturn_02:
+    b  cpu_0_badreturn_02
+
+cpu_0_fail_version:
+    b  cpu_0_fail_version
+
+cpu_0_fail_affinity:
+    b  cpu_0_fail_affinity
+
+cpu_0_fail_unimplemented:
+    b  cpu_0_fail_unimplemented
+
+cpu_0_error_core_1:
+    b  cpu_0_error_core_1
+
+cpu_0_error_core_2:
+    b  cpu_0_error_core_2
+
+cpu_0_error_core_3:
+    b  cpu_0_error_core_3
+
+cpu_0_error_core_4:
+    b  cpu_0_error_core_4
+
+cpu_0_error_core_5:
+    b  cpu_0_error_core_5
+
+cpu_0_error_core_6:
+    b  cpu_0_error_core_6
+
+cpu_0_error_core_7:
+    b  cpu_0_error_core_7
+
+cpu_1_pass:
+    b cpu_1_pass
+
+cpu_2_start:
+    ldr  w9, =CONTEXT_CORE_2
+    bl context_id_chk
+cpu_2_pass:
+    b cpu_2_pass
+
+cpu_3_start:
+    ldr  w9, =CONTEXT_CORE_3
+    bl context_id_chk
+cpu_3_pass:
+    b cpu_3_pass
+
+cpu_4_start:
+    ldr  w9, =CONTEXT_CORE_4
+    bl context_id_chk
+cpu_4_pass:
+    b cpu_4_pass
+
+cpu_5_start:
+    ldr  w9, =CONTEXT_CORE_5
+    bl context_id_chk
+cpu_5_pass:
+    b cpu_5_pass
+
+cpu_6_start:
+    ldr  w9, =CONTEXT_CORE_6
+    bl context_id_chk
+cpu_6_pass:
+    b cpu_6_pass
+
+cpu_7_start:
+    ldr  w9, =CONTEXT_CORE_7
+    bl context_id_chk
+cpu_7_pass:
+    b cpu_7_pass
+
+    // test PSCI_CPU_ON
+test_01:
     // (Core 1)     
     ldr  w1, =MPIDR_CORE_1
     adr  x2, cpu_1_pass
@@ -174,7 +256,9 @@ _test_psci:
     cmp  w0, w1
     b.ne 2b
 
-    //-------
+    ret
+
+test_02:
     // (Core 3)
     ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_3
@@ -228,7 +312,9 @@ _test_psci:
     cmp  w0, w1
     b.ne 4b
 
-    //-------
+    ret
+
+test_03:
     // (Core 7)
     ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_7
@@ -282,7 +368,9 @@ _test_psci:
     cmp  w0, w1
     b.ne 5b
 
-    //-------
+    ret
+
+test_04:
     // (Core 6)
     ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_6
@@ -309,62 +397,7 @@ _test_psci:
     cmp  w0, w1
     b.ne 6b
 
-cpu_0_stop:
-    b  cpu_0_stop
-
-cpu_0_badreturn_01:
-    b  cpu_0_badreturn_01
-
-cpu_0_badreturn_02:
-    b  cpu_0_badreturn_02
-
-cpu_0_fail_version:
-    b  cpu_0_fail_version
-
-cpu_0_fail_affinity:
-    b  cpu_0_fail_affinity
-
-cpu_0_fail_unimplemented:
-    b  cpu_0_fail_unimplemented
-
-cpu_1_pass:
-    b cpu_1_pass
-
-cpu_2_start:
-    ldr  w9, =CONTEXT_CORE_2
-    bl context_id_chk
-cpu_2_pass:
-    b cpu_2_pass
-
-cpu_3_start:
-    ldr  w9, =CONTEXT_CORE_3
-    bl context_id_chk
-cpu_3_pass:
-    b cpu_3_pass
-
-cpu_4_start:
-    ldr  w9, =CONTEXT_CORE_4
-    bl context_id_chk
-cpu_4_pass:
-    b cpu_4_pass
-
-cpu_5_start:
-    ldr  w9, =CONTEXT_CORE_5
-    bl context_id_chk
-cpu_5_pass:
-    b cpu_5_pass
-
-cpu_6_start:
-    ldr  w9, =CONTEXT_CORE_6
-    bl context_id_chk
-cpu_6_pass:
-    b cpu_6_pass
-
-cpu_7_start:
-    ldr  w9, =CONTEXT_CORE_7
-    bl context_id_chk
-cpu_7_pass:
-    b cpu_7_pass
+    ret
 
  // CPU_ON context id check
 context_id_chk:
@@ -374,26 +407,4 @@ context_id_chk:
 context_chk_fail: 
      // context did not match
     b context_chk_fail
-
-cpu_0_error_core_1:
-    b  cpu_0_error_core_1
-
-cpu_0_error_core_2:
-    b  cpu_0_error_core_2
-
-cpu_0_error_core_3:
-    b  cpu_0_error_core_3
-
-cpu_0_error_core_4:
-    b  cpu_0_error_core_4
-
-cpu_0_error_core_5:
-    b  cpu_0_error_core_5
-
-cpu_0_error_core_6:
-    b  cpu_0_error_core_6
-
-cpu_0_error_core_7:
-    b  cpu_0_error_core_7
-
 

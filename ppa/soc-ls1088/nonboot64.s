@@ -57,6 +57,9 @@ non_boot_core:
      // read COREDISABLEDSR
     mov   w0, #COREDISABLEDSR_OFFSET     
     bl    read_reg_dcfg
+// uncomment to test core disabling
+//mov  x0, #0xFC
+
     tst   w0, w3
     b.ne  core_disable
 

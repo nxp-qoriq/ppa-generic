@@ -54,6 +54,7 @@ sim_bin: bootmain.64.bin
 
  # add soc-specific source and headers here
 SRC_SOC  += bootmain.64.s nonboot64.s
+HDRS_SOC +=boot.h
 
  # add platform-specific asm sources here
 PLAT_ASM =

@@ -35,7 +35,7 @@
 
 # armv8 architecture source and headers
 SRC_ARMV8  =aarch64.s $(INTER_FILE).s $(GIC_FILE).s
-HDRS_ARMV8 =aarch64.h
+HDRS_ARMV8 =aarch64.h $(GIC_FILE).h
 
 $(SRC_ARMV8): $(HDRS_ARMV8) $(HDRS_SOC) $(COMMON_HDRS) src
 	@cp -r "$(ARMV8_SRC)/$@" "$(SRC_DIR)/$@"

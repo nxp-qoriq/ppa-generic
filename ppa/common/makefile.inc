@@ -39,6 +39,30 @@ SHELL := /bin/bash
 #
 #-----------------------------------------------------------------------------
 
+# select the debug/release build -
+ifeq ($(dbg), on)
+    DBG_BLD=1
+    DBG_FLAGS=-Wl,-g -Wa,-g
+else
+    dbg=off
+    DBG_BLD=0
+    DBG_FLAGS=
+endif
+
+# select if ddr/i2c driver(s) are built
+ifeq ($(ddr), on)
+    DDR_BLD=1
+    I2C_BLD=1
+    UART_BLD=1
+else
+    ddr=off
+    DDR_BLD=0
+    I2C_BLD=0
+    UART_BLD=0
+endif
+
+# -----------------------------------------------------------------------------
+
 # include the platform specifics
 ifeq ($(PLAT_BUILD), 1)
      # for a platform-level build, the file is local
@@ -182,30 +206,6 @@ CFLAGS64		= $(CFLAGS) -Wa,-march=armv8-a -Wa,-EL -c -fno-stack-protector
 LDFLAGS64		= --oformat=elf64-littleaarch64
 ASFLAGS64		= -Wa,-march=armv8-a -Wa,-EL -x assembler-with-cpp -c
 OPTFLAGS		= -dumpmachine
-
-# -----------------------------------------------------------------------------
-
-# select the debug/release build -
-ifeq ($(dbg), on)
-    DBG_BLD=1
-    DBG_FLAGS=-Wl,-g -Wa,-g
-else
-    dbg=off
-    DBG_BLD=0
-    DBG_FLAGS=
-endif
-
-# select if ddr/i2c driver(s) are built
-ifeq ($(ddr), on)
-    DDR_BLD=1
-    I2C_BLD=1
-    UART_BLD=1
-else
-    ddr=off
-    DDR_BLD=0
-    I2C_BLD=0
-    UART_BLD=0
-endif
 
 # -----------------------------------------------------------------------------
 

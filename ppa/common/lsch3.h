@@ -36,6 +36,77 @@
 #ifndef __LSCH3_H_
 #define __LSCH3_H_
 
+//-----------------------------------------------------------------------------
+
+ // collect all of the headers for a chassis-level-3 device
+#include "aarch64.h"
+#include "gicv3.h"
+#include "soc.h"
+#include "policy.h"
+#include "runtime_data.h"
+
+//-----------------------------------------------------------------------------
+
+#define GICD_BASE_ADDR      0x06000000
+
+ // base addresses
+#define DCFG_BASE_ADDR        0x01E00000
+#define TIMER_BASE_ADDR       0x023E0000
+#define RESET_BASE_ADDR       0x01E60000
+#define SECMON_BASE_ADDR      0x01E90000
+#define SEC_REGFILE_BASE_ADDR 0x01E88000
+#define SCFG_BASE_ADDR        0x01E88000
+
+ // OCRAM
+#define  OCRAM_BASE_ADDR     0x18000000
+#define  OCRAM_REGION_LOWER  0
+#define  OCRAM_REGION_UPPER  1
+#define  OCRAM_INIT_RETRY    0x2000
+
+ // dcfg block register offsets
+#define DCFG_SCRATCHRW7_OFFSET  0x218
+#define DCFG_SVR_OFFSET         0x0A4
+#define COREDISABLEDSR_OFFSET   0x990
+#define DCFG_COREDISR_OFFSET    0x94
+#define COREDISR_OFFSET         0x94
+#define BOOTLOCPTRL_OFFSET      0x400
+#define BOOTLOCPTRH_OFFSET      0x404
+
+ // reset block register offsets
+#define RST_RSTCR_OFFSET      0x0
+#define RST_RSTRQMR1_OFFSET   0x10
+#define RST_RSTRQSR1_OFFSET   0x18
+#define BRR_OFFSET            0x60
+
+ // secure register file offsets
+#define CORE_HOLD_OFFSET      0x140
+
+ // secmon register offsets and bitfields
+#define SECMON_HPCOMR_OFFSET  0x4
+#define SECMON_HPCOMR_NPSWAEN 0x80000000
+
+ // System Counter Offset and Bit Mask
+#define SYS_COUNTER_CNTCR_OFFSET	0x0
+#define SYS_COUNTER_CNTCR_EN		0x00000001
+
+#define TIMER_CNTCR_OFFSET 0x0
+
+ // timer control bitfields
+#define CNTCR_EN_MASK   0x1
+#define CNTCR_EN        0x1
+#define CNTCR_DIS       0x0
+
+ // bit masks
+#define RSTCR_RESET_REQ 0x2
+#define RSTRQSR1_SWRR   0x800
+
+#define SVR_SEC_MASK	0x100
+
+#define RESET_SUCCESS   0x0
+#define RESET_FAILURE   0x1
+
+//-----------------------------------------------------------------------------
+
 #define CONFIG_CHIP_SELECTS_PER_CTRL		4
 #define CONFIG_PHYS_64BIT
 
@@ -60,12 +131,6 @@
 #define CAAM_JR3_OFFSET           0x40000
 #define CONFIG_SYS_FSL_CCSR_SEC_LE
 
-struct sysinfo {
-	unsigned long freq_platform;
-	unsigned long freq_ddr_pll0;
-	unsigned long freq_ddr_pll1;
-};
-
 #define FSL_CHASSIS_RCWSR0			0x01e00100
 #define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_SHIFT	2
 #define FSL_CHASSIS_RCWSR0_SYS_PLL_RAT_MASK	0x1f
@@ -74,6 +139,16 @@ struct sysinfo {
 #define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_SHIFT	18
 #define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_MASK	0x3f
 
+#ifndef __ASSEMBLER__
+
+struct sysinfo {
+	unsigned long freq_platform;
+	unsigned long freq_ddr_pll0;
+	unsigned long freq_ddr_pll1;
+};
+
 void get_clocks(struct sysinfo *sys);
+
+#endif
 
 #endif /* __LSCH3_H_ */
