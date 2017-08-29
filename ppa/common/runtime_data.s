@@ -98,6 +98,7 @@ _getCoreData:
 
      // get base address for bootcore data
     ldr  x2, =BC_PSCI_BASE
+    add  x2, x2, x1
     b    2f
 
 1:   // get base address for secondary core data
@@ -150,6 +151,7 @@ _setCoreData:
 
      // get base address for bootcore data
     ldr  x3, =BC_PSCI_BASE
+    add  x3, x3, x1
     b    2f
 
 1:   // get base address for secondary core data

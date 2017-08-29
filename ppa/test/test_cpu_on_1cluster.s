@@ -72,8 +72,69 @@
 
 _test_psci:
 
+    bl  test_01
+    bl  test_02
+
+.if (CPU_MAX_COUNT > 2)
+    bl  test_03
+.endif
+
  //------------------------------------
 
+core_0_stop:
+    b  core_0_stop
+
+cpu_0_fail_version:
+    b  cpu_0_fail_version
+
+cpu_0_fail_affinity:
+    b  cpu_0_fail_affinity
+
+cpu_0_fail_unimplemented:
+    b  cpu_0_fail_unimplemented
+
+cpu_0_fail_migrate_info:
+    b  cpu_0_fail_migrate_info
+
+cpu_0_fail_features:
+    b  cpu_0_fail_features
+
+cpu_0_error_core_1:
+    b  cpu_0_error_core_1
+
+cpu_0_error_core_2:
+    b  cpu_0_error_core_2
+
+cpu_0_error_core_3:
+    b  cpu_0_error_core_3
+
+ //------------------------------------
+
+core_1a_entry:
+    ldr  w9, =CONTEXT_CORE_1
+    bl context_id_chk
+core_1_pass:
+    b core_1_pass
+
+.if (CPU_MAX_COUNT > 2)
+
+core_2a_entry:
+    ldr  w9, =CONTEXT_CORE_2
+    bl context_id_chk
+core_2_pass:
+    b core_2_pass
+
+core_3a_entry:
+    ldr  w9, =CONTEXT_CORE_3
+    bl context_id_chk
+core_3_pass:
+    b core_3_pass
+
+.endif
+
+ //------------------------------------
+
+test_01:
      // test PSCI_VERSION
     ldr  x0, =PSCI_VERSION_ID
     smc  0x0
@@ -88,6 +149,7 @@ _test_psci:
     cmp  w0, #PSCI_V_MAJOR
     b.ne cpu_0_fail_version
 
+test_affinity:
      // test AFFINITY_INFO of core 1
      // x1 = mpidr
      // x2 = level
@@ -103,6 +165,7 @@ _test_psci:
     cmp  w0, w1
     b.ne cpu_0_fail_affinity
 
+test_migrate_info:
      // test MIGRATE_INFO
     ldr  x0, =PSCI32_MIGRATE_INFO_TYPE_ID
     smc  0x0
@@ -113,6 +176,7 @@ _test_psci:
     cmp  w0, w1
     b.ne cpu_0_fail_migrate_info
 
+test_unimplemented:
      // test an unimplemented psci function
     ldr  x0, =PSCI32_MIGRATE_ID
     ldr  x1, =MPIDR_CORE_1
@@ -124,6 +188,23 @@ _test_psci:
     cmp  w0, w1
     b.ne cpu_0_fail_unimplemented
 
+test_psci_features:
+     // test calling PSCI_FEATURES
+    ldr  x0, =PSCI_FEATURES_ID
+    ldr  x1, =PSCI64_SYSTEM_SUSPEND
+    smc  0x0
+    nop
+    nop
+    nop
+    ldr  x1, =PSCI_NOT_SUPPORTED
+    cmp  w0, w1
+    b.ne cpu_0_fail_features
+
+    ret
+
+ //------------------------------------
+
+test_02:
      // test PSCI_CPU_ON (core 1)
      // x0 = function id = 0xC4000003
      // x1 = mpidr       = 0x0001
@@ -157,8 +238,13 @@ _test_psci:
     cmp  w0, w1
     b.ne 1b
 
+    ret
+
+ //------------------------------------
+
 .if (CPU_MAX_COUNT > 2)
 
+test_03:
      // test PSCI_CPU_ON (core 2)
      // x0 = function id = 0xC4000003
      // x1 = mpidr       = 0x0002
@@ -190,7 +276,6 @@ _test_psci:
     cmp  w0, w1
     b.ne 2b
 
- //------------------------------------
      // test PSCI_CPU_ON (core 3)
      // x0 = function id = 0xC4000003
      // x1 = mpidr       = 0x0003
@@ -222,44 +307,7 @@ _test_psci:
     cmp  w0, w1
     b.ne 3b
 
-.endif
-
-core_0_stop:
-    b  core_0_stop
-
-cpu_0_fail_version:
-    b  cpu_0_fail_version
-
-cpu_0_fail_affinity:
-    b  cpu_0_fail_affinity
-
-cpu_0_fail_unimplemented:
-    b  cpu_0_fail_unimplemented
-
-cpu_0_fail_migrate_info:
-    b  cpu_0_fail_migrate_info
-
- //------------------------------------
-
-core_1a_entry:
-    ldr  w9, =CONTEXT_CORE_1
-    bl context_id_chk
-core_1_pass:
-    b core_1_pass
-
-.if (CPU_MAX_COUNT > 2)
-
-core_2a_entry:
-    ldr  w9, =CONTEXT_CORE_2
-    bl context_id_chk
-core_2_pass:
-    b core_2_pass
-
-core_3a_entry:
-    ldr  w9, =CONTEXT_CORE_3
-    bl context_id_chk
-core_3_pass:
-    b core_3_pass
+    ret
 
 .endif
 
@@ -275,26 +323,4 @@ context_chk_fail:
     b context_chk_fail
 
  //------------------------------------
-
-cpu_0_error_core_1:
-    b  cpu_0_error_core_1
-
-cpu_0_error_core_2:
-    b  cpu_0_error_core_2
-
-cpu_0_error_core_3:
-    b  cpu_0_error_core_3
-
-cpu_0_error_core_4:
-    b  cpu_0_error_core_4
-
-cpu_0_error_core_5:
-    b  cpu_0_error_core_5
-
-cpu_0_error_core_6:
-    b  cpu_0_error_core_6
-
-cpu_0_error_core_7:
-    b  cpu_0_error_core_7
-
 

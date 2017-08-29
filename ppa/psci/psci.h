@@ -151,6 +151,7 @@
 .equ PSCI32_MIGRATE_INFO_TYPE_ID,  0x84000006
 .equ PSCI64_MIGRATE_INFO_UPCPU_ID, 0xC4000007
 .equ PSCI32_MIGRATE_INFO_UPCPU_ID, 0x84000007
+.equ PSCI64_SYSTEM_SUSPEND,        0xC400000E
 
  // psci function id's for smc64 interface
  // these functions are callable only from Aarch64
