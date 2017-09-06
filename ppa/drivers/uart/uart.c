@@ -34,7 +34,7 @@
 //-----------------------------------------------------------------------------
 
 #include "lib.h"
-#include "config.h"
+#include "plat.h"
 #include "io.h"
 #include "uart.h"
 

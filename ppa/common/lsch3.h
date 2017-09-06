@@ -62,6 +62,7 @@
 #define  OCRAM_REGION_LOWER  0
 #define  OCRAM_REGION_UPPER  1
 #define  OCRAM_INIT_RETRY    0x2000
+#define  TOP_OF_OCRAM        ((OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES) - 1)
 
  // dcfg block register offsets
 #define DCFG_SCRATCHRW7_OFFSET  0x218
@@ -106,6 +107,9 @@
 #define RESET_FAILURE   0x1
 
 //-----------------------------------------------------------------------------
+
+#define DDR_TEST_TABLE		(TOP_OF_OCRAM - 4096 * 3 + 1)
+#define TOP_OF_STACK		(DDR_TEST_TABLE - 1)
 
 #define CONFIG_CHIP_SELECTS_PER_CTRL		4
 #define CONFIG_PHYS_64BIT

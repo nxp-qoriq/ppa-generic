@@ -34,7 +34,7 @@
 //-----------------------------------------------------------------------------
 
 #include "io.h"
-#include "config.h"
+#include "plat.h"
 #include "lib.h"
 #include "ddr.h"
 #include "debug.h"
@@ -303,7 +303,7 @@ static int pop_ctrl_opts(const unsigned clk,
 				pdodt = dual_0D;
 				break;
 			default:
-				puts("Error: invalid cs_in_use\n");
+				debug("Error: invalid cs_in_use\n");
 				return -EINVAL;
 			}
 			break;
@@ -319,17 +319,17 @@ static int pop_ctrl_opts(const unsigned clk,
 				pdodt = dual_0S;
 				break;
 			default:
-				puts("Error: invalid cs_in_use\n");
+				debug("Error: invalid cs_in_use\n");
 				return -EINVAL;
 			}
 			break;
 		case 0:
-			puts("Error: n_ranks = 0?\n");
+			debug("Error: n_ranks = 0?\n");
 			return -EINVAL;
 		}
 		break;
 	default:
-		puts("Unsupported number of DIMMs\n");
+		debug("Unsupported number of DIMMs\n");
 		return -EINVAL;
 	}
 
@@ -363,7 +363,7 @@ static int pop_ctrl_opts(const unsigned clk,
 		popts->data_bus_width = DDR_DATA_BUS_WIDTH_16;
 		popts->data_bus_used = DDR_DATA_BUS_WIDTH_16;
 	} else {
-		puts("Error: primary sdram width invalid!\n");
+		debug("Error: primary sdram width invalid!\n");
 		return -EINVAL;
 	}
 
@@ -481,7 +481,7 @@ static void check_interleaving_options(struct ddr_info *priv)
 	if (intlv_invalid) {
 		for (i = first_ctrl; i <= last_ctrl; i++)
 			priv->opts[i].memctl_interleaving = 0;
-		puts("Warning: Invalid DIMM configuration. "
+		debug("Warning: Invalid DIMM configuration. "
 		     "Memory controller interleaving disabled.\n");
 	} else {
 		switch (check_intlv) {
@@ -493,7 +493,7 @@ static void check_interleaving_options(struct ddr_info *priv)
 			k = 2;
 			break;
 		default:
-			puts("Warning: Unknown interleaving mode. Disabling...\n");
+			debug("Warning: Unknown interleaving mode. Disabling...\n");
 			k = 0;
 			break;
 		}
@@ -501,8 +501,9 @@ static void check_interleaving_options(struct ddr_info *priv)
 		if (j && (j != k)) {
 			for (i = first_ctrl; i <= last_ctrl; i++)
 				priv->opts[i].memctl_interleaving = 0;
-			if ((last_ctrl - first_ctrl) > 1)
-				puts("Warning: incompatible interleaving mode. Disabled.\n");
+			if ((last_ctrl - first_ctrl) > 1) {
+				debug("Warning: incompatible interleaving mode. Disabled.\n");
+            }
 		}
 	}
 	debug("DEBUG: checking interleaving options completed\n");

@@ -108,17 +108,18 @@ int bist(struct ccsr_ddr *ddr, int timeout)
 		timeout--;
 		mtcr = ddr_in32(&ddr->mtcr);
 	}
-	if (timeout <= 0)
-		puts("Timeout\n");
+	if (timeout <= 0) {
+		debug("Timeout\n");
+    }
 	else {
 		debug("Done");
-		puts("\n");
+		debug("\n");
 	}
 
 	err_detect = ddr_in32(&ddr->err_detect);
 	err_sbe = ddr_in32(&ddr->err_sbe);
 	if (err_detect || (err_sbe & 0xffff)) {
-		puts("ECC error detected\n");
+		debug("ECC error detected\n");
 		ret = -EIO;
 	}
 
@@ -130,7 +131,7 @@ int bist(struct ccsr_ddr *ddr, int timeout)
 		ddr_out32(&ddr->cs3_bnds, cs3_bnds);
 	}
 	if (mtcr & BIST_CR_STAT) {
-		puts("BIST test failed\n");
+		debug("BIST test failed\n");
 		ret = -EIO;
 	}
 
@@ -149,7 +150,7 @@ static void set_wait_for_bits_clear(void *ptr, unsigned int value, unsigned int 
 		timeout--;
 	}
 	if (timeout <= 0)
-		puts("Error: wait for clear timeout.\n");
+		debug("Error: wait for clear timeout.\n");
 }
 #endif
 
@@ -207,9 +208,9 @@ int ddrc_set_regs(const unsigned long clk,
 		break;
 #endif
 	default:
-		puts("%s unexpected ctrl_num = ");
-		print_uint(ctrl_num);
-		puts("\n");
+		debug("%s unexpected ctrl_num = ");
+		dbgprint_uint(ctrl_num);
+		debug("\n");
 		return -EINVAL;
 	}
 
@@ -460,9 +461,9 @@ step2:
 		timeout--;
 	}
 	if (timeout <= 0) {
-		puts("Controler ");
-		print_uint(ctrl_num);
-		puts(" timeout waiting for idle\n");
+		debug("Controler ");
+		dbgprint_uint(ctrl_num);
+		debug(" timeout waiting for idle\n");
 		ret = -EIO;
 		goto out;
 	}
@@ -513,9 +514,9 @@ step2:
 			timeout--;
 		}
 		if (timeout <= 0) {
-			puts("Controler ");
-			print_uint(ctrl_num);
-			puts(" timeout for idle after restarting deskew\n");
+			debug("Controler ");
+			dbgprint_uint(ctrl_num);
+			debug(" timeout for idle after restarting deskew\n");
 			ret = -EIO;
 			goto out;
 		}
@@ -585,7 +586,7 @@ step2:
 	}
 
 	if (timeout <= 0) {
-		puts("Error: Waiting for D_INIT timeout.\n");
+		debug("Error: Waiting for D_INIT timeout.\n");
 		ret = -EIO;
 		goto out;
 	}
@@ -607,15 +608,15 @@ step2:
 #endif
 	{
 		if (ddr_in32(&ddr->debug[1]) & 0x3d00) {
-			puts("Found training error(s): 0x");
-			print_hex(ddr_in32(&ddr->debug[1]));
-			puts("\n");
+			debug("Found training error(s): 0x");
+			dbgprint_hex(ddr_in32(&ddr->debug[1]));
+			debug("\n");
 			ret = -EIO;
 			goto out;
 		}
-		puts("BIST test ");
-		print_uint(ctrl_num);
-		puts("...");
+		debug("BIST test ");
+		dbgprint_uint(ctrl_num);
+		debug("...");
 		/* give it 10x time to cover whole memory */
 		timeout = ((total_mem_per_ctrl << (6 - bus_width)) *
 			   100 / (clk >> 20)) * 10;
@@ -659,9 +660,9 @@ void ddrc_disable(int ctrl_num)
 		break;
 #endif
 	default:
-		puts("%s unexpected ctrl_num = ");
-		print_uint(ctrl_num);
-		puts("\n");
+		debug("%s unexpected ctrl_num = ");
+		dbgprint_uint(ctrl_num);
+		debug("\n");
 		return;
 	}
 
@@ -679,7 +680,7 @@ void ddrc_disable(int ctrl_num)
 		timeout--;
 	}
 	if (!timeout)
-		puts("Error: reset DDRC timeout\n");
+		debug("Error: reset DDRC timeout\n");
 
 	ddr_out32(&ddr->err_detect, ddr_in32(&ddr->err_detect));
 	ddr_out32(&ddr->err_sbe, 0);
@@ -720,18 +721,18 @@ void dump_ddrc(int ctrl_num)
 		break;
 #endif
 	default:
-		puts("%s unexpected ctrl_num = ");
-		print_uint(ctrl_num);
-		puts("\n");
+		debug("%s unexpected ctrl_num = ");
+		dbgprint_uint(ctrl_num);
+		debug("\n");
 		return;
 	}
 
 	for (i = 0; i < 0x400; i++, ddr++) {
-		puts("*0x");
-		print_hex((unsigned long)ddr);
-		puts(" = 0x");
-		print_hex(*ddr);
-		puts("\n");
+		debug("*0x");
+		dbgprint_hex((unsigned long)ddr);
+		debug(" = 0x");
+		dbgprint_hex(*ddr);
+		debug("\n");
 	}
 }
 
@@ -760,22 +761,22 @@ void dump_err(int ctrl_num)
 		break;
 #endif
 	default:
-		puts("%s unexpected ctrl_num = ");
-		print_uint(ctrl_num);
-		puts("\n");
+		debug("%s unexpected ctrl_num = ");
+		dbgprint_uint(ctrl_num);
+		debug("\n");
 		return;
 	}
 
-	puts("md_cntl = 0x");
-	print_hex(ddr_in32(ddr + 0x48));
-	puts("\nmd_cntl_2 = 0x");
-	print_hex(ddr_in32(ddr + 0x9c));
-	puts("\n");
+	debug("md_cntl = 0x");
+	dbgprint_hex(ddr_in32(ddr + 0x48));
+	debug("\nmd_cntl_2 = 0x");
+	dbgprint_hex(ddr_in32(ddr + 0x9c));
+	debug("\n");
 	for (i = 0x388, ddr += 0x388; i < 0x400; i++, ddr++) {
-		puts("*0x");
-		print_hex((unsigned long)ddr);
-		puts(" = 0x");
-		print_hex(*ddr);
-		puts("\n");
+		debug("*0x");
+		dbgprint_hex((unsigned long)ddr);
+		debug(" = 0x");
+		dbgprint_hex(*ddr);
+		debug("\n");
 	}
 }

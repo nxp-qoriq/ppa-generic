@@ -213,6 +213,9 @@ static const struct board_specific_parameters *rdimms[] = {
 				| CSPR_V)
 #define CONFIG_SYS_CSPR3_EXT	0
 
+#define UART_BASE	0x21c0500
+#define UART_BAUD_DIV	163     /* 115200 from 600MHz plat clk */
+
 enum ifc_chip_sel {
         IFC_CS0,
         IFC_CS1,

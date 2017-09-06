@@ -83,14 +83,21 @@ static inline unsigned long ilog2(register unsigned long x)
 
 unsigned int crc32(unsigned int crc, const void *buf, unsigned int size);
 
-#ifdef DEBUG
+#if ((DEBUG_BUILD) && (CNFG_UART))
 #define debug(s) puts(s)
 #define debug_int(s, a) { puts(s); print_uint(a); puts("\n"); }
 #define debug_hex(s, a) { puts(s); print_hex(a); puts("\n"); }
+
+#define dbgprint_uint(a) print_uint(a)
+#define dbgprint_hex(a)  print_hex(a)
+
 #else
 #define debug(s) {}
 #define debug_int(s, a) {}
 #define debug_hex(s, a) {}
+
+#define dbgprint_uint(a) {}
+#define dbgprint_hex(a)  {}
 #endif
 
 static inline void hang(void)
@@ -101,7 +108,7 @@ static inline void hang(void)
 
 static inline void panic(char *s)
 {
-	puts(s);
+	debug(s);
 	hang();
 }
 

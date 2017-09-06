@@ -35,7 +35,7 @@
 
 #include "lib.h"
 #include "io.h"
-#include "config.h"
+#include "plat.h"
 #include "dimm.h"
 #include "i2c.h"
 
@@ -76,7 +76,7 @@ int read_spd(unsigned char chip, void *buf, int len)
 	int ret;
 
 	if (len < 256) {
-		puts("Invalid SPD length\n");
+		debug("Invalid SPD length\n");
 		return -EINVAL;
 	}
 
@@ -123,16 +123,16 @@ static int ddr4_spd_check(const struct ddr4_spd *spd)
 	crc_msb = (char) (csum16 >> 8);
 
 	if (spd->crc[0] != crc_lsb || spd->crc[1] != crc_msb) {
-		puts("SPD checksum unexpected.\n");
-		puts("Checksum lsb in SPD = ");
-		print_hex(spd->crc[0]);
-		puts(", computed SPD = ");
-		print_hex(crc_lsb);
-		puts("\nChecksum msb in SPD = ");
-		print_hex(spd->crc[1]);
-		puts(", computed SPD = ");
-		print_hex(crc_msb);
-		puts("\n");
+		debug("SPD checksum unexpected.\n");
+		debug("Checksum lsb in SPD = ");
+		dbgprint_hex(spd->crc[0]);
+		debug(", computed SPD = ");
+		dbgprint_hex(crc_lsb);
+		debug("\nChecksum msb in SPD = ");
+		dbgprint_hex(spd->crc[1]);
+		debug(", computed SPD = ");
+		dbgprint_hex(crc_msb);
+		debug("\n");
 		return -EINVAL;
 	}
 
@@ -145,16 +145,16 @@ static int ddr4_spd_check(const struct ddr4_spd *spd)
 
 	if (spd->mod_section.uc[126] != crc_lsb ||
 	    spd->mod_section.uc[127] != crc_msb) {
-		puts("SPD module checksum unexpected.\n");
-		puts("Checksum lsb in SPD = ");
-		print_hex(spd->mod_section.uc[126]);
-		puts(", computed SPD = ");
-		print_hex(crc_lsb);
-		puts("\nChecksum msb in SPD = ");
-		print_hex(spd->mod_section.uc[127]);
-		puts(", computed SPD = ");
-		print_hex(crc_msb);
-		puts("\n");
+		debug("SPD module checksum unexpected.\n");
+		debug("Checksum lsb in SPD = ");
+		dbgprint_hex(spd->mod_section.uc[126]);
+		debug(", computed SPD = ");
+		dbgprint_hex(crc_lsb);
+		debug("\nChecksum msb in SPD = ");
+		dbgprint_hex(spd->mod_section.uc[127]);
+		debug(", computed SPD = ");
+		dbgprint_hex(crc_msb);
+		debug("\n");
 		return -EINVAL;
 	}
 
@@ -201,13 +201,13 @@ int cal_dimm_params(const struct ddr4_spd *spd, struct dimm_params *pdimm)
 	unsigned char *ptr;
 
 	if (spd->mem_type != SPD_MEMTYPE_DDR4) {
-		puts("Error: Not a DDR4 DIMM.\n");
+		debug("Error: Not a DDR4 DIMM.\n");
 		return -EINVAL;
 	}
 
 	ret = ddr4_spd_check(spd);
 	if (ret) {
-		puts("Error: DIMM SPD checksum mismatch\n");
+		debug("Error: DIMM SPD checksum mismatch\n");
 		return -EINVAL;
 	}
 
@@ -260,9 +260,9 @@ int cal_dimm_params(const struct ddr4_spd *spd, struct dimm_params *pdimm)
 		break;
 
 	default:
-		puts("Error: unknown module_type 0x");
-		print_hex(spd->module_type);
-		puts("\n");
+		debug("Error: unknown module_type 0x");
+		dbgprint_hex(spd->module_type);
+		debug("\n");
 		return -EINVAL;
 	}
 
@@ -293,7 +293,7 @@ int cal_dimm_params(const struct ddr4_spd *spd, struct dimm_params *pdimm)
 		pdimm->ftb_10th_ps = 10;
 
 	} else {
-		puts("Unknown Timebases\n");
+		debug("Unknown Timebases\n");
 		return -EINVAL;
 	}
 
@@ -316,7 +316,7 @@ int cal_dimm_params(const struct ddr4_spd *spd, struct dimm_params *pdimm)
 			   (spd->caslat_b3 << 23);
 
 	if (spd->caslat_b4 != 0)
-		puts("BUG: Unhandled caslat_b4 value\n");
+		debug("BUG: Unhandled caslat_b4 value\n");
 
 	/*
 	 * min CAS latency time

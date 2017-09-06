@@ -35,7 +35,7 @@
 
 #include "lib.h"
 #include "io.h"
-#include "config.h"
+#include "plat.h"
 #include "ddr.h"
 
 /*
@@ -292,9 +292,9 @@ static void set_timing_cfg_1(const unsigned long clk,
 	acttoact_mclk = max(picos_to_mclk(clk, pdimm->trrds_ps), 4U);
 	wrtord_mclk = max(2U, picos_to_mclk(clk, 2500));
 	if ((wrrec_mclk < 1) || (wrrec_mclk > 24)) {
-		puts("Error: WRREC doesn't support clock ");
-		print_uint(wrrec_mclk);
-		puts("\n");
+		debug("Error: WRREC doesn't support clock ");
+		dbgprint_uint(wrrec_mclk);
+		debug("\n");
 	} else
 		wrrec_mclk = wrrec_table[wrrec_mclk - 1];
 	if (popts->otf_burst_chop_en)
@@ -462,7 +462,7 @@ static void set_timing_cfg_5(struct ddr_cfg_regs *ddr,
 
 	/* WR_LAT cannot be zero if set */
 	if (!ddr->timing_cfg_2) {
-		puts("Error: timing_cfg_2 not set\n");
+		debug("Error: timing_cfg_2 not set\n");
 		return;
 	}
 
@@ -512,7 +512,7 @@ static void set_timing_cfg_7(const unsigned long clk,
 
 	/* NUM_PR cannot be 0 if set */
 	if (!ddr->ddr_sdram_cfg_2) {
-		puts("Error: sdram_cfg_2 not set\n");
+		debug("Error: sdram_cfg_2 not set\n");
 		return;
 	}
 
@@ -528,9 +528,9 @@ static void set_timing_cfg_7(const unsigned long clk,
 			/* parity latency 5 clocks for DDR4-2400 */
 			par_lat = 5;
 		} else {
-			puts("Error: mclk_ps not supported for parity ");
-			print_uint(mclk_ps);
-			puts("\n");
+			debug("Error: mclk_ps not supported for parity ");
+			dbgprint_uint(mclk_ps);
+			debug("\n");
 		}
 	}
 
@@ -578,7 +578,7 @@ static void set_timing_cfg_8(const unsigned long clk,
 
 	/* WR_LAT cannot be 0 if set */
 	if (!ddr->timing_cfg_2) {
-		puts("Error: timing_cfg_2 not set\n");
+		debug("Error: timing_cfg_2 not set\n");
 		return;
 	}
 	wr_lat = ((ddr->timing_cfg_2 & 0x00780000) >> 19) +
@@ -901,9 +901,9 @@ static void set_ddr_sdram_mode_1_3_5_7(const unsigned long clk,
 	if (wr_mclk <= 24) {
 		wr = wr_table[wr_mclk - 10];
 	} else {
-		puts("Error: unsupported write recovery for mode register wr_mclk = ");
-		print_uint(wr_mclk);
-		puts("\n");
+		debug("Error: unsupported write recovery for mode register wr_mclk = ");
+		dbgprint_uint(wr_mclk);
+		debug("\n");
 	}
 
 	dll_rst = 0;	/* dll no reset */
@@ -913,7 +913,7 @@ static void set_ddr_sdram_mode_1_3_5_7(const unsigned long clk,
 	if (cas_latency >= 9 && cas_latency <= 24)
 		caslat = cas_latency_table[cas_latency - 9];
 	else
-		puts("Error: unsupported cas latency for mode register\n");
+		debug("Error: unsupported cas latency for mode register\n");
 
 	bt = 0;	/* Nibble sequential */
 
@@ -928,9 +928,9 @@ static void set_ddr_sdram_mode_1_3_5_7(const unsigned long clk,
 		bl = 2;
 		break;
 	default:
-		puts("Error: invalid burst length ");
-		print_uint(popts->burst_length);
-		puts("\nDefaulting to on-the-fly BC4 or BL8 beats.\n");
+		debug("Error: invalid burst length ");
+		dbgprint_uint(popts->burst_length);
+		debug("\nDefaulting to on-the-fly BC4 or BL8 beats.\n");
 		bl = 1;
 		break;
 	}
@@ -1094,9 +1094,9 @@ static void set_ddr_sdram_mode_9_11_13_15(const unsigned long clk,
 			esdmode5 |= DDR_MR5_CA_PARITY_LAT_5_CLK;
 		} else {
 			esdmode5 |= DDR_MR5_CA_PARITY_LAT_5_CLK;
-			puts("Warning: mclk_ps not supported ");
-			print_uint(mclk_ps);
-			puts("\n");
+			debug("Warning: mclk_ps not supported ");
+			dbgprint_uint(mclk_ps);
+			debug("\n");
 			
 		}
 	}
@@ -1131,9 +1131,9 @@ static void set_ddr_sdram_mode_9_11_13_15(const unsigned long clk,
 				esdmode5 |= DDR_MR5_CA_PARITY_LAT_5_CLK;
 			} else {
 				esdmode5 |= DDR_MR5_CA_PARITY_LAT_5_CLK;
-				puts("Warning: mclk_ps not supported ");
-				print_uint(mclk_ps);
-				puts("\n");
+				debug("Warning: mclk_ps not supported ");
+				dbgprint_uint(mclk_ps);
+				debug("\n");
 			}
 		}
 
@@ -1264,7 +1264,7 @@ static void set_ddr_dq_mapping(struct ddr_cfg_regs *ddr,
 
 	/* SDRAM_TYPE cannot be 0 if set */
 	if (!ddr->ddr_sdram_cfg) {
-		puts("Error: sdram_cfg not set\n");
+		debug("Error: sdram_cfg not set\n");
 		return;
 	}
 
@@ -1374,7 +1374,7 @@ static void set_ddr_eor(struct ddr_cfg_regs *ddr, const struct memctl_opt *popts
 {
 	if (popts->addr_hash) {
 		ddr->ddr_eor = 0x40000000;	/* address hash enable */
-		puts("Address hashing enabled.\n");
+		debug("Address hashing enabled.\n");
 	}
 }
 
@@ -1398,7 +1398,7 @@ int check_ddrc_regs(const struct ddr_cfg_regs *ddr)
 	 */
 	if (ddr->ddr_sdram_cfg & 0x10000000
 	    && ddr->ddr_sdram_cfg & 0x00008000) {
-		puts("Error: DDR_SDRAM_CFG[RD_EN] and DDR_SDRAM_CFG[2T_EN] both set.\n");
+		debug("Error: DDR_SDRAM_CFG[RD_EN] and DDR_SDRAM_CFG[2T_EN] both set.\n");
 		return -EINVAL;
 	}
 
@@ -1432,14 +1432,14 @@ int compute_ddrc_regs(const unsigned long clk,
 		cas_latency++;
 
 	if (i <= 0) {
-		puts("Error: Failed to find a proper cas latency\n");
+		debug("Error: Failed to find a proper cas latency\n");
 		return -EINVAL;
 	}
 	/* Verify cas latency does not exceed 18ns for DDR4 */
 	if (cas_latency * mclk_ps > 18000) {
-		puts("Error: cas latency is too large ");
-		print_uint(cas_latency);
-		puts("\n");
+		debug("Error: cas latency is too large ");
+		dbgprint_uint(cas_latency);
+		debug("\n");
 		return -EINVAL;
 	}
 

@@ -33,8 +33,11 @@
 // 
 //-----------------------------------------------------------------------------
 
-#ifndef __LS1043ARDB_DDR_H__
-#define __LS1043ARDB_DDR_H__
+#ifndef __PLAT_H__
+#define __PLAT_H__
+
+#define UART_BASE	0x21c0500
+#define UART_BAUD_DIV	217     /* 115200 from 400MHz plat clk */
 
 struct board_specific_parameters {
 	unsigned int n_ranks;
@@ -64,4 +67,4 @@ static const struct board_specific_parameters udimm[] = {
 	{}
 };
 
-#endif /* __LS1043ARDB_DDR_H__ */
+#endif /* __PLAT_H__ */

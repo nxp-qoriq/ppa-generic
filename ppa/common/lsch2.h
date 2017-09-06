@@ -64,6 +64,7 @@
 #define  OCRAM_INIT_RETRY    0x2000
 #define  OCRAM_REGION_LOWER  0
 #define  OCRAM_REGION_UPPER  1
+#define  TOP_OF_OCRAM        ((OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES) - 1)
 
  // register offsets
 #define SCFG_COREBCR_OFFSET       0x0680
@@ -123,6 +124,9 @@
 #define SVR_SEC_MASK	          0x100
 
 //-----------------------------------------------------------------------------
+
+#define DDR_TEST_TABLE		(TOP_OF_OCRAM - 4096 * 3 + 1)
+#define TOP_OF_STACK		(DDR_TEST_TABLE - 1)
 
 #define CONFIG_SYS_FSL_CCSR_GUR_BE
 #define CONFIG_SYS_FSL_CCSR_DDR_BE

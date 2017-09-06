@@ -63,4 +63,7 @@ static const struct board_specific_parameters udimm[] = {
 	{}
 };
 
+#define UART_BASE	0x21c0500
+#define UART_BAUD_DIV	190     /* 115200 from 700MHz plat clk */
+
 #endif /* __LS1088ARDB_DDR_H__ */

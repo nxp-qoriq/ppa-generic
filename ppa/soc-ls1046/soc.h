@@ -87,6 +87,17 @@
 #define CONFIG_SYS_FSL_ERRATUM_A009942
 #define CONFIG_SYS_FSL_ERRATUM_A010165
 
+#define CONFIG_SYS_FSL_IFC_BANK_COUNT	8
+
+#define CONFIG_SYSCLK_FREQ	100000000
+#define CONFIG_DDRCLK_FREQ	100000000
+
+#define CONFIG_SPD_EEPROM0	0x51
+
+#define CONFIG_SYS_NUM_DDR_CTLRS	1
+#define CONFIG_SYS_DIMM_SLOTS_PER_CTLR	1
+#define CONFIG_FSL_DDR_BIST
+
 //-----------------------------------------------------------------------------
 
 #endif // _SOC_H

@@ -35,7 +35,6 @@
 #include "lib.h"
 #include "io.h"
 #include "ddr.h"
-#include "config.h"
 #include "plat.h"
 #include "timer.h"
 

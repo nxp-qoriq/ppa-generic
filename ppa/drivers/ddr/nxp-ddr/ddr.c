@@ -35,7 +35,7 @@
 
 #include "lib.h"
 #include "io.h"
-#include "config.h"
+#include "plat.h"
 #include "ddr.h"
 #include "debug.h"
 
@@ -82,13 +82,13 @@ int center(unsigned int *sdram_clk_cntl,
 	y = clk_adjust;
 
 	if ((unsigned long)table + sizeof(struct ddr_test_result) > TOP_OF_OCRAM) {
-		puts("Error: ddr test table exceeds OCRAM\n");
+		debug("Error: ddr test table exceeds OCRAM\n");
 		return -EINVAL;
 	}
 	if (table->crc32 != crc32(0, table->pass,
 				  sizeof(struct ddr_test_result) - sizeof(unsigned int))) {
 		/* First time run */
-		puts("Invalid result table\n");
+		debug("Invalid result table\n");
 		return -EINVAL;
 	}
 	bzero(weight, sizeof(weight));
@@ -193,22 +193,22 @@ int shmoo_params(unsigned int *sdram_clk_cntl,
 	int wrlvl_save;
 	int x, y;
 
-	puts("Shmooing DDRC ");
-	print_uint(ctrl_num);
+	debug("Shmooing DDRC ");
+	dbgprint_uint(ctrl_num);
 	table += ctrl_num;
 
 	x = wrlvl_start;
 	y = clk_adjust;
 
 	if ((unsigned long)table + sizeof(struct ddr_test_result) > TOP_OF_OCRAM) {
-		puts("Error: ddr test table exceeds OCRAM\n");
+		debug("Error: ddr test table exceeds OCRAM\n");
 		return -EINVAL;
 	}
 	if (table->crc32 != crc32(0, table->pass,
 				  sizeof(struct ddr_test_result) - sizeof(unsigned int))) {
 		/* First time run */
 		bzero(table, sizeof(struct ddr_test_result));
-		puts("Zero out ddr result tables\n");
+		debug("Zero out ddr result tables\n");
 		return 1;
 	}
 
@@ -251,11 +251,11 @@ int shmoo_params(unsigned int *sdram_clk_cntl,
 		wrlvl_start = center_wrlvl(table, y < 15 ? y : clk_adjust);
 		if (!wrlvl_start) {
 			wrlvl_start = wrlvl_save;
-			puts("Never run\n");
+			debug("Never run\n");
 			continue;
 		} else if (wrlvl_start < 0) {	/* no passed cases */
 			wrlvl_start = wrlvl_save;
-			puts("All failed\n");
+			debug("All failed\n");
 			return 0;		/* stop here */
 		}
 		table->tested[y] = 1;	/* avoid testing again */
@@ -302,11 +302,11 @@ int shmoo_params(unsigned int *sdram_clk_cntl,
 		wrlvl_start = center_wrlvl(table, y);
 		if (!wrlvl_start) {
 			wrlvl_start = wrlvl_save;
-			puts("Never tested\n");
+			debug("Never tested\n");
 			continue;
 		} else if (wrlvl_start < 0) {	/* no passed cases */
 			wrlvl_start = wrlvl_save;
-			puts("All failed\n");
+			debug("All failed\n");
 			return 0;		/* stop here */
 		}
 		table->tested[y] = 1;	/* avoid testing again */
@@ -325,50 +325,58 @@ void show_test_result(const int ctrl_num, const int less)
 
 	table += ctrl_num;
 	if ((unsigned long)table + sizeof(struct ddr_test_result) > TOP_OF_OCRAM) {
-		puts("Error: ddr test table exceeds OCRAM\n");
+		debug("Error: ddr test table exceeds OCRAM\n");
 		return;
 	}
 	if (table->crc32 != crc32(0, table->pass,
 			  	  sizeof(struct ddr_test_result) - sizeof(unsigned int))) {
-		puts("CRC error\n");
+		debug("CRC error\n");
 		return;
 	}
 
 	if (less && table->count % 10)
 		return;
 
-	puts("Controller "); print_uint(ctrl_num); puts("\n");
-	puts("            clk_adjust\n");
-	puts("wrlvl_start 0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15\n");
+	debug("Controller "); dbgprint_uint(ctrl_num); debug("\n");
+	debug("            clk_adjust\n");
+	debug("wrlvl_start 0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15\n");
 	for (y = 0; y < 32; y++) {
-		if (y < 10)
-			puts("    ");
-		else
-			puts("   ");
-		print_uint(y);
-		puts("    |");
+
+		if (y < 10) {
+			debug("    ");
+        }
+		else {
+			debug("   ");
+        }
+
+		dbgprint_uint(y);
+		debug("    |");
 		for (x = 0; x < 16; x++) {
 			if (table->fail[x][y] && table->pass[x][y]) {
-				puts("  ~ ");
+				debug("  ~ ");
 			} else if (table->fail[x][y]) {
-				puts(" -");
-				print_uint(table->fail[x][y]);
-				if (table->fail[x][y] < 10)
-					puts(" ");
-				else
-					puts("");
+				debug(" -");
+				dbgprint_uint(table->fail[x][y]);
+				if (table->fail[x][y] < 10) {
+					debug(" ");
+                }
+				else {
+					debug("");
+                }
 			} else if (table->pass[x][y]) {
-				puts("  ");
-				print_uint(table->pass[x][y]);
-				if (table->pass[x][y] < 10)
-					puts(" ");
-				else
-					puts("");
+				debug("  ");
+				dbgprint_uint(table->pass[x][y]);
+				if (table->pass[x][y] < 10) {
+					debug(" ");
+                }
+				else {
+					debug("");
+                }
 			} else {
-				puts("    ");
+				debug("    ");
 			}
 		}
-		puts("\n");
+		debug("\n");
 	}
 }
 
@@ -382,7 +390,7 @@ void update_test_result(const unsigned long clk,
 
 	table += ctrl_num;
 	if ((unsigned long)table + sizeof(struct ddr_test_result) > TOP_OF_OCRAM) {
-		puts("Error: ddr test table exceeds OCRAM\n");
+		debug("Error: ddr test table exceeds OCRAM\n");
 		return;
 	}
 	if (result) {
@@ -434,7 +442,7 @@ static long long init_ddr_sdram(struct ddr_info *priv)
 				&priv->ddr_reg[i],
 				&priv->dimms[i]);
 		if (ret) {
-			puts("Error: Calculating DDR register(s) failed\n");
+			debug("Error: Calculating DDR register(s) failed\n");
 			return ret;
 		}
 		dump_ddrc_regs(&priv->ddr_reg[i]);
@@ -442,7 +450,7 @@ static long long init_ddr_sdram(struct ddr_info *priv)
 		for (j = 0; j < CONFIG_CHIP_SELECTS_PER_CTRL; j++) {
 			if (priv->ddr_reg[i].cs[j].config & 0x80000000) {
 				if (priv->ddr_reg[i].cs[j].bnds == 0xffffffff) {
-					puts("Warning: Unused bnds but with cs enabled\n");
+					debug("Warning: Unused bnds but with cs enabled\n");
 					continue;
 				}
 				end = priv->ddr_reg[i].cs[j].bnds & 0xffff;
@@ -465,7 +473,7 @@ static long long init_ddr_sdram(struct ddr_info *priv)
 			ddrc_disable(i);
 			reset(i);	/* reset DIMMs */
 			if (ret && i == 2) {
-				puts("After reset ...\n");
+				debug("After reset ...\n");
 				dump_err(i);
 			}
 			more_test = shmoo_params(&priv->ddr_reg[i].ddr_sdram_clk_cntl,
@@ -475,15 +483,15 @@ static long long init_ddr_sdram(struct ddr_info *priv)
 					 i, CONFIG_DDR_TEST_LOOPS);
 			if (!more_test)
 				break;
-#ifdef DEBUG
-			print_uint((priv->ddr_reg[i].ddr_sdram_clk_cntl >> 22) & 0x1f);
-			puts(" ");
-			print_uint(priv->ddr_reg[i].ddr_wrlvl_cntl & 0x1f);
-			puts("\n");
-#endif
+
+			dbgprint_uint((priv->ddr_reg[i].ddr_sdram_clk_cntl >> 22) & 0x1f);
+			debug(" ");
+			dbgprint_uint(priv->ddr_reg[i].ddr_wrlvl_cntl & 0x1f);
+			debug("\n");
+
 			ret = ddrc_set_regs(priv->clk, &priv->ddr_reg[i], i, 0);
 			if (ret && i == 2) {
-				puts("After failure ...\n");
+				debug("After failure ...\n");
 				dump_err(i);
 			}
 		}
@@ -528,13 +536,13 @@ long long dram_init(struct sysinfo *sys)
 	remove_unused_controllers(&priv);
 	priv.clk = get_ddr_freq(sys, priv.first_ctrl);
 
-	puts("Initialize DDR ");
-	print_uint((priv.clk + 500000)/1000000);
-	puts("MT/s\n");
+	debug("Initialize DDR ");
+	dbgprint_uint((priv.clk + 500000)/1000000);
+	debug("MT/s\n");
 	dram_size = init_ddr_sdram(&priv);
 	if (dram_size > 0) {
-		print_uint(dram_size >> 30);
-		puts(" GB ");
+		dbgprint_uint(dram_size >> 30);
+		debug(" GB ");
 		print_ddr_info(priv.first_ctrl);
 	}
 
@@ -554,13 +562,13 @@ long long dpddr_init(struct sysinfo *sys)
 	priv.dimm_slots_per_ctrl = CONFIG_DP_DDR_DIMM_SLOTS_PER_CTLR;
 	priv.clk = get_ddr_freq(sys, priv.first_ctrl);
 
-	puts("Initialize DP-DDR ");
-	print_uint((priv.clk + 500000)/1000000);
-	puts("MT/s\n");
+	debug("Initialize DP-DDR ");
+	dbgprint_uint((priv.clk + 500000)/1000000);
+	debug("MT/s\n");
 	dpddr_size = init_ddr_sdram(&priv);
 	if (dpddr_size > 0) {
-		print_uint(dpddr_size >> 30);
-		puts(" GB ");
+		dbgprint_uint(dpddr_size >> 30);
+		debug(" GB ");
 		print_ddr_info(priv.first_ctrl);
 	}
 

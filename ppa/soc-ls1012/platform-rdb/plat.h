@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 
-// Copyright (c) 2016, NXP Semiconductors
+//
+// Copyright (c) 2016, NXP Semiconductors 
 // Copyright 2017 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -33,18 +33,13 @@
 // 
 //-----------------------------------------------------------------------------
 
-#define TOP_OF_OCRAM		0x1001ffff      /* 128K */
-#define DDR_TEST_TABLE		(TOP_OF_OCRAM - 4096 * 3 + 1)
-#define TOP_OF_STACK		(DDR_TEST_TABLE - 1)
-
-#define CONFIG_SYSCLK_FREQ	100000000
-#define CONFIG_DDRCLK_FREQ	100000000
-
-#define CONFIG_SPD_EEPROM0	0x51
-
-#define CONFIG_SYS_NUM_DDR_CTLRS	1
-#define CONFIG_SYS_DIMM_SLOTS_PER_CTLR	1
-#define CONFIG_FSL_DDR_BIST
+#ifndef _PLAT_H
+#define	_PLAT_H
 
 #define UART_BASE	0x21c0500
-#define UART_BAUD_DIV	163     /* 115200 from 600MHz plat clk */
+#define UART_BAUD_DIV	68     /* 115200 from 250MHz plat clk */
+
+ //----------------------------------------------------------------------------
+
+#endif // _PLAT_H
+

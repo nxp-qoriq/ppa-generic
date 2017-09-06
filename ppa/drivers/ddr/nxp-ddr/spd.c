@@ -35,7 +35,7 @@
 
 #include "lib.h"
 #include "io.h"
-#include "config.h"
+#include "plat.h"
 #include "ddr.h"
 #include "i2c.h"
 #include "debug.h"
@@ -63,9 +63,9 @@ int parse_spd(struct ddr_info *priv)
 				priv->conf[i].in_use = 1;
 				priv->conf[i].dimm_in_use[j] = 1;
 			} else if (ret == -EINVAL) {
-				puts("Error: RAW timing error on DDR ");
-				print_uint(i);
-				puts("\n");
+				debug("Error: RAW timing error on DDR ");
+				dbgprint_uint(i);
+				debug("\n");
 				priv->conf[i].in_use = 0;
 				break;
 			}
@@ -83,7 +83,7 @@ int parse_spd(struct ddr_info *priv)
 				debug_hex("Debug: Reading SPD error at address 0x", spd_addr);
 				continue;
 			} else {
-				puts(".");
+				debug(".");
 				priv->conf[i].dimm_in_use[j] = 1;
 				spd_checksum[j] = crc16((unsigned char *)&spd[j],
 							sizeof(struct ddr4_spd));
@@ -100,7 +100,7 @@ int parse_spd(struct ddr_info *priv)
 				     k < priv->dimm_slots_per_ctrl && priv->conf[i].dimm_in_use[k];
 				     k++) {
 					if (spd_checksum[j] != spd_checksum[k]) {
-						puts("Error: found different DIMMs on the same controller.\n");
+						debug("Error: found different DIMMs on the same controller.\n");
 						return -EINVAL;
 					}
 				}
@@ -117,9 +117,9 @@ int parse_spd(struct ddr_info *priv)
 		if (!ret) {
 			dump_dimm_parameters(&priv->dimms[i]);	/* for debug */
 		} else {
-			puts("Error: SPD calculation error DDR ");
-			print_uint(i);
-			puts("\n");
+			debug("Error: SPD calculation error DDR ");
+			dbgprint_uint(i);
+			debug("\n");
 			priv->conf[i].in_use = 0;
 			continue;
 		}
@@ -130,7 +130,7 @@ int parse_spd(struct ddr_info *priv)
 			switch (priv->dimms[i].n_ranks) {
 			case 4:
 				if (j) {
-					puts("Error: Quad-rank DIMM in wrong slot\n");
+					debug("Error: Quad-rank DIMM in wrong slot\n");
 					return -EINVAL;
 				}
 				priv->conf[i].cs_in_use = 0xf;
@@ -142,17 +142,19 @@ int parse_spd(struct ddr_info *priv)
 				priv->conf[i].cs_in_use |= 0x1 << (j * CONFIG_CS_PER_SLOT);
 				break;
 			default:
-				puts("Error: SPD error\n");
+				debug("Error: SPD error\n");
 				return -EINVAL;
 			}
 			debug_hex("Set cs_in_use = ", priv->conf[i].cs_in_use);
 		}
-		if (priv->dimms[i].registered_dimm)
-			puts("RDIMM ");
-		else
-			puts("UDIMM ");
-		puts(priv->dimms[i].mpart);
-		puts("\n");
+		if (priv->dimms[i].registered_dimm) {
+			debug("RDIMM ");
+        }
+		else {
+			debug("UDIMM ");
+        }
+		debug(priv->dimms[i].mpart);
+		debug("\n");
 	}
 
 	return 0;

@@ -75,27 +75,18 @@ HDRS_PLAT  =policy.h
 TEST_ASM =$(TEST_FILE)
 
 ifeq ($(DDR_BLD), 1)
-  # add ddr-specific source and headers here
-  CSRC_SOC   =errata.c
+   # add soc-specific C source and headers here
+  CSRC_SOC   =
   CHDRS_SOC  =
 
-  DDR_C    =ddr_init.c
-  DDR_HDRS =plat.h config.h
-  DDR_CMN_C    = ddr.c ddrc.c dimm.c utility.c regs.c opts.c debug.c crc32.c \
-                 spd.c addr.c timer.c
-  DDR_CMN_HDRS = ddr.h dimm.h utility.h immap.h opts.h regs.h debug.h \
-                 timer.h
-  UART_C = uart.c
-  I2C_C  = i2c.c
+   # add ddr-specific source and headers here
+  DDR_C =ddr_init.c
+  DDR_H =plat.h 
 else
-  CSRC_SOC     =
-  CHDRS_SOC    =
-  DDR_C        =
-  DDR_HDRS     =
-  DDR_CMN_C    =
-  DDR_CMN_HDRS =
-  UART_C       =
-  I2C_C        =
+  CSRC_SOC  =
+  CHDRS_SOC =
+  DDR_C     =
+  DDR_H     =
 endif
 
 # -----------------------------------------------------------------------------

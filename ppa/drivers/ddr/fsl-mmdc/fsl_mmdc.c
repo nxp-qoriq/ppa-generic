@@ -57,9 +57,9 @@ static void set_wait_for_bits_clear(void *ptr, unsigned int value,
 		timeout--;
 	}
 	if (timeout <= 0) {
-		puts("Error: ");
-		print_hex((unsigned long long)ptr);
-		puts(" wait for clear timeout.\n");
+		debug("Error: ");
+		dbgprint_hex((unsigned long long)ptr);
+		debug(" wait for clear timeout.\n");
 	}
 }
 

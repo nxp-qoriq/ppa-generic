@@ -51,7 +51,6 @@
 #define SOC_SYSTEM_OFF         0x0 
 #define SOC_SYSTEM_RESET       0x1 
 
-
  // base addresses
 #define GICD_BASE_ADDR  0x01401000
 #define GICC_BASE_ADDR  0x01402000
@@ -59,6 +58,8 @@
  // OCRAM
 #define  OCRAM_SIZE_IN_BYTES 0x20000
 #define  OCRAM_MID_ADDR      0x10010000
+
+#define CONFIG_CHIP_SELECTS_PER_CTRL	1
 
 //-----------------------------------------------------------------------------
 

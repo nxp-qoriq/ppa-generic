@@ -55,9 +55,12 @@
 .equ DISABLE_RETRY_CNT, 800
 
  // base addresses
-.equ  PMU_BASE_ADDR,   0x01E30000
-.equ  GICR_BASE_ADDR,  0x06100000
+.equ  PMU_BASE_ADDR,         0x01E30000
+.equ  GICR_BASE_ADDR,        0x06100000
 .equ  SEC_REGFILE_BASE_ADDR, 0x01E88000
+.equ DCFG_BASE_ADDR,         0x01E00000
+.equ TIMER_BASE_ADDR,        0x023E0000
+.equ RESET_BASE_ADDR,        0x01E60000
 
  // register offsets -------------
 

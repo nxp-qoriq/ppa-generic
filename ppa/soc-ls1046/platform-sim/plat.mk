@@ -69,7 +69,7 @@ TEST_ASM =$(TEST_FILE)
 ifeq ($(DDR_BLD), 1)
    # add ddr-specific source and headers here
   DDR_C =ddr_init.c
-  DDR_H =plat.h config.h
+  DDR_H =plat.h 
 else
   DDR_C =
   DDR_H =

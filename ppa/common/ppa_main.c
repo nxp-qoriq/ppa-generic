@@ -93,8 +93,6 @@ void uart_init(void)
 int _ppa_main(unsigned long long addr)
 {
 
-    alloc_init(&heap, addr + HEAP_OFFSET, HEAP_SIZE);
-    sec_init();
 #if (CNFG_UART)
     uart_init();
 #endif
@@ -113,6 +111,8 @@ int _ppa_main(unsigned long long addr)
     timer_init();
     i2c_init();
 #endif
+    alloc_init(&heap, addr + HEAP_OFFSET, HEAP_SIZE);
+    sec_init();
 
 	return 0;
 }

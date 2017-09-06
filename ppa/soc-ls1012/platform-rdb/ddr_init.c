@@ -35,6 +35,7 @@
 
 #include "soc.h"
 #include "fsl_mmdc.h"
+#include "lib.h"
 #include "uart.h"
 
 void _init_ddr(void)
@@ -56,5 +57,5 @@ void _init_ddr(void)
 	};
 
 	mmdc_init(&mparam);
-	puts("Done\n");
+	debug("Done\n");
 }

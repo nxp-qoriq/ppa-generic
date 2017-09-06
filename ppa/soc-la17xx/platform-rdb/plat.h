@@ -33,8 +33,8 @@
 // 
 //-----------------------------------------------------------------------------
 
-#ifndef __LS2088ARDB_DDR_H__
-#define __LS2088ARDB_DDR_H__
+#ifndef __PLAT_H__
+#define __PLAT_H__
 
 struct board_specific_parameters {
 	unsigned int n_ranks;
@@ -184,6 +184,9 @@ static const struct board_specific_parameters *rdimms[] = {
 				| CSPR_V)
 #define CONFIG_SYS_CSPR3_EXT	0
 
+#define UART_BASE	0x21c0600
+#define UART_BAUD_DIV	190     /* 115200 from 700MHz plat clk */
+
 enum ifc_chip_sel {
         IFC_CS0,
         IFC_CS1,
@@ -202,4 +205,4 @@ enum ifc_ftims {
         IFC_FTIM3,
 };
 
-#endif /* __LS2088ARDB_DDR_H__ */
+#endif /* __PLAT_H__ */

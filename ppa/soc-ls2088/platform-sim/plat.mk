@@ -72,7 +72,7 @@ ifeq ($(DDR_BLD), 1)
   CHDRS_SOC  =
 
   DDR_C =ddr_init.c
-  DDR_H =plat.h config.h
+  DDR_H =plat.h 
 else
   CSRC_SOC  =
   CHDRS_SOC =

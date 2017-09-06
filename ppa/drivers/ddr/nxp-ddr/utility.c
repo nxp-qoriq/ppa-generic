@@ -35,7 +35,7 @@
 
 #include "lib.h"
 #include "io.h"
-#include "config.h"
+#include "plat.h"
 #include "ddr.h"
 #include "immap.h"
 
@@ -101,12 +101,10 @@ void get_clocks(struct sysinfo *sys)
 				FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_SHIFT) &
 				FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_MASK;
 
-#ifdef DEBUG
-	puts("platform clock "); print_uint(sys->freq_platform);
-	puts("\nDDR PLL1 "); print_uint(sys->freq_ddr_pll0);
-	puts("\nDDR PLL2 "); print_uint(sys->freq_ddr_pll1);
-	puts("\n");
-#endif
+	debug("platform clock "); dbgprint_uint(sys->freq_platform);
+	debug("\nDDR PLL1 "); dbgprint_uint(sys->freq_ddr_pll0);
+	debug("\nDDR PLL2 "); dbgprint_uint(sys->freq_ddr_pll1);
+	debug("\n");
 }
 
 unsigned long get_ddr_freq(struct sysinfo *sys, int ctrl_num)
@@ -183,31 +181,28 @@ void remove_unused_controllers(struct ddr_info *info)
 		} else if (nodeid == CCN_HN_F_SAM_NODEID_DDR1) {
 			ddr1_used = true;
 		} else {
-			puts("Unknown nodeid in HN-F SAM control: 0x");
-			print_hex(nodeid);
-			puts("\n");
+			debug("Unknown nodeid in HN-F SAM control: 0x");
+			dbgprint_hex(nodeid);
+			debug("\n");
 		}
 		hnf_sam_ctrl += (CCI_HN_F_1_BASE - CCI_HN_F_0_BASE);
 	}
 	if (!ddr0_used && !ddr1_used) {
-		puts("Invalid configuration in HN-F SAM control\n");
+		debug("Invalid configuration in HN-F SAM control\n");
 		return;
 	}
 
 	if (!ddr0_used && info->first_ctrl == 0) {
 		info->first_ctrl = 1;
 		info->num_ctrls = 1;
-#ifdef DEBUG
-		puts("First DDR controller disabled\n");
-#endif
+
+		debug("First DDR controller disabled\n");
 		return;
 	}
 
 	if (!ddr1_used && info->first_ctrl + info->num_ctrls > 1) {
 		info->num_ctrls = 1;
-#ifdef DEBUG
-		puts("Second DDR controller disabled\n");
-#endif
+		debug("Second DDR controller disabled\n");
 	}
 #endif /* CONFIG_SYS_FSL_HAS_CCN504 */
 }
@@ -236,33 +231,33 @@ void print_ddr_info(int start_ctrl)
 #endif
 
 	if (!(sdram_cfg & SDRAM_CFG_MEM_EN)) {
-		puts(" (DDR not enabled)\n");
+		debug(" (DDR not enabled)\n");
 		return;
 	}
 
-	puts("DDR");
+	debug("DDR");
 	switch ((sdram_cfg & SDRAM_CFG_SDRAM_TYPE_MASK) >>
 		SDRAM_CFG_SDRAM_TYPE_SHIFT) {
 	case SDRAM_TYPE_DDR4:
-		puts("4");
+		debug("4");
 		break;
 	default:
-		puts("?");
+		debug("?");
 		break;
 	}
 
 	switch (sdram_cfg & SDRAM_CFG_DBW_MASK) {
 	case SDRAM_CFG_32_BW:
-		puts(", 32-bit");
+		debug(", 32-bit");
 		break;
 	case SDRAM_CFG_16_BW:
-		puts(", 16-bit");
+		debug(", 16-bit");
 		break;
 	case SDRAM_CFG_8_BW:
-		puts(", 8-bit");
+		debug(", 8-bit");
 		break;
 	default:
-		puts(", 64-bit");
+		debug(", 64-bit");
 		break;
 	}
 
@@ -270,61 +265,63 @@ void print_ddr_info(int start_ctrl)
 	cas_lat = ((ddr_in32(&ddr->timing_cfg_1) >> 16) & 0xf);
 	cas_lat += 2;	/* for DDRC newer than 4.4 */
 	cas_lat += ((ddr_in32(&ddr->timing_cfg_3) >> 12) & 3) << 4;
-	puts(", CL=");
-	print_uint(cas_lat >> 1);
+	debug(", CL=");
+	dbgprint_uint(cas_lat >> 1);
 	if (cas_lat & 0x1)
-		puts(".5");
+		debug(".5");
 
+#if ((DEBUG_BUILD) && (CNFG_UART))
 	if (sdram_cfg & SDRAM_CFG_ECC_EN)
-		puts(", ECC on");
+		debug(", ECC on");
 	else
-		puts(", ECC off");
+		debug(", ECC off");
+#endif
 
 #if (CONFIG_SYS_NUM_DDR_CTLRS >= 2)
 	if ((cs0_config & 0x20000000) && (start_ctrl == 0)) {
-		puts(", ");
+		debug(", ");
 		switch ((cs0_config >> 24) & 0xf) {
 		case FSL_DDR_256B_INTERLEAVING:
-			puts("256B");
+			debug("256B");
 			break;
 		case FSL_DDR_CACHE_LINE_INTERLEAVING:
-			puts("cache line");
+			debug("cache line");
 			break;
 		case FSL_DDR_PAGE_INTERLEAVING:
-			puts("page");
+			debug("page");
 			break;
 		case FSL_DDR_BANK_INTERLEAVING:
-			puts("bank");
+			debug("bank");
 			break;
 		case FSL_DDR_SUPERBANK_INTERLEAVING:
-			puts("super-bank");
+			debug("super-bank");
 			break;
 		default:
-			puts("invalid");
+			debug("invalid");
 			break;
 		}
 	}
 #endif
 
 	if ((sdram_cfg >> 8) & 0x7f) {
-		puts(", ");
+		debug(", ");
 		switch(sdram_cfg >> 8 & 0x7f) {
 		case FSL_DDR_CS0_CS1_CS2_CS3:
-			puts("CS0+CS1+CS2+CS3");
+			debug("CS0+CS1+CS2+CS3");
 			break;
 		case FSL_DDR_CS0_CS1:
-			puts("CS0+CS1");
+			debug("CS0+CS1");
 			break;
 		case FSL_DDR_CS2_CS3:
-			puts("CS2+CS3");
+			debug("CS2+CS3");
 			break;
 		case FSL_DDR_CS0_CS1_AND_CS2_CS3:
-			puts("CS0+CS1 and CS2+CS3");
+			debug("CS0+CS1 and CS2+CS3");
 			break;
 		default:
-			puts("invalid");
+			debug("invalid");
 			break;
 		}
 	}
-	puts("\n");
+	debug("\n");
 }

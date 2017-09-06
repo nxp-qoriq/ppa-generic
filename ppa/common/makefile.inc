@@ -49,16 +49,29 @@ else
     DBG_FLAGS=
 endif
 
+# select if a dead-loop should be inserted at the start,
+#  to allow a debugger to attach before proceeding
+ifeq ($(halt), on)
+    DBG_HALT=1
+else
+    DBG_HALT=0
+endif
+
+# select if uart driver is built
+ifeq ($(uart), on)
+    UART_BLD=1
+else
+    UART_BLD=0
+endif
+
 # select if ddr/i2c driver(s) are built
 ifeq ($(ddr), on)
     DDR_BLD=1
     I2C_BLD=1
-    UART_BLD=1
 else
     ddr=off
     DDR_BLD=0
     I2C_BLD=0
-    UART_BLD=0
 endif
 
 # -----------------------------------------------------------------------------
@@ -211,6 +224,7 @@ OPTFLAGS		= -dumpmachine
 
 PLATFLAGS = $(DBG_FLAGS)                   \
 	-DDEBUG_BUILD=$(DBG_BLD)               \
+	-DDEBUG_HALT=$(DBG_HALT)               \
     -DDDR_INIT=$(DDR_BLD)                  \
 	-DSIMULATOR_BUILD=$(SIM_BUILD)         \
 	-DPSCI_TEST=$(TEST_PSCI)               \
@@ -293,7 +307,6 @@ ifeq ($(DDR_BLD), 1)
   endif
 
 I2C_PATH=$(DRVR_SRC)/i2c
-UART_PATH=$(DRVR_SRC)/uart
 TIMER_PATH=$(DRVR_SRC)/timer
 
 COMMON_C += crc32.c
@@ -301,20 +314,30 @@ COMMON_C += crc32.c
 # get the driver makefiles
 include $(DDR_CNTLR_PATH)/ddrcntlr.mk
 include $(I2C_PATH)/i2c.mk
-include $(UART_PATH)/uart.mk
 include $(TIMER_PATH)/timer.mk
 
-$(DDR_C): $(DDR_H) src
+$(DDR_C): $(DDR_H) $(HDRS_SOC) src
 	@cp -r "$(DDR_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(DDR_H): src
 	@cp -r "$(DDR_PATH)/$@" "$(SRC_DIR)/$@"
 
-$(DIMM_C): $(DDR_H) src
+$(DIMM_C): $(DDR_H) $(HDRS_SOC) src
 	@cp -r "$(DDR_CNTLR_PATH)/$@" "$(SRC_DIR)/$@"
 
-DRIVER_C = $(DDR_CNTLR_C) $(DDR_PHY_C) $(I2C_C) $(UART_C) $(TIMER_C) $(DDR_C) $(DIMM_C)
+DRIVER_C = $(DDR_CNTLR_C) $(DDR_PHY_C) $(I2C_C) $(TIMER_C) $(DDR_C) $(DIMM_C)
 DRIVER_H = $(DDR_CNTLR_H) $(DDR_PHY_H) $(I2C_H) $(UART_H) $(TIMER_H) $(DDR_H)
+
+endif
+
+
+ifeq ($(UART_BLD), 1)
+
+UART_PATH=$(DRVR_SRC)/uart
+include $(UART_PATH)/uart.mk
+
+DRIVER_C += $(UART_C)
+DRIVER_H += $(UART_H)
 
 endif
 

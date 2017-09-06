@@ -66,15 +66,17 @@ PLAT_ASM =
 
 # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h
+HDRS_PLAT  =policy.h plat.h
 
 # add platform-test-specific asm files here
 TEST_ASM =$(TEST_FILE)
 
 ifeq ($(DDR_BLD), 1)
+  $(error -> ddr not yet supported on this platform!)
+
   # add ddr-specific source and headers here
   DDR_C =ddr_init.c
-  DDR_H =plat.h config.h
+  DDR_H =
 else
   DDR_C =
   DDR_H =

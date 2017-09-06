@@ -93,7 +93,7 @@ static int wait_for_state(struct ls_i2c *ccsr_i2c,
 		sr = i2c_in(&ccsr_i2c->sr);
 		if (sr & I2C_SR_AL) {
 			i2c_out(&ccsr_i2c->sr, sr);
-			puts("I2C arbitration lost\n");
+			debug("I2C arbitration lost\n");
 			return -ERSTART;
 		}
 		if ((sr & mask) == state) {
@@ -104,11 +104,11 @@ static int wait_for_state(struct ls_i2c *ccsr_i2c,
 			break;
 		mdelay(1);
 	} while (1);
-	puts("I2C: Timeout waiting for state ");
-	print_hex(state);
-	puts(", sr=0x");
-	print_hex(sr);
-	puts("\n");
+	debug("I2C: Timeout waiting for state ");
+	dbgprint_hex(state);
+	debug(", sr=0x");
+	dbgprint_hex(sr);
+	debug("\n");
 
 	return -ETIME;
 }
@@ -140,7 +140,7 @@ static void gen_stop(struct ls_i2c *ccsr_i2c)
 	cr &= ~(I2C_CR_MA | I2C_CR_TX);
 	i2c_out(&ccsr_i2c->cr, cr);
 	if (wait_for_state(ccsr_i2c, I2C_SR_IDLE, I2C_SR_BB) < 0)
-		puts("I2C: generating stop failed\n");
+		debug("I2C: generating stop failed\n");
 }
 
 static int i2c_write_addr(struct ls_i2c *ccsr_i2c, unsigned char chip,
@@ -150,7 +150,7 @@ static int i2c_write_addr(struct ls_i2c *ccsr_i2c, unsigned char chip,
 	unsigned char cr;
 
 	if (i2c_in(&ccsr_i2c->ad) == (chip << 1)) {
-		puts("I2C: slave address same as self\n");
+		debug("I2C: slave address same as self\n");
 		return -ENODEV;
 	}
 	i2c_out(&ccsr_i2c->sr, I2C_SR_IF);

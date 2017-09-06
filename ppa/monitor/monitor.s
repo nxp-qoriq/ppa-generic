@@ -64,7 +64,7 @@ _start_monitor_el3:
      // save the LR
     mov   x12, x30
 
-#if (!SIMULATOR_BUILD) && (DEBUG_BUILD)
+#if (!SIMULATOR_BUILD) && (DEBUG_HALT)
 debug_stop:
     b  debug_stop
 #endif

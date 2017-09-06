@@ -35,7 +35,6 @@
 
 #include "lib.h"
 #include "io.h"
-#include "config.h"
 #include "ddr.h"
 #include "plat.h"
 #include "timer.h"
@@ -52,9 +51,9 @@ void ddr_board_options(struct ddr_info *priv)
 
 	for (i = priv->first_ctrl; i < priv->first_ctrl + priv->num_ctrls; i++) {
 		if (i >= CONFIG_SYS_NUM_DDR_CTLRS) {
-			puts("Not supported controller number ");
-			print_uint(i);
-			puts("\n");
+			debug("Not supported controller number ");
+			dbgprint_uint(i);
+			debug("\n");
 			return;
 		}
 		popts = &priv->opts[i];
@@ -90,9 +89,9 @@ void ddr_board_options(struct ddr_info *priv)
 		}
 
 		if (pbsp_highest) {
-			puts("Error: board specific timing not found for data rate ");
-			print_uint(ddr_freq);
-			puts(". Trying to use the highest speed parameters\n");
+			debug("Error: board specific timing not found for data rate ");
+			dbgprint_uint(ddr_freq);
+			debug(". Trying to use the highest speed parameters\n");
 			popts->clk_adjust = pbsp_highest->clk_adjust;
 			popts->wrlvl_start = pbsp_highest->wrlvl_start;
 			popts->wrlvl_ctl_2 = pbsp->wrlvl_ctl_2;
@@ -294,6 +293,7 @@ void _init_ddr(void)
 	get_clocks(&sys);
 	dram_size = dram_init(&sys);
 
-	if (dram_size < 0)
-		puts("Error\n");
+	if (dram_size < 0) {
+		debug("Error\n");
+    }
 }

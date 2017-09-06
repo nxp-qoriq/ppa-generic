@@ -33,7 +33,7 @@
 
 #include "lib.h"
 #include "io.h"
-#include "config.h"
+#include "plat.h"
 #include "ddr.h"
 
 static unsigned long long assign_intlv_addr(struct dimm_params *pdimm,
@@ -191,7 +191,7 @@ int assign_addresses(struct ddr_info *priv)
 
 		if (priv->opts[i].data_bus_width >
 		    priv->opts[i].data_bus_used) {
-			puts("Data bus configuration error\n");
+			debug("Data bus configuration error\n");
 			return -EINVAL;
 		}
 		priv->opts[i].dbw_cap_shift =

@@ -44,9 +44,10 @@ device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 la1575 la17xx lx21
 device_found="none"
 target_list="clean rdb rdb-fit qds qds-fit sim generic generic-fit"
 
-option_std="dbg dbg=on dbg=off ddr ddr=on ddr=off i2c i2c=on i2c=off tst-rela"
-option_rest="uart uart=on uart=off"
+option_std="dbg dbg=on dbg=off ddr ddr=on ddr=off i2c i2c=on i2c=off halt halt=on tst-rela"
 option_test="smp_boot hotplug suspend off_abort aarch32 cpu_errata speed_boot"
+ # these options are restricted to development builds only
+option_rest="uart uart=on uart=off"
 option_list="$option_std $delimit $option_rest"
 
 mode_list="production prod ret retail development dev"
@@ -206,9 +207,9 @@ if [ "$1" = "help" ]; then
     echo "usage: >build mode target [option] [option] device_list"
     echo
     echo "        mode:"
-    echo "          production/prod - build a production image"
-    echo "          development/dev - build a development image"
-    echo "        if no mode specified, production is default"
+    echo "          prod - build a production image"
+    echo "          dev  - build a development image"
+    echo "        if no mode specified, default is prod"
     echo
     echo "        target (required):"
     echo "          rdb           - binary image build for the rdb platform"
@@ -220,11 +221,11 @@ if [ "$1" = "help" ]; then
     echo "          help          - print this help text"
     echo
     echo "        option(s):"
-    echo "          DBG[=on/off]  - build with/without debug options"
-    echo "          DDR[=on/off]  - build with/without ddr driver"
-    echo "          I2C[=on/off]  - build with/without i2c driver (included w/ddr)"
-    echo "          UART[=on/off] - build with/without uart driver (dev"
-    echo "          TEST=<test>   - specify test to be included in build,"
+    echo "          dbg  - build with debug options"
+    echo "          ddr  - build with ddr driver"
+    echo "          i2c  - build with i2c driver (included w/ddr)"
+    echo "          uart - build with uart driver (dev"
+    echo "          test=<test> - specify test to be included in build,"
     echo "                 choices are:"
     echo "                 'smp_boot'"
     echo "                 'hotplug'"
@@ -241,14 +242,14 @@ if [ "$1" = "help" ]; then
     echo "          ls2080  - build for the LS2080 device"
     echo "          ls2088  - build for the LS2088 device"
     echo "          la1575  - build for the LA1575 device"
+    echo "          la17xx  - build for the LA17xx device"
     echo "          lx2160  - build for the LX2160 device"
     echo "          all     - build for ALL of the above devices"
     echo
     echo "examples:"
-    echo "  >build rdb DBG=on ls1012 ls1088"
-    echo "  >build sim DBG=on TEST=smp_boot ls2080 ls2088"
+    echo "  >build rdb dbg ls1012 ls1088"
     echo "  >build rdb-fit all"
-    echo "  >build rdb-fit DRVRS=ddr,uart ls1043"
+    echo "  >build rdb-fit ddr ls1043"
     echo "  >build clean all"
     echo 
     exit 0
@@ -585,8 +586,14 @@ until [ "$1" = "" ]; do
                 if [ "$bld_mode" != "development" ]; then
                     bld_mode=production
                      # remove restricted options
+                    bld_opts=${bld_opts/" uart=on"}
+                    bld_opts=${bld_opts/" uart=off"}
                     bld_opts=${bld_opts/" uart"}
                     make_opts=${make_opts/" uart=on"}
+                    make_opts=${make_opts/" uart=off"}
+                else
+                    bld_opts=${bld_opts/" uart=off"}
+                    make_opts=${make_opts/" uart=off"}
                 fi
 
                 if [ "$tools_built" == "false" ]; then

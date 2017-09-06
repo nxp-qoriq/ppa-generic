@@ -176,6 +176,14 @@
 #define CONFIG_SYS_FSL_ERRATUM_A009942
 #define CONFIG_SYS_FSL_ERRATUM_A009663
 
+#define CONFIG_SYSCLK_FREQ	100000000
+#define CONFIG_DDRCLK_FREQ	100000000
+
+#define CONFIG_SYS_NUM_DDR_CTLRS	1
+#define CONFIG_SYS_DIMM_SLOTS_PER_CTLR	1
+#define CONFIG_FSL_DDR_BIST
+#define CONFIG_SYS_DDR_RAW_TIMING
+
 //-----------------------------------------------------------------------------
 
 #endif // _SOC_H

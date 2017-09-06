@@ -66,13 +66,15 @@ HDRS_PLAT  =policy.h
 TEST_ASM =$(TEST_FILE)
 
 ifeq ($(DDR_BLD), 1)
+  $(error -> ddr not yet supported on this platform!)
+
   # add soc-specific C source and headers here
   CSRC_SOC   =errata.c
   CHDRS_SOC  =
 
   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
-  DDR_HDRS =plat.h config.h
+  DDR_HDRS =plat.h 
 else
   CSRC_SOC  =
   CHDRS_SOC =
