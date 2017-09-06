@@ -635,13 +635,14 @@ system_in_pwrdn:
     bl   _soc_sys_entr_pwrdn
      // we have an return status code in x0
     mov  x6, x0
+    cbnz x6, 2f
 
      // cleanup after the system exits power-down
     mov  x0, x11
     bl   _soc_sys_exit_pwrdn
 
      // x11 = core mask lsb
-
+2:
     mov  x0, x11
     mov  x1, #CORE_STATE_DATA
     mov  x2, #CORE_RELEASED
@@ -656,7 +657,7 @@ system_in_pwrdn:
      // if we have an error, return to the caller rather
      // than the entry point address
     cbz  x6, 1f
-    b    psci_failure
+    b    psci_invalid
 
 1:
      // return to entry point address

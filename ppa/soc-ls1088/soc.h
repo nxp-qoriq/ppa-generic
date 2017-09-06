@@ -47,7 +47,7 @@
 #define SOC_CLUSTER_STANDBY   0x1
 #define SOC_CLUSTER_PWR_DWN   0x1
 #define SOC_SYSTEM_STANDBY    0x0
-#define SOC_SYSTEM_PWR_DWN    0x0 
+#define SOC_SYSTEM_PWR_DWN    0x1
 #define SOC_SYSTEM_OFF        0x0 
 #define SOC_SYSTEM_RESET      0x1 
 
@@ -58,6 +58,42 @@
 
 #define GICR_RD_BASE_ADDR  0x06100000
 #define GICR_SGI_BASE_ADDR 0x06110000
+#define EPU_BASE_ADDR      0x700060000
+#define TPMWAKEMR0_ADDR    0x700123c50
+
+ // epu register offsets and values
+#define EPU_EPGCR_OFFSET              0x0
+#define EPU_EPIMCR10_OFFSET           0x128
+#define EPU_EPCTR10_OFFSET            0xa28
+#define EPU_EPCCR10_OFFSET            0x828
+#define EPU_EPCCR10_VAL               0xb2800000
+#define EPU_EPIMCR10_VAL              0xba000000
+#define EPU_EPCTR10_VAL               0x0
+#define EPU_EPGCR_VAL                 (1 << 31)
+
+ // dcfg register offsets and values
+#define DCFG_DEVDISR3_OFFSET          0x78
+#define DCFG_DEVDISR4_OFFSET          0x7c
+#define DCFG_DEVDISR3_QBMAIN          (1 << 12)
+#define DCFG_DEVDISR4_SPI_QSPI        (1 << 4 | 1 << 5)
+
+ // pmu register offsets and values
+#define PMU_PCPW20SR_OFFSET           0x830
+#define PMU_CLAINACTSETR_OFFSET       0x1100
+#define PMU_CLAINACTCLRR_OFFSET       0x1104
+#define PMU_CLSINACTSETR_OFFSET       0x1108
+#define PMU_CLSINACTCLRR_OFFSET       0x110C
+#define PMU_CLL2FLUSHSETR_OFFSET      0x1110
+#define PMU_CLSL2FLUSHCLRR_OFFSET     0x1114
+#define PMU_CLL2FLUSHSR_OFFSET        0x1118
+#define PMU_POWMGTCSR_OFFSET          0x4000
+#define PMU_POWMGTCSR_VAL             (1 << 20)
+#define PMU_IDLE_CLUSTER_MASK         0x2
+#define PMU_FLUSH_CLUSTER_MASK        0x2
+#define PMU_IDLE_CORE_MASK            0xfe
+
+ // reset register bit
+#define RSTRQMR_RPTOE_MASK             (1 << 19)
 
  // tzasc register offsets
 #define TZASC_REG_ATTRIB_00_OFFSET    0x00110

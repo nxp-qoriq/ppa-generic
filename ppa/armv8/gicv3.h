@@ -54,6 +54,7 @@
 #define GICR_WAKER_OFFSET       0x14
 #define GICR_ICACTIVER0_OFFSET  0x380
 #define GICR_ICFGR0_OFFSET      0xC00
+#define GICD_IROUTER76_OFFSET   0x6260
 
  // gic bitfields
 #define GICD_CTLR_EN_GRP_MASK  0x7
@@ -69,6 +70,10 @@
 #define GICR_ISENABLER0_SGI15  0x00008000
 #define GICR_IPRIORITYR3_SGI15_MASK  0xFF000000
 #define GICR_ICPENDR0_SGI15    0x8000
+
+#define GICD_IROUTER76_VALUE   0x100
+#define GICR_WAKER_SLEEP_BIT   0x2
+#define GICR_WAKER_ASLEEP      (1 << 2 | 1 << 1)
 
 #define ICC_SRE_EL3_SRE          0x1
 #define ICC_IGRPEN0_EL1_EN       0x1
