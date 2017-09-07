@@ -726,9 +726,9 @@ _soc_sys_exit_stdby:
  // this function puts the system, and the final core, into a power-down state
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1, x2, x3, x4
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8
 _soc_sys_entr_pwrdn:
-    mov  x4, x30
+    mov  x8, x30
 
      // x0 = core mask lsb (currently unused in this function)
 
@@ -858,7 +858,7 @@ _soc_sys_entr_pwrdn:
     ldr  w0, [x3, #EPU_EPCTR10_OFFSET]
     str  w0, [sp, #-4]!
     ldr  w0, [x3, #EPU_EPGCR_OFFSET]
-    str  w0, [x2, #-4]!
+    str  w0, [sp, #-4]!
 
      // set up EPU event to receive the wake signal from PMU
     mov  w0, #EPU_EPIMCR10_VAL
@@ -888,7 +888,7 @@ _soc_sys_entr_pwrdn:
 
      // invalidate L1 Dcache
     mov  x0, #1
-    bl   _cln_inv_L1_dcache
+    bl   _cln_inv_L1_dcache  // 0-7
 
      // invalidate all TLB entries at all 3 exception levels
     tlbi alle1
@@ -921,13 +921,12 @@ _soc_sys_entr_pwrdn:
     ldr  x3, =EPU_BASE_ADDR
 4:
     wfe
-    wfe
     ldr  w1, [x3, #EPU_EPCTR10_OFFSET]
     cbz  w1, 4b
 
     mov  x0, xzr
 5:
-    mov  x30, x4
+    mov  x30, x8
     ret
 
 //-----------------------------------------------------------------------------
@@ -940,11 +939,11 @@ _soc_sys_entr_pwrdn:
 _soc_sys_exit_pwrdn:
     mov  x4, x30
 
-     // restore flextimer interrupt router
     ldr  x3, =GICD_BASE_ADDR
 
      // x3 = gicd base addr
 
+     // restore flextimer interrupt router
     ldr  x1, =GICD_IROUTER76_OFFSET
     ldr  w0, [sp], #4
     str  w0, [x3, x1]
