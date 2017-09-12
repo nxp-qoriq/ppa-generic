@@ -740,9 +740,66 @@ _soc_sys_entr_pwrdn:
     ldr  w0, =PSCI_INVALID_PARMS
     b    5f
 
+6:
      // x3 = pmu base addr
 
-6:
+     // backup epu registers to stack
+    ldr  x2, =EPU_BASE_ADDR
+    ldr  w4, [x2, #EPU_EPIMCR10_OFFSET]
+    ldr  w5, [x2, #EPU_EPCCR10_OFFSET]
+    ldr  w6, [x2, #EPU_EPCTR10_OFFSET]
+    ldr  w7, [x2, #EPU_EPGCR_OFFSET]
+    stp  x4,  x5,  [sp, #-16]!
+    stp  x6,  x7,  [sp, #-16]!
+
+     // x2 = epu base addr
+     // x3 = pmu base addr
+
+     // set up EPU event to receive the wake signal from PMU
+    mov  w4, #EPU_EPIMCR10_VAL
+    mov  w5, #EPU_EPCCR10_VAL
+    mov  w6, #EPU_EPCTR10_VAL
+    mov  w7, #EPU_EPGCR_VAL
+    str  w4, [x2, #EPU_EPIMCR10_OFFSET]
+    str  w5, [x2, #EPU_EPCCR10_OFFSET]
+    str  w6, [x2, #EPU_EPCTR10_OFFSET]
+    str  w7, [x2, #EPU_EPGCR_OFFSET]
+
+    ldr  x2, =GICD_BASE_ADDR
+
+     // x2 = gicd base addr
+     // x3 = pmu base addr
+
+     // backup flextimer/mmc/usb interrupt router
+    ldr  x0, =GICD_IROUTER60_OFFSET
+    ldr  x1, =GICD_IROUTER76_OFFSET
+    ldr  w4, [x2, x0]
+    ldr  w5, [x2, x1]
+    ldr  x0, =GICD_IROUTER112_OFFSET
+    ldr  x1, =GICD_IROUTER113_OFFSET
+    ldr  w6, [x2, x0]
+    ldr  w7, [x2, x1]
+    stp  x4,  x5,  [sp, #-16]!
+    stp  x6,  x7,  [sp, #-16]!
+
+     // x2 = gicd base addr
+     // x3 = pmu base addr
+     // x0 = GICD_IROUTER112_OFFSET
+     // x1 = GICD_IROUTER113_OFFSET
+
+     // re-route interrupt to cluster 1
+    ldr  w4, =GICD_IROUTER_VALUE
+    str  w4, [x2, x0]
+    str  w4, [x2, x1]
+    ldr  x0, =GICD_IROUTER60_OFFSET
+    ldr  x1, =GICD_IROUTER76_OFFSET
+    str  w4, [x2, x0]
+    str  w4, [x2, x1]
+    dsb  sy
+    isb
+
+     // x3 = pmu base addr
+
      // IRQ taken to EL3, set SCR_EL3[IRQ]
     mrs  x0, SCR_EL3
     orr  x0, x0, #SCR_IRQ_MASK
@@ -802,10 +859,6 @@ _soc_sys_entr_pwrdn:
     orr  x1, x1, x2
     msr  spsr_el2, x1
 
-    mrs  x1, spsr_el3
-    orr  x1, x1, x2
-    msr  spsr_el3, x1
-
      // x3 = pmu base addr
 
      // idle the ACP interfaces
@@ -824,8 +877,8 @@ _soc_sys_entr_pwrdn:
     b.ne 3b
 
      // enable the WakeRequest signal
-     // x3 is cpu mask starting from cpu0
-    mov  x3, #0x1
+     // x3 is cpu mask starting from cpu7
+    mov  x3, #0x80
 2:
     mov  x0, x3
     bl   _get_gic_rd_base  // 0-2
@@ -837,54 +890,13 @@ _soc_sys_entr_pwrdn:
     cmp  w1, #GICR_WAKER_ASLEEP
     b.ne 1b
 
-    lsl  x3, x3, #1
-    cmp  x3, #0x100
-    b.ne 2b
+    lsr  x3, x3, #1
+    cbnz x3, 2b
 
      // force the debug interface to be quiescent
-    mrs  x0, OSDLR_EL1
+    mrs  x0, osdlr_el1
     orr  x0, x0, #0x1
-    msr  OSDLR_EL1, x0
-
-     // backup epu registers
-    ldr  x3, =EPU_BASE_ADDR
-
-     // x3 = epu base addr
-
-    ldr  w0, [x3, #EPU_EPIMCR10_OFFSET]
-    str  w0, [sp, #-4]!
-    ldr  w0, [x3, #EPU_EPCCR10_OFFSET]
-    str  w0, [sp, #-4]!
-    ldr  w0, [x3, #EPU_EPCTR10_OFFSET]
-    str  w0, [sp, #-4]!
-    ldr  w0, [x3, #EPU_EPGCR_OFFSET]
-    str  w0, [sp, #-4]!
-
-     // set up EPU event to receive the wake signal from PMU
-    mov  w0, #EPU_EPIMCR10_VAL
-    str  w0, [x3, #EPU_EPIMCR10_OFFSET]
-    mov  w0, #EPU_EPCCR10_VAL
-    str  w0, [x3, #EPU_EPCCR10_OFFSET]
-    mov  w0, #EPU_EPCTR10_VAL
-    str  w0, [x3, #EPU_EPCTR10_OFFSET]
-    mov  w0, #EPU_EPGCR_VAL
-    str  w0, [x3, #EPU_EPGCR_OFFSET]
-
-     // backup flextimer interrupt router
-    ldr  x3, =GICD_BASE_ADDR
-    ldr  x1, =GICD_IROUTER76_OFFSET
-    ldr  w0, [x3, x1]
-    str  w0, [sp, #-4]!
-
-     // x1 = GICD_IROUTER76_OFFSET
-     // x3 = gicd base addr
-
-     // re-route interrupt to cluster 1
-    ldr  w0, =GICD_IROUTER76_VALUE
-    str  w0, [x3, x1]
-
-    dsb  sy
-    isb
+    msr  osdlr_el1, x0
 
      // invalidate L1 Dcache
     mov  x0, #1
@@ -898,7 +910,6 @@ _soc_sys_entr_pwrdn:
      // invalidate Icache
     ic   iallu
     isb
-    dsb  sy
 
      // clear flush request and status
     mov  x3, #PMU_BASE_ADDR
@@ -939,18 +950,7 @@ _soc_sys_entr_pwrdn:
 _soc_sys_exit_pwrdn:
     mov  x4, x30
 
-    ldr  x3, =GICD_BASE_ADDR
-
-     // x3 = gicd base addr
-
-     // restore flextimer interrupt router
-    ldr  x1, =GICD_IROUTER76_OFFSET
-    ldr  w0, [sp], #4
-    str  w0, [x3, x1]
-
     mov  x3, #PMU_BASE_ADDR
-
-     // x3 = pmu base addr
 
      // Re-enable the GPP ACP
     ldr  w1, =PMU_IDLE_CLUSTER_MASK
@@ -958,25 +958,12 @@ _soc_sys_exit_pwrdn:
     str  w1, [x3, #PMU_CLSINACTCLRR_OFFSET]
 
      // x3 = pmu base addr
-
 3:
     ldr  w1, [x3, #PMU_CLAINACTSETR_OFFSET]
     cbnz w1, 3b
-
 4:
     ldr  w1, [x3, #PMU_CLSINACTSETR_OFFSET]
     cbnz w1, 4b
-
-    mrs  x1, SCTLR_EL1
-    orr  x1, x1, #0x4
-    msr  SCTLR_EL1, x1
-    dsb  sy
-
-     // enable CCN snoop domain
-    ldr  x0, =CCI_400_BASE_ADDR
-    str  wzr, [x0]
-    dsb  sy
-    isb
 
      // enable debug interface
     mrs  x0, osdlr_el1
@@ -985,23 +972,9 @@ _soc_sys_exit_pwrdn:
     dsb  sy
     isb
 
-    ldr  x3, =EPU_BASE_ADDR
-
-     // x3 = epu base addr
-
-     // restore EPU registers
-    ldr  w0, [sp], #4
-    str  w0, [x3, #EPU_EPGCR_OFFSET]
-    ldr  w0, [sp], #4
-    str  w0, [x3, #EPU_EPCTR10_OFFSET]
-    ldr  w0, [sp], #4
-    str  w0, [x3, #EPU_EPCCR10_OFFSET]
-    ldr  w0, [sp], #4
-    str  w0, [x3, #EPU_EPIMCR10_OFFSET]
-
      // disable the WakeRequest signal on cpu 0-7
-     // x3 is cpu mask starting from cpu0
-    mov  x3, #0x1
+     // x3 is cpu mask starting from cpu7
+    mov  x3, #0x80
 2:
     mov  x0, x3
     bl   _get_gic_rd_base  // 0-2
@@ -1012,9 +985,19 @@ _soc_sys_exit_pwrdn:
     ldr  w1, [x0, #GICR_WAKER_OFFSET]
     cbnz w1, 1b
 
-    lsl  x3, x3, #1
-    cmp  x3, #0x100
-    b.ne 2b
+    lsr  x3, x3, #1
+    cbnz x3, 2b
+
+     // enable CCN snoop domain
+    ldr  x0, =CCI_400_BASE_ADDR
+    str  wzr, [x0]
+    dsb  sy
+    isb
+
+    mrs  x1, SCTLR_EL1
+    orr  x1, x1, #SCTLR_I_MASK
+    msr  SCTLR_EL1, x1
+    isb
 
      // enable QBman spi and qspi
     ldr  x2, =DCFG_BASE_ADDR
@@ -1027,6 +1010,28 @@ _soc_sys_exit_pwrdn:
     msr  scr_el3, x0
     dsb  sy
     isb
+
+     // restore flextimer/mmc/usb interrupt router
+    ldr  x3, =GICD_BASE_ADDR
+    ldp  x0, x2, [sp], #16
+    ldr  x1, =GICD_IROUTER113_OFFSET
+    str  w2, [x3, x1]
+    ldr  x1, =GICD_IROUTER112_OFFSET
+    str  w0, [x3, x1]
+    ldp  x0, x2, [sp], #16
+    ldr  x1, =GICD_IROUTER76_OFFSET
+    str  w2, [x3, x1]
+    ldr  x1, =GICD_IROUTER60_OFFSET
+    str  w0, [x3, x1]
+
+     // restore EPU registers
+    ldr  x3, =EPU_BASE_ADDR
+    ldp  x0, x2, [sp], #16
+    str  w2, [x3, #EPU_EPGCR_OFFSET]
+    str  w0, [x3, #EPU_EPCTR10_OFFSET]
+    ldp  x2, x1, [sp], #16
+    str  w1, [x3, #EPU_EPCCR10_OFFSET]
+    str  w2, [x3, #EPU_EPIMCR10_OFFSET]
 
     mov  x30, x4
     ret

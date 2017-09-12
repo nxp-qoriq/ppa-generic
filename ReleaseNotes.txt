@@ -42,6 +42,18 @@ Devices Supported:
     LA17xx
     LX2160
 
+Date: 09/12/2017 --------------------------------------------------------------
+
+1) Added cpu/system suspend to LS1088
+
+2) Fixed a defect relating to the offset into the bootcore data area
+
+3) Separated the uart driver from the ddr driver
+
+4) Corrected a misaligned stack issue
+
+//- end 09/12/2017 update -----------------------------------------------------
+
 Date: 08/16/2017 --------------------------------------------------------------
 
 1) Potential race condition between ppa and bootrom fixed.

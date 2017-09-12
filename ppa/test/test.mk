@@ -91,11 +91,8 @@ ifeq ($(test), suspend)
 	    TEST_PSCI=1
         TEST_FILE=test_cpu_suspend_1cluster.s
     else
-    ifeq ($(NUMBER_OF_CLUSTERS), 2)
 	    TEST_PSCI=1
         TEST_FILE=test_cpu_suspend_2cluster.s
-    else
-    endif
     endif
 else
 ifeq ($(test), aarch32)

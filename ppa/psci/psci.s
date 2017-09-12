@@ -631,6 +631,12 @@ system_in_pwrdn:
     mrs  x2, CPUECTLR_EL1
     bl   _setCoreData
 
+     // disable caches, mmu at EL1
+    mrs  x0, sctlr_el1
+    mov  x1, #SCTLR_I_C_M_MASK
+    bic  x0, x0, x1
+    msr  sctlr_el1, x0
+
     mov  x0, x11
     bl   _soc_sys_entr_pwrdn
      // we have an return status code in x0
