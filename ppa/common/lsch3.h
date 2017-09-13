@@ -47,7 +47,7 @@
 
 //-----------------------------------------------------------------------------
 
-#define GICD_BASE_ADDR      0x06000000
+#define GICD_BASE_ADDR        0x06000000
 
  // base addresses
 #define DCFG_BASE_ADDR        0x01E00000
@@ -66,6 +66,8 @@
 #define  TOP_OF_OCRAM        ((OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES) - 1)
 
  // dcfg block register offsets
+#define DCFG_SCRATCHRW5_OFFSET  0x210
+#define DCFG_SCRATCHRW6_OFFSET  0x214
 #define DCFG_SCRATCHRW7_OFFSET  0x218
 #define DCFG_SVR_OFFSET         0x0A4
 #define COREDISABLEDSR_OFFSET   0x990
@@ -106,6 +108,15 @@
 
 #define RESET_SUCCESS   0x0
 #define RESET_FAILURE   0x1
+
+ // these defines create an interface between the bootloader and the ppa - 
+ // the bootloader uses this register to pass the 64-bit load address of a module
+ //   base address of the load addr register(s)
+#define LOAD_ADDR_BASE  DCFG_BASE_ADDR
+ //   lo-order 32-bits of the module load address
+#define LOAD_OFFSET_LO  DCFG_SCRATCHRW5_OFFSET
+ //   hi-order 32-bits of the module load address
+#define LOAD_OFFSET_HI  DCFG_SCRATCHRW6_OFFSET
 
 //-----------------------------------------------------------------------------
 

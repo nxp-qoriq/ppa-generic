@@ -183,6 +183,8 @@ MONITOR_SRC = $(PRE_PATH)../monitor
 ARMV8_SRC   = $(PRE_PATH)../armv8
 PSCI_SRC    = $(PRE_PATH)../psci
 CMN_SRC     = $(PRE_PATH)../common
+CMM_SRC     = $(PRE_PATH)../cmm
+SPD_SRC     = $(PRE_PATH)../spd
 DRVR_SRC    = $(PRE_PATH)../drivers
 SOC_SRC     = $(PRE_PATH).
 TEST_SRC    = $(PRE_PATH)../test
@@ -211,7 +213,12 @@ MKIMAGE		= mkimage
 NM		    = $(CROSS_COMPILE)nm
 
 MAKE        = @make --no-print-directory
-GENITS      = $(CMN_SRC)/gen_its
+
+ifeq ($(spd), on)
+    GENITS  = $(CMN_SRC)/gen_spd_its
+else
+    GENITS  = $(CMN_SRC)/gen_its
+endif
 
 GIT_VERSION    := $(shell git describe --dirty --always 2>/dev/null)
 CFLAGS		    = -fno-builtin -ggdb -mstrict-align -DVERSION=\"$(GIT_VERSION)\"
@@ -311,7 +318,7 @@ TIMER_PATH=$(DRVR_SRC)/timer
 
 COMMON_C += crc32.c
 
-# get the driver makefiles
+ # get the driver makefiles
 include $(DDR_CNTLR_PATH)/ddrcntlr.mk
 include $(I2C_PATH)/i2c.mk
 include $(TIMER_PATH)/timer.mk
@@ -330,15 +337,12 @@ DRIVER_H = $(DDR_CNTLR_H) $(DDR_PHY_H) $(I2C_H) $(UART_H) $(TIMER_H) $(DDR_H)
 
 endif
 
-
 ifeq ($(UART_BLD), 1)
+  UART_PATH=$(DRVR_SRC)/uart
+  include $(UART_PATH)/uart.mk
 
-UART_PATH=$(DRVR_SRC)/uart
-include $(UART_PATH)/uart.mk
-
-DRIVER_C += $(UART_C)
-DRIVER_H += $(UART_H)
-
+  DRIVER_C += $(UART_C)
+  DRIVER_H += $(UART_H)
 endif
 
 PRNG_PATH=$(DRVR_SRC)/hash_drbg
@@ -346,6 +350,8 @@ SEC_PATH=$(DRVR_SRC)/fsl_sec
 PSCI_PATH=$(PSCI_SRC)
 MNTR_PATH=$(MONITOR_SRC)
 ARMV8_PATH=$(ARMV8_SRC)
+SPD_PATH=$(SPD_SRC)
+CMM_PATH=$(CMM_SRC)
 
 # get the subsystem makefiles
 include $(PRNG_PATH)/hash_drbg.mk
@@ -353,6 +359,8 @@ include $(SEC_PATH)/sec.mk
 include $(PSCI_PATH)/psci.mk
 include $(MNTR_PATH)/mntr.mk
 include $(ARMV8_PATH)/armv8.mk
+include $(SPD_PATH)/spd.mk
+include $(CMM_PATH)/cmm.mk
 
 # -----------------------------------------------------------------------------
 
@@ -371,10 +379,10 @@ help_out:
 TARGETS    =monitor.bin bootmain.64.bin
 PRE_TARG   =monitor.elf
 
-BUILD_ASM  =$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
+BUILD_ASM +=$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
-BUILD_C    =$(HASH_DRBG_C) $(SEC_C) $(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C)
-HDRS_ASM   =$(HDRS_ARMV8) $(HDRS_PLAT)  $(HDRS_MNTR) $(DRIVER_H) $(DDR_H) $(HDRS_PSCI) \
+BUILD_C   +=$(HASH_DRBG_C) $(SEC_C) $(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C)
+HDRS_ASM  +=$(HDRS_ARMV8) $(HDRS_PLAT)  $(HDRS_MNTR) $(DRIVER_H) $(DDR_H) $(HDRS_PSCI) \
 			$(HASH_DRBG_HDRS) $(SEC_HDRS) $(HDRS_SOC)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 

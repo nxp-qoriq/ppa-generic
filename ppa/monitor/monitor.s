@@ -58,9 +58,10 @@
 
 .align 16
 _start_monitor_el3:
-     //Save the address where execution starts in x13
-    //x13 should not be used before ppa_main is called
+     // save the address where execution starts in x13 -
+     // x13 should not be used before ppa_main is called
     ADR   x13, .
+
      // save the LR
     mov   x12, x30
 
@@ -70,11 +71,11 @@ debug_stop:
 #endif
 
     mov x0, x13
-     // Relocate the rela_dyn sections
+     // relocate the rela_dyn sections
     bl _relocate_rela
 
     mov x0, x13
-     // Clear the bss
+     // clear the bss
     bl _zeroize_bss
 
      // clean/invalidate the dcache
@@ -137,7 +138,19 @@ debug_stop:
      // setup the stack
     mov  x0, x8
     bl   _init_stack_percpu
-    
+
+     // now we have a stack - store the caller's LR on the stack
+    str  x12, [sp, #-16]!
+
+#if (CNFG_SPD)
+     // determine address of loadable
+    bl  _get_load_addr
+     // the load address will be passed as the second parameter to _ppa_main() below
+    mov x1, x0
+#else
+    mvn x1, xzr
+#endif
+
     mov x0, x13
     bl   _ppa_main
 
@@ -270,7 +283,7 @@ monitor_exit_EL3:
     isb
 
      // restore the LR
-    mov  x30, x12
+    ldr  x30, [sp], #16
 
      // cleanup
     mov  x0,   #0

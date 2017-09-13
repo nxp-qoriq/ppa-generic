@@ -117,7 +117,11 @@ smc32_handler:
      // is it SMC32: Trusted OS Call? (multiple ranges)
     lsr  w10, w9, #4
     cmp  w10, #0xB
+#if (CNFG_SPD)
+    b.eq _smc_trstd_os_handler
+#else
     b.eq smc32_no_services
+#endif
 
      // if we are here then we have an unimplemented/unrecognized function
     b _smc_unimplemented

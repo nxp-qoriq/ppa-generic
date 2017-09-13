@@ -175,13 +175,19 @@ a64smc_router:
 
      // isolate and test bit [31] - must be '1' for "fast-calls"
     lsr   x2, x0, #31
+#if (CNFG_SPD)
+    mov   x10, x2
+    cbz   x10, 1f
+#else
     cbz   x2, _smc_unimplemented
+#endif
 
      // extract bits [23:16] - must be 0x00 for "fast-calls"
     mov   x1, xzr
     bfxil x1, x0, #16, #8
     cbnz  x1, _smc_unimplemented
 
+1:
      // restore the volatile registers
      //  access these as pairs of registers to maintain the
      //  required 16-byte alignment on the stack
@@ -191,8 +197,12 @@ a64smc_router:
     isb
 
      // set the aarch64 flag
-    mov   x5, #SMC_AARCH64_MODE
-    str   x5,  [sp, #-16]!
+    mov   x11, #SMC_AARCH64_MODE
+    str   x11,  [sp, #-16]!
+
+#if (CNFG_SPD)
+    cbz   x10, _smc_trstd_os_handler
+#endif
 
      // test for smc32 or smc64 interface
     mov   x9, xzr

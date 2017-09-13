@@ -57,6 +57,7 @@
 .global _ocram_init_lower
 .global _prep_init_ocram_hi
 .global _prep_init_ocram_lo
+.global _get_load_addr
 
 //-----------------------------------------------------------------------------
 
@@ -260,6 +261,27 @@ _is_mpidr_valid:
      // if the clusters are not symmetrical, then add an appropriate
      // function in the specific device soc.s file.
 #endif
+
+//-----------------------------------------------------------------------------
+
+ // this function gets the 64-bit address of a module loaded by the bootloader
+ // in:  none
+ // out: x0 = 64-bit load address
+ // uses x0, x1, x2
+_get_load_addr:
+
+     // get the 64-bit base address of the block
+    ldr  x0, =LOAD_ADDR_BASE
+
+     // read the lo-order 32-bits of the address
+    ldr  w2, [x0, #LOAD_OFFSET_LO]
+
+     // read the 32-bit hi-order bits of the address
+    ldr  w1, [x0, #LOAD_OFFSET_HI]
+
+     // create a 64-bit address
+    orr  x0, x2, x1, LSL #32
+    ret
 
 //-----------------------------------------------------------------------------
 

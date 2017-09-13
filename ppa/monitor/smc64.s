@@ -121,7 +121,11 @@ smc64_handler:
      // is it SMC64: Trusted OS Call? (multiple ranges)
     lsr  x10, x9, #4
     cmp  x10, #0xF
+#if (CNFG_SPD)
+    b.eq _smc_trstd_os_handler
+#else
     b.eq smc64_no_services
+#endif
 
      // if we are here then we have an unimplemented/unrecognized function
     b _smc_unimplemented

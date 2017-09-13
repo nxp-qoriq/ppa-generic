@@ -71,6 +71,8 @@
 #define SCFG_RETREQCR_OFFSET      0x0424
 #define SCFG_COREPMCR_OFFSET      0x042C
 #define SCFG_GIC400_ADDR_ALIGN_OFFSET  0x188
+#define SCFG_SCRATCHRW2_OFFSET    0x608
+#define SCFG_SCRATCHRW3_OFFSET    0x60C
 
 #define SYS_COUNTER_CNTCR_OFFSET  0x0
 
@@ -122,6 +124,15 @@
 #define SVR_MAJOR_REV_MASK        0xF0
 #define SVR_MAJOR_REV_1           0x10
 #define SVR_SEC_MASK	          0x100
+
+ // these defines create an interface between the bootloader and the ppa - 
+ // the bootloader uses this register to pass the 64-bit load address of a module
+ //   base address of the load addr register(s)
+#define LOAD_ADDR_BASE  SCFG_BASE_ADDR
+ //   lo-order 32-bits of the module load address
+#define LOAD_OFFSET_LO  SCFG_SCRATCHRW2_OFFSET
+ //   hi-order 32-bits of the module load address
+#define LOAD_OFFSET_HI  SCFG_SCRATCHRW3_OFFSET
 
 //-----------------------------------------------------------------------------
 

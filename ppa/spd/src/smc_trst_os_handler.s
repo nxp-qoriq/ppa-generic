@@ -1,22 +1,21 @@
 //-----------------------------------------------------------------------------
 //
-// Copyright (C) 2015, 2016 Freescale Semiconductor, Inc. 
 // Copyright 2017 NXP Semiconductors
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its contributors
 //    may be used to endorse or promote products derived from this software
 //    without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,104 +28,69 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 //
+// Author Sumit Garg <sumit.garg@nxp.com>
+//
 //-----------------------------------------------------------------------------
 
-#include "lib.h"
-#include "fsl_sec.h"
+  .section .text, "ax"
 
-#if (CNFG_SPD)
-#include "spd.h"
-#endif
-
-char __bss_start[0] __attribute__((section(".__bss_start")));
-char __bss_end[0] __attribute__((section(".__bss_end")));
-char __rel_dyn_start[0] __attribute__((section(".__rel_dyn_start")));
-char __rel_dyn_end[0] __attribute__((section(".__rel_dyn_end")));
-
-struct allocator heap;
- //1 MB area in DDR allocated for heap starting from 512K offset
-#define HEAP_OFFSET	0x80000
-#define HEAP_SIZE	0x100000
-
-
-#if (CNFG_DDR)
-void _init_membank_data(void) __attribute__ ((weak));
-void _init_membank_data(void)
-{
-}
-
-void _init_ddr(void) __attribute__ ((weak));
-void _init_ddr(void)
-{
-}
-
-void timer_init(void) __attribute__ ((weak));
-void timer_init(void)
-{
-}
-
-void soc_errata(void) __attribute__ ((weak));
-void soc_errata(void)
-{
-}
-
-#if (PSCI_TEST)
-void _populate_membank_data(void) __attribute__ ((weak));
-void _populate_membank_data(void)
-{
-}
-#endif
-#endif
-
-#if (CNFG_DDR) || (CNFG_I2C)
-void i2c_init(void) __attribute__ ((weak));
-void i2c_init(void)
-{
-}
-#endif
-
-#if (CNFG_UART)
-void uart_init(void) __attribute__ ((weak));
-void uart_init(void)
-{
-}
-#endif
+#include "context_arch64_asm.h"
 
 //-----------------------------------------------------------------------------
 
-int _ppa_main(unsigned long long addr, unsigned long long loadable)
-{
-
-#if (CNFG_UART)
-    uart_init();
-#endif
-
-#if (CNFG_DDR)
-    _init_membank_data();
-#if (PSCI_TEST)
-    _populate_membank_data();
-#else
-    soc_errata();
-    timer_init();
-    i2c_init();
-    _init_ddr();
-#endif
-#elif (CNFG_I2C)
-    timer_init();
-    i2c_init();
-#endif
-    alloc_init(&heap, addr + HEAP_OFFSET, HEAP_SIZE);
-    sec_init();
-
-#if (CNFG_SPD)
-    if (loadable) {
-        spd_init(loadable);
-    }
-#endif
-
-	return (0);
-
-}  // _ppa_main()
+  .global _smc_trstd_os_handler
 
 //-----------------------------------------------------------------------------
 
+ // This function handles smc calls for trusted os
+_smc_trstd_os_handler:
+     // Dummy load from stack
+    ldr  x10, [sp], #16
+
+     // Get core_data_array ptr from tpidr_el3 register
+    mrs  x9, tpidr_el3
+
+     // Parse NS bit from SCR_EL3 to get security state of smc
+     // caller.
+    mrs  x10, scr_el3
+    and  x10, x10, #1
+
+     // Get sec/non-sec context pointer
+    add  x9, x9, x10, lsl #3
+    ldr  x9, [x9]
+
+     // Save LR, SP_EL0
+    mrs  x11, sp_el0
+    stp  x30, x11, [x9, #CPU_CTX_GPREGS_OFFSET + CPU_CTX_LR]
+
+     // Save EL3 context registers
+    mrs  x12, spsr_el3
+    mrs  x13, elr_el3
+    mrs  x14, scr_el3
+    stp  x12, x13, [x9, #CPU_CTX_EL3STATE_OFFSET + CPU_CTX_SPSR_EL3]
+    str  x14, [x9, #CPU_CTX_EL3STATE_OFFSET + CPU_CTX_SCR_EL3]
+
+     // Save context pointer in SP_EL0
+    msr  sp_el0, x9
+
+     // Save all general purpose registers using SP_EL0 as
+     // context pointer
+    msr  spsel, #0
+    bl   gp_regs_ctx_save_args_n_callee
+
+     // Restore SP_EL3 stack in sp
+    msr  spsel, #1
+    dsb  sy
+    isb
+
+     // Pass arguments handle register to x5. Also pass security
+     // state in x6
+    mov  x5, x9
+    mov  x6, x10
+    bl   smc_trstd_os_handler
+
+     // Do el3 exit
+    b    el3_exit
+
+     // Code flow should never reach here
+    b    .
