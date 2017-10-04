@@ -42,6 +42,15 @@ Devices Supported:
     LA17xx
     LX2160
 
+Date: 10/04/2017 --------------------------------------------------------------
+
+1) Added build option to relocate ppa stacks and data regions from OCRAM to ddr.
+   This is a temporary option to support falcon boot. This is not a default option,
+   as the security of the platform is reduced when using this. Use this cmd line:
+   >build rdb-fit data_in_ddr <device list>
+
+//- end 10/04/2017 update -----------------------------------------------------
+
 Date: 09/12/2017 --------------------------------------------------------------
 
 1) Added cpu/system suspend to LS1088

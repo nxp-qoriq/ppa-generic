@@ -57,6 +57,13 @@ else
     DBG_HALT=0
 endif
 
+# select the location of the stacks and data region
+ifeq ($(data_in_ddr), on)
+    DATA_DDR=1
+else
+    DATA_DDR=0
+endif
+
 # select if uart driver is built
 ifeq ($(uart), on)
     UART_BLD=1
@@ -243,6 +250,7 @@ PLATFLAGS = $(DBG_FLAGS)                   \
 	-DCNFG_DDR=$(DDR_BLD)                  \
 	-DCNFG_I2C=$(I2C_BLD)                  \
 	-DCNFG_UART=$(UART_BLD)                \
+	-DDATA_LOC=$(DATA_DDR)                 \
     -DLSCH=$(CHASSIS)
 
 # -----------------------------------------------------------------------------

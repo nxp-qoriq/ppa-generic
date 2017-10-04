@@ -295,24 +295,31 @@ _get_load_addr:
  // uses x0, x1, x2, x3, x4, x5
 _get_ocram_2_init:
     mov  x5, x30
+    mov  x4, x0
+
+#if (DATA_LOC == DATA_IN_DDR)
 
     mov  x1, #OCRAM_SIZE_IN_BYTES
     mov  x2, #OCRAM_BASE_ADDR
 
-     // x1 = OCRAM_SIZE_IN_BYTES
-     // x2 = OCRAM_BASE_ADDR
+#else
+
+    ldr  x0, =STACK_BASE_ADDR
+    mov  x1, #OCRAM_SIZE_IN_BYTES
+    mov  x2, #OCRAM_BASE_ADDR
 
      // stack and data region is in top of ocram
-
      // determine the amount of stack/data space
     add  x3, x2, x1
-    ldr  x4, =STACK_BASE_ADDR
-    sub  x4, x3, x4
+    sub  x3, x3, x0
 
-     // x4 = total stack/data size in bytes
+     // x3 = total stack/data size in bytes
 
      // adjust the size by subtracting the amount of stack space
-    sub  x1, x1, x4
+    sub  x1, x1, x3
+
+#endif
+
 1:
      // x1 = size of ocram to initialize
      // x2 = OCRAM_BASE_ADDR
@@ -321,7 +328,7 @@ _get_ocram_2_init:
     lsr  x1, x1, #1
 
      // determine if the upper or lower region of ocram is requested
-    cbz  x0, 2f
+    cbz  x4, 2f
 
      // process the upper region of ocram
 

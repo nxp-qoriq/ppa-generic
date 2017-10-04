@@ -362,7 +362,7 @@ smc64_arch_el2_2_aarch32:
  //             =  0, last bank
  //      x1     =  physical start address (not valid unless x0[0]=1)
  //      x2     =  size in bytes (not valid unless x0[0]=1)
- // uses x0, x1, x2, x3, x4
+ // uses x0, x1, x2, x3, x4, x12
 smc64_membank_data:
     mov   x12, x30
 
@@ -373,7 +373,14 @@ smc64_membank_data:
 #if (DDR_INIT)
 
      // get the number of memory banks installed
+#if (DATA_LOC == DATA_IN_DDR)
+     // request base address
+    mov  x13, #MEMBANK_BASE_QUERY
+    bl   _getBaseAddrNS
+    mov  x3, x13
+#else
     ldr  x3, =MEMBANK_BASE
+#endif
     dc   ivac, x3
     isb
     ldr  x2, [x3, #MEMBANK_CNT_OFFSET]
@@ -396,7 +403,14 @@ smc64_membank_data:
      // x3 = offset
 
      // get the start address of the memory bank data area
+#if (DATA_LOC == DATA_IN_DDR)
+     // request base address
+    mov  x13, #MEMBANK_BASE_QUERY
+    bl   _getBaseAddrNS
+    mov  x4, x13
+#else
     ldr  x4, =MEMBANK_BASE
+#endif
     add  x4, x4, #MEMBANK_CNT_SIZE
 
      // x3 = offset

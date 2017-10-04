@@ -301,7 +301,7 @@ core_in_standby:
      // restore cpuectlr
     mov  x0, x11
     mov  x1, #CPUECTLR_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
     msr  CPUECTLR_EL1, x0
 
     b    psci_success
@@ -360,7 +360,7 @@ core_in_powerdown:
      // restore cpuectlr
     mov  x0, x11
     mov  x1, #CPUECTLR_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
     msr  CPUECTLR_EL1, x0
 
      // x11 = core mask lsb
@@ -368,12 +368,12 @@ core_in_powerdown:
      // return to entry point address
     mov  x0, x11
     mov  x1, #START_ADDR_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
     msr  ELR_EL3, x0
 
     mov  x0, x11
     mov  x1, #CNTXT_ID_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
 
      // we have a context id in x0 - don't overwrite this
      // with a status return code
@@ -449,7 +449,7 @@ cluster_in_stdby:
      // restore cpuectlr
     mov  x0, x11
     mov  x1, #CPUECTLR_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
     msr  CPUECTLR_EL1, x0
 
     b    psci_success
@@ -508,18 +508,18 @@ cluster_in_pwrdn:
      // restore cpuectlr
     mov  x0, x11
     mov  x1, #CPUECTLR_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
     msr  CPUECTLR_EL1, x0
 
      // return to entry point address
     mov  x0, x11
     mov  x1, #START_ADDR_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
     msr  ELR_EL3, x0
 
     mov  x0, x11
     mov  x1, #CNTXT_ID_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
 
      // we have a context id in x0 - don't overwrite this
      // with a status return code
@@ -589,7 +589,7 @@ system_in_stdby:
      // restore cpuectlr
     mov  x0, x11
     mov  x1, #CPUECTLR_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
     msr  CPUECTLR_EL1, x0
 
     b    psci_success
@@ -640,8 +640,8 @@ system_in_pwrdn:
     mov  x0, x11
     bl   _soc_sys_entr_pwrdn
      // we have an return status code in x0
-    mov  x6, x0
-    cbnz x6, 2f
+    mov  x7, x0
+    cbnz x7, 2f
 
      // cleanup after the system exits power-down
     mov  x0, x11
@@ -657,24 +657,24 @@ system_in_pwrdn:
      // restore cpuectlr
     mov  x0, x11
     mov  x1, #CPUECTLR_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
     msr  CPUECTLR_EL1, x0
 
      // if we have an error, return to the caller rather
      // than the entry point address
-    cbz  x6, 1f
+    cbz  x7, 1f
     b    psci_invalid
 
 1:
      // return to entry point address
     mov  x0, x11
     mov  x1, #START_ADDR_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
     msr  ELR_EL3, x0
 
     mov  x0, x11
     mov  x1, #CNTXT_ID_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
 
      // we have a context id in x0 - don't overwrite this
      // with a status return code
@@ -749,7 +749,7 @@ smc64_psci_cpu_on:
      // read the core state
     mov  x0, x6
     mov  x1, #CORE_STATE_DATA
-    bl   _getCoreData
+    bl   _getCoreData       // 0-5
 
     cmp  x0, #CORE_DISABLED
     b.eq psci_disabled

@@ -154,6 +154,14 @@
 
 //-----------------------------------------------------------------------------
 
+#define  INCREMENT_8KB   0x0000000000002000
+#define  ALIGN_MASK_8KB  0xFFFFFFFFFFFFE000
+
+#define  DATA_IN_SRAM  0
+#define  DATA_IN_DDR   1
+
+#define SECURE_DATA_SIZE     OCRAM_SIZE_IN_BYTES
+
 #define EL3_VECTOR_SIZE      0x800
 #define VECTOR_GLBL_SIZE     0x10
 #define SMC_REGION_SIZE      0x50
@@ -163,29 +171,21 @@
 #define SEC_PSCI_DATA_SIZE   0x90
 #define SEC_STACK_SIZE       0x400
 #define EL3_PAGE_TABLE_SIZE  0x7010
-#define EL3_PAGE_TABLE_BASE  OCRAM_BASE_ADDR
 #define SEC_REGION_SIZE      (INTEGRITY_BUFF_SIZE+SEC_PSCI_DATA_SIZE+SEC_STACK_SIZE)
 #define SEC_REGION_OFFSET    SEC_REGION_SIZE
 #define SEC_DATA_OFFSET      SEC_PSCI_DATA_SIZE
 #define SECONDARY_CORE_CNT   (CPU_MAX_COUNT-1)
 
-#define EL3_VECTOR_BASE      (OCRAM_BASE_ADDR+OCRAM_SIZE_IN_BYTES) - EL3_VECTOR_SIZE
-
-#define VECTOR_GLBL_BASE     (EL3_VECTOR_BASE - VECTOR_GLBL_SIZE)
 #define EL3_DEAD_LP_OFFSET   0x0
 #define EL3_SYNCH_OFFSET     0x8
 
 #define SMC_REGION_OFFSET    (EL3_VECTOR_SIZE+VECTOR_GLBL_SIZE+SMC_REGION_SIZE)
-#define SMC_GLBL_BASE        ((OCRAM_BASE_ADDR+OCRAM_SIZE_IN_BYTES) - SMC_REGION_OFFSET)
 #define BOOTLOC_OFFSET       0x0
 #define BOOT_SVCS_OSET       0x8
 #define PREFETCH_DIS_OFFSET  0x10  // offset to prefetch disable mask
 
+#define SMC_MISC_OFFSET      0x20
 #define SMC_TASK_OFFSET      0xC
-#define SMC_TASK1_BASE       (SMC_GLBL_BASE + 32)
-#define SMC_TASK2_BASE       (SMC_TASK1_BASE + SMC_TASK_OFFSET)
-#define SMC_TASK3_BASE       (SMC_TASK2_BASE + SMC_TASK_OFFSET)
-#define SMC_TASK4_BASE       (SMC_TASK3_BASE + SMC_TASK_OFFSET)
 #define TSK_START_OFFSET     0x0
 #define TSK_DONE_OFFSET      0x4
 #define TSK_CORE_OFFSET      0x8
@@ -193,15 +193,42 @@
  // max size of the membank data region in bytes
  // Note: must be a 64-bit multiple
 #define MEMBANK_REGION_SIZE  256
-#define MEMBANK_BASE         (SMC_GLBL_BASE - MEMBANK_REGION_SIZE)
 #define MEMBANK_DATA_OFFSET  0x18
 #define MEMBANK_CNT_SIZE     0x8
 #define MEMBANK_CNT_OFFSET   0x0
 
-#define BC_PSCI_BASE         (MEMBANK_BASE - BC_PSCI_DATA_SIZE)
-#define BC_STACK_TOP         BC_PSCI_BASE
-#define SECONDARY_TOP        (BC_STACK_TOP - (BC_STACK_SIZE + INTEGRITY_BUFF_SIZE))
-#define STACK_BASE_ADDR      (SECONDARY_TOP - (SECONDARY_CORE_CNT * SEC_REGION_SIZE))
+
+#if (DATA_LOC == DATA_IN_DDR)
+   // the following defs create an enumerated type for base address queries
+  #define SECURE_DATA_BASE_QUERY      0
+  #define EL3_PAGE_TABLE_BASE_QUERY   1
+  #define EL3_VECTOR_BASE_QUERY       2
+  #define SMC_GLBL_BASE_QUERY         3
+  #define SMC_TASK1_BASE_QUERY        4
+  #define SMC_TASK2_BASE_QUERY        5
+  #define SMC_TASK3_BASE_QUERY        6
+  #define SMC_TASK4_BASE_QUERY        7
+  #define MEMBANK_BASE_QUERY          8
+  #define BC_PSCI_BASE_QUERY          9
+  #define BC_STACK_TOP_QUERY         10
+  #define SECONDARY_TOP_QUERY        11
+  #define STACK_BASEADDR_QUERY       12
+#else
+  #define SECURE_DATA_BASE     OCRAM_BASE_ADDR
+  #define EL3_PAGE_TABLE_BASE  SECURE_DATA_BASE
+  #define EL3_VECTOR_BASE      (SECURE_DATA_BASE+SECURE_DATA_SIZE) - EL3_VECTOR_SIZE
+  #define SMC_GLBL_BASE        ((SECURE_DATA_BASE+SECURE_DATA_SIZE) - SMC_REGION_OFFSET)
+  #define SMC_TASK1_BASE       (SMC_GLBL_BASE + 32)
+  #define SMC_TASK2_BASE       (SMC_TASK1_BASE + SMC_TASK_OFFSET)
+  #define SMC_TASK3_BASE       (SMC_TASK2_BASE + SMC_TASK_OFFSET)
+  #define SMC_TASK4_BASE       (SMC_TASK3_BASE + SMC_TASK_OFFSET)
+  #define MEMBANK_BASE         (SMC_GLBL_BASE - MEMBANK_REGION_SIZE)
+  #define BC_PSCI_BASE         (MEMBANK_BASE - BC_PSCI_DATA_SIZE)
+  #define BC_STACK_TOP         BC_PSCI_BASE
+  #define SECONDARY_TOP        (BC_STACK_TOP - (BC_STACK_SIZE + INTEGRITY_BUFF_SIZE))
+  #define STACK_BASE_ADDR      (SECONDARY_TOP - (SECONDARY_CORE_CNT * SEC_REGION_SIZE))
+  #define VECTOR_GLBL_BASE     (EL3_VECTOR_BASE - VECTOR_GLBL_SIZE)
+#endif
 
 //-----------------------------------------------------------------------------
 

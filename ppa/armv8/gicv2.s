@@ -47,8 +47,9 @@
 
  // this function performs one-time gic init, executed by the boot core
  // out: none
- // uses x0, x1, x2, x3
+ // uses x0, x1, x2, x3, x4, [x13, x14, x15]
 _gic_init_common:
+    mov   x4, x30
 
     Get_GICD_Base_Addr x0
 
@@ -64,14 +65,16 @@ _gic_init_common:
     sub   w3, w3, #0x1
     cbnz  w3, 0b
 1:
-      ret
+    mov   x30, x4
+    ret
 
 //-----------------------------------------------------------------------------
 
  // this function performs per-cpu gic init, executed by each core
  // out: none
- // uses x0, x1, x2, x3
+ // uses x0, x1, x2, x3, x4, [x13, x14, x15]
 _gic_init_percpu:
+    mov  x4, x30
 
      // initialize distributor
 
@@ -91,6 +94,8 @@ _gic_init_percpu:
     str   w2, [x1, GICC_CTLR_OFFSET]      // Secure GICC_CTLR
     mov   w2, #0x1 << 7                   // Non-Secure access to GICC_PMR
     str   w2, [x1, GICC_PMR_OFFSET]
+
+    mov  x30, x4
     ret
 
 //-----------------------------------------------------------------------------
