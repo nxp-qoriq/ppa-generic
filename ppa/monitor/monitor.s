@@ -39,13 +39,19 @@
 
 //-----------------------------------------------------------------------------
 
-#include "soc.h"
-#include "aarch64.h"
+#if (LSCH == 3)
+#include "lsch3.h"
+#else
+#include "lsch2.h"
+#endif
+
+//#include "soc.h"
+//#include "aarch64.h"
 #include "psci.h"
 #include "soc.mac"
-#include "policy.h"
+//#include "policy.h"
 #include "smc.h"
-#include "runtime_data.h"
+//#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 
@@ -55,6 +61,8 @@
 .global _mon_core_restart
 
 //-----------------------------------------------------------------------------
+
+#if 0
 
 .align 16
 _start_monitor_el3:
@@ -159,6 +167,120 @@ debug_stop:
 
      // exit the monitor
     b    monitor_exit_EL3
+
+#else
+
+.align 16
+_start_monitor_el3:
+     // save the address where execution starts in x13 -
+     // x13 should not be used before ppa_main is called
+    ADR   x13, .
+
+     // save the LR
+    mov   x16, x30
+
+#if (!SIMULATOR_BUILD) && (DEBUG_HALT)
+debug_stop:
+    b  debug_stop
+#endif
+
+    mov x0, x13
+     // relocate the rela_dyn sections
+    bl _relocate_rela
+
+    mov x0, x13
+     // clear the bss
+    bl _zeroize_bss
+
+     // clean/invalidate the dcache
+    mov x0, #0
+    bl  _cln_inv_all_dcache
+#if (L3_VIA_CCN504)
+    mov x0, #1
+    bl  _manual_L3_flush
+#endif
+
+     // invalidate the icache
+    ic  iallu
+    isb
+
+     // invalidate tlb
+    tlbi  alle3
+    dsb   sy
+    isb
+
+     // setup the EL3 vectors
+    bl   _set_EL3_vectors
+
+     // soc-specific core init
+    bl   _soc_init_percpu
+
+     // perform EL3 init on the core
+    bl   _init_core_EL3
+
+     // determine if hw supports el2
+    bl   _is_EL2_supported
+
+     // x0 = EL2 support (0=none)
+    cbz  x0, 1f
+     // perform basic EL2 init on the core
+    bl   _init_core_EL2
+    b    2f
+1:
+     // perform basic EL1 init on the core
+    bl   _init_core_EL1
+2:
+     // setup the interconnect
+    bl   _init_interconnect
+ 
+#if (CNFG_SPD)
+     // determine address of loadable
+    bl  _get_load_addr
+     // the load address will be passed as the second parameter to _ppa_main() below
+    mov x1, x0
+#else
+    mvn x1, xzr
+#endif
+
+     // setup a temporary stack in OCRAM for the bootcore so we can run some C code
+    ldr  x1, =INITIAL_BC_STACK_ADDR
+    mov  sp, x1
+
+    mov  x0, x13
+    bl   _ppa_main
+
+     // initialize the psci data structures
+    bl   _initialize_psci
+
+     // start initializing the soc
+    bl   _soc_init_start
+
+     // configure GIC
+    bl   _gic_init_common
+    bl   _get_current_mask
+    mov  x8, x0
+    bl   _gic_init_percpu
+
+     // apply any cpu-specific errata workarounds
+    mov  x0, x8
+    bl   _apply_cpu_errata
+
+     // x8 = core mask
+
+     // setup the stack
+    mov  x0, x8
+    bl   _init_stack_percpu
+
+     // now we have a stack - store the caller's LR on the stack
+    str  x16, [sp, #-16]!
+
+     // initialize the Platform Security Policy here
+    bl   _set_platform_security  
+
+     // exit the monitor
+    b    monitor_exit_EL3
+
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -299,6 +421,10 @@ monitor_exit_EL3:
     mov  x10,  #0
     mov  x11,  #0
     mov  x12,  #0
+    mov  x13,  #0
+    mov  x14,  #0
+    mov  x15,  #0
+    mov  x16,  #0
 
      // switch to the specified exception level
     clrex

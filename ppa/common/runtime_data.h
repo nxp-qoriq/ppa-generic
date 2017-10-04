@@ -197,6 +197,9 @@
 #define MEMBANK_CNT_SIZE     0x8
 #define MEMBANK_CNT_OFFSET   0x0
 
+ // temporary stack space for bootcore
+#define INITIAL_BC_STACK_ADDR      (OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES - 16)
+#define INITIAL_BC_STACK_SIZE      0x800
 
 #if (DATA_LOC == DATA_IN_DDR)
    // the following defs create an enumerated type for base address queries
