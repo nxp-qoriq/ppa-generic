@@ -62,114 +62,6 @@
 
 //-----------------------------------------------------------------------------
 
-#if 0
-
-.align 16
-_start_monitor_el3:
-     // save the address where execution starts in x13 -
-     // x13 should not be used before ppa_main is called
-    ADR   x13, .
-
-     // save the LR
-    mov   x12, x30
-
-#if (!SIMULATOR_BUILD) && (DEBUG_HALT)
-debug_stop:
-    b  debug_stop
-#endif
-
-    mov x0, x13
-     // relocate the rela_dyn sections
-    bl _relocate_rela
-
-    mov x0, x13
-     // clear the bss
-    bl _zeroize_bss
-
-     // clean/invalidate the dcache
-    mov x0, #0
-    bl  _cln_inv_all_dcache
-#if (L3_VIA_CCN504)
-    mov x0, #1
-    bl  _manual_L3_flush
-#endif
-
-     // invalidate the icache
-    ic  iallu
-    isb
-
-     // invalidate tlb
-    tlbi  alle3
-    dsb   sy
-    isb
-
-     // initialize the psci data structures
-    bl   _initialize_psci
-
-     // setup the EL3 vectors
-    bl   _set_EL3_vectors
-
-     // start initializing the soc
-    bl   _soc_init_percpu
-    bl   _soc_init_start
-
-     // perform EL3 init on the core
-    bl   _init_core_EL3
-
-     // determine if hw supports el2
-    bl   _is_EL2_supported
-
-     // x0 = EL2 support (0=none)
-    cbz  x0, 1f
-     // perform basic EL2 init on the core
-    bl   _init_core_EL2
-    b    2f
-1:
-     // perform basic EL1 init on the core
-    bl   _init_core_EL1
-2:
-     // setup the interconnect
-    bl   _init_interconnect
- 
-     // configure GIC
-    bl   _gic_init_common
-    bl   _get_current_mask
-    mov  x8, x0
-    bl   _gic_init_percpu
-
-     // apply any cpu-specific errata workarounds
-    mov  x0, x8
-    bl   _apply_cpu_errata
-
-     // x8 = core mask
-
-     // setup the stack
-    mov  x0, x8
-    bl   _init_stack_percpu
-
-     // now we have a stack - store the caller's LR on the stack
-    str  x12, [sp, #-16]!
-
-#if (CNFG_SPD)
-     // determine address of loadable
-    bl  _get_load_addr
-     // the load address will be passed as the second parameter to _ppa_main() below
-    mov x1, x0
-#else
-    mvn x1, xzr
-#endif
-
-    mov x0, x13
-    bl   _ppa_main
-
-     // initialize the Platform Security Policy here
-    bl   _set_platform_security  
-
-     // exit the monitor
-    b    monitor_exit_EL3
-
-#else
-
 .align 16
 _start_monitor_el3:
      // save the address where execution starts in x13 -
@@ -279,8 +171,6 @@ debug_stop:
 
      // exit the monitor
     b    monitor_exit_EL3
-
-#endif
 
 //-----------------------------------------------------------------------------
 
