@@ -64,10 +64,6 @@
 
 .align 16
 _start_monitor_el3:
-     // save the address where execution starts in x13 -
-     // x13 should not be used before ppa_main is called
-    ADR   x13, .
-
      // save the LR
     mov   x16, x30
 
@@ -129,17 +125,53 @@ debug_stop:
      // determine address of loadable
     bl  _get_load_addr
      // the load address will be passed as the second parameter to _ppa_main() below
-    mov x1, x0
+    mov x9, x0
 #else
-    mvn x1, xzr
+    mvn x9, xzr
 #endif
 
-     // setup a temporary stack in OCRAM for the bootcore so we can run some C code
-    ldr  x1, =INITIAL_BC_STACK_ADDR
-    mov  sp, x1
+#if ((DDR_INIT) && (DATA_LOC == DATA_IN_DDR))
 
-    mov  x0, x13
+     // setup a temporary stack in OCRAM for the bootcore so we can run some C code
+    ldr  x2, =INITIAL_BC_STACK_ADDR
+    mov  sp, x2
+
+     // store the caller's LR on the temp stack
+    str  x16, [sp, #-16]!
+
+    adr  x0, _start_monitor_el3
+    mov  x1, x9
     bl   _ppa_main
+
+     // initialize the psci data structures
+    bl   _initialize_psci
+
+     // start initializing the soc
+    bl   _soc_init_start
+
+     // configure GIC
+    bl   _gic_init_common
+    bl   _get_current_mask
+    mov  x8, x0
+    bl   _gic_init_percpu
+
+     // apply any cpu-specific errata workarounds
+    mov  x0, x8
+    bl   _apply_cpu_errata
+
+     // x8 = core mask
+
+     // get the saved LR from the temp stack
+    ldr  x16, [sp], #16
+
+     // setup the permanent stack
+    mov  x0, x8
+    bl   _init_stack_percpu
+
+     // store the caller's LR on the stack
+    str  x16, [sp, #-16]!
+
+#else
 
      // initialize the psci data structures
     bl   _initialize_psci
@@ -163,8 +195,14 @@ debug_stop:
     mov  x0, x8
     bl   _init_stack_percpu
 
-     // now we have a stack - store the caller's LR on the stack
+     // store the caller's LR on the stack
     str  x16, [sp, #-16]!
+
+    adr  x0, _start_monitor_el3
+    mov  x1, x9
+    bl   _ppa_main
+
+#endif
 
      // initialize the Platform Security Policy here
     bl   _set_platform_security  

@@ -58,10 +58,10 @@ else
 endif
 
 # select the location of the stacks and data region
-ifeq ($(data_in_ddr), on)
-    DATA_DDR=1
-else
+ifeq ($(data_in_ocram), on)
     DATA_DDR=0
+else
+    DATA_DDR=1
 endif
 
 # select if uart driver is built

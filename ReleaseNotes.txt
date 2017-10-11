@@ -42,6 +42,20 @@ Devices Supported:
     LA17xx
     LX2160
 
+Date: 10/11/2017 --------------------------------------------------------------
+
+1) Making data/stack location in ddr the default, to support the behavior of
+   falcon boot. To override this and force data/stacks to be in OCRAM, use
+   build option "data_in_ocram". Unless falcon boot is being used, OCRAM is the
+   appropriate location for EL3 stacks/data.
+
+2) Fixed startup sequence and handling of LR when ddr is being initialized and
+   stacks/data are located in ddr.
+
+3) Fixed handling of input parameters to _ppa_main().
+
+//- end 10/11/2017 update -----------------------------------------------------
+
 Date: 10/04/2017 --------------------------------------------------------------
 
 1) Added build option to relocate ppa stacks and data regions from OCRAM to ddr.
