@@ -45,13 +45,9 @@
 #include "lsch2.h"
 #endif
 
-//#include "soc.h"
-//#include "aarch64.h"
 #include "psci.h"
 #include "soc.mac"
-//#include "policy.h"
 #include "smc.h"
-//#include "runtime_data.h"
 
 //-----------------------------------------------------------------------------
 
@@ -72,13 +68,13 @@ debug_stop:
     b  debug_stop
 #endif
 
-    mov x0, x13
      // relocate the rela_dyn sections
-    bl _relocate_rela
+    adr  x0, _start_monitor_el3
+    bl   _relocate_rela
 
-    mov x0, x13
      // clear the bss
-    bl _zeroize_bss
+    adr  x0, _start_monitor_el3
+    bl   _zeroize_bss
 
      // clean/invalidate the dcache
     mov x0, #0
