@@ -113,6 +113,8 @@
 
 .global _soc_exit_boot_svcs
 .global _soc_check_sec_enabled
+.global _getGICD_BaseAddr
+.global _getGICC_BaseAddr
 
 //-----------------------------------------------------------------------------
 
@@ -1348,69 +1350,70 @@ _soc_core_phase1_off:
  // the core
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6
+ // uses x0, x1, x2, x3, x4, x5, x6, [x13, x14, x15]
 _soc_core_phase2_off:
     mov  x6, x30
-
-     // x0 = core mask lsb
-    mov  x4, x0
 
      // configure the cpu interface
 
      // disable signaling of ints
-    Get_GICC_Base_Addr x5
+    bl   _getGICC_BaseAddr  // 0-2
+    mov  x4, x0
 
-    ldr  w3, [x5, #GICC_CTLR_OFFSET]
+    ldr  w3, [x4, #GICC_CTLR_OFFSET]
     bic  w3, w3, #GICC_CTLR_EN_GRP0
     bic  w3, w3, #GICC_CTLR_EN_GRP1
-    str  w3, [x5, #GICC_CTLR_OFFSET]
+    str  w3, [x4, #GICC_CTLR_OFFSET]
     dsb  sy
     isb
 
      // x3 = GICC_CTRL
-     // x4 = core mask lsb
-     // x5 = GICC_BASE_ADDR
+     // x4 = GICC_BASE_ADDR
 
      // set the priority filter
-    ldr  w2, [x5, #GICC_PMR_OFFSET]
+    ldr  w2, [x4, #GICC_PMR_OFFSET]
     orr  w2, w2, #GICC_PMR_FILTER
-    str  w2, [x5, #GICC_PMR_OFFSET]
+    str  w2, [x4, #GICC_PMR_OFFSET]
 
      // setup GICC_CTLR
     bic  w3, w3, #GICC_CTLR_ACKCTL_MASK
     orr  w3, w3, #GICC_CTLR_FIQ_EN_MASK
     orr  w3, w3, #GICC_CTLR_EOImodeS_MASK
     orr  w3, w3, #GICC_CTLR_CBPR_MASK
-    str  w3, [x5, #GICC_CTLR_OFFSET]
+    str  w3, [x4, #GICC_CTLR_OFFSET]
 
      // x3 = GICC_CTRL
-     // x4 = core mask lsb
+     // x4 = GICC_BASE_ADDR
 
      // setup the banked-per-core GICD registers
-    Get_GICD_Base_Addr x5
+    bl   _getGICD_BaseAddr
+
+     // x0 = GICD_BASE_ADDR
+     // x3 = GICC_CTRL
+     // x4 = GICC_BASE_ADDR
 
      // define SGI15 as Grp0
-    ldr  w2, [x5, #GICD_IGROUPR0_OFFSET]
+    ldr  w2, [x0, #GICD_IGROUPR0_OFFSET]
     bic  w2, w2, #GICD_IGROUP0_SGI15
-    str  w2, [x5, #GICD_IGROUPR0_OFFSET]
+    str  w2, [x0, #GICD_IGROUPR0_OFFSET]
 
      // set priority of SGI 15 to highest...
-    ldr  w2, [x5, #GICD_IPRIORITYR3_OFFSET]
+    ldr  w2, [x0, #GICD_IPRIORITYR3_OFFSET]
     bic  w2, w2, #GICD_IPRIORITY_SGI15_MASK
-    str  w2, [x5, #GICD_IPRIORITYR3_OFFSET]
+    str  w2, [x0, #GICD_IPRIORITYR3_OFFSET]
 
      // enable SGI 15
-    ldr  w2, [x5, #GICD_ISENABLER0_OFFSET]
+    ldr  w2, [x0, #GICD_ISENABLER0_OFFSET]
     orr  w2, w2, #GICD_ISENABLE0_SGI15
-    str  w2, [x5, #GICD_ISENABLER0_OFFSET]
+    str  w2, [x0, #GICD_ISENABLER0_OFFSET]
 
+     // x0 = GICD_BASE_ADDR
      // x3 = GICC_CTRL
+     // x4 = GICC_BASE_ADDR
 
      // enable the cpu interface
-
-    Get_GICC_Base_Addr x5
     orr  w3, w3, #GICC_CTLR_EN_GRP0
-    str  w3, [x5, #GICC_CTLR_OFFSET]
+    str  w3, [x4, #GICC_CTLR_OFFSET]
     dsb  sy
     isb
 
@@ -1423,7 +1426,7 @@ _soc_core_phase2_off:
  // this function performs the final steps to shutdown the core
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6
+ // uses x0, x1, x2, x3, x4, x5, x6, [x13, x14, x15]
 _soc_core_entr_off:
     mov  x6, x30
     mov  x5, x0
@@ -1447,10 +1450,10 @@ _soc_core_entr_off:
     isb
 
      // clear any pending SGIs
-    ldr   x2, =GICD_CPENDSGIR_CLR_MASK
-    Get_GICD_Base_Addr x4
-
+    bl    _getGICD_BaseAddr
+    mov   x4, x0
     add   x0, x4, #GICD_CPENDSGIR3_OFFSET
+    ldr   x2, =GICD_CPENDSGIR_CLR_MASK
     str   w2, [x0]
 
      // x4 = GICD_BASE_ADDR
@@ -1495,10 +1498,12 @@ _soc_core_entr_off:
  // this function starts the process of starting a core back up
  // in:  x0 = core mask lsb
  // out: none
- // uses x0, x1
+ // uses x0, x1, x2, x3, [x13, x14, x15]
 _soc_core_exit_off:
+    mov  x3, x30
 
-    Get_GICC_Base_Addr x1
+    bl   _getGICC_BaseAddr
+    mov  x1, x0
 
      // read GICC_IAR
     ldr  w0, [x1, #GICC_IAR_OFFSET]
@@ -1516,6 +1521,8 @@ _soc_core_exit_off:
 
     dsb sy
     isb
+
+    mov  x30, x3
     ret
 
 //-----------------------------------------------------------------------------
@@ -1549,10 +1556,10 @@ _soc_core_phase1_clnup:
 _soc_core_phase2_clnup:
     mov  x4, x30
 
-     // x0 = core mask lsb
+    bl   _getGICC_BaseAddr
+    mov  x2, x0
 
      // disable signaling of grp0 ints
-    Get_GICC_Base_Addr x2
     ldr  w3, [x2, #GICC_CTLR_OFFSET]
     bic  w3, w3, #GICC_CTLR_EN_GRP0
     str  w3, [x2, #GICC_CTLR_OFFSET]
@@ -1572,12 +1579,14 @@ _soc_core_phase2_clnup:
  // uses x0, x1, x2, x3, x4, x5
 _soc_core_restart:
     mov  x5, x30
+    mov  x3, x0
 
-     // x0 = core mask lsb
+     // x3 = core mask lsb
 
-    Get_GICD_Base_Addr x4
+    bl   _getGICD_BaseAddr
+    mov  x4, x0
 
-     // x0 = core mask lsb
+     // x3 = core mask lsb
      // x4 = GICD_BASE_ADDR
 
      // enable forwarding of group 0 interrupts by setting GICD_CTLR[0] = 1
@@ -1587,7 +1596,7 @@ _soc_core_restart:
     dsb sy
     isb
 
-     // x0 = core mask lsb
+     // x3 = core mask lsb
      // x4 = GICD_BASE_ADDR
 
      // fire SGI by writing to GICD_SGIR the following values:
@@ -1595,7 +1604,7 @@ _soc_core_restart:
      // [23:16] = core mask lsb[7:0] (forward interrupt to target cpu)
      // [15]    = 0 (forward SGI only if it is configured as group 0 interrupt)
      // [3:0]   = 0xF (interrupt ID = 15)
-    lsl  w1, w0, #16
+    lsl  w1, w3, #16
     orr  w1, w1, #0xF
     str  w1, [x4, #GICD_SGIR_OFFSET]
     dsb sy
@@ -1651,40 +1660,6 @@ _soc_get_start_addr:
 
 //-----------------------------------------------------------------------------
 
- // this function programs the GIC for a Group0 SGI targeted at the core
- // in:  none
- // out: none
- // uses x0, x1, x2
-enableSGI:
-
-     // set interrupt ID 15 to group 0 by setting GICD_IGROUP0[15] to 0 
-    Get_GICD_Base_Addr x2
-    ldr  w0, [x2, #GICD_IGROUPR0_OFFSET]
-    ldr  w1, =GICD_IGROUP0_SGI15
-    bic  w0, w0, w1
-    str  w0, [x2, #GICD_IGROUPR0_OFFSET]
-
-     // x2 = GICD_BASE_ADDR
-
-     // enable forwarding of group 0 interrupts by setting GICD_CTLR[0] to 1
-    ldr  w0, [x2, #GICD_CTLR_OFFSET]
-    ldr  w1, =GICD_CTLR_EN_GRP0
-    orr  w0, w0, w1
-    str  w0, [x2, #GICD_CTLR_OFFSET]
-
-     // enable signaling of group 0 by setting GICC_CTLR[1:0] to 0b01 
-    Get_GICC_Base_Addr x2
-    ldr    w0, [x2, #GICC_CTLR_OFFSET]
-    ldr    w1, =GICC_CTLR_EN_GRP0
-    bfxil  w0, w1, #0, #2
-    str    w0, [x2, #GICC_CTLR_OFFSET]
-
-    isb
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function enables/disables the SoC retention request for the core,
  // using a read-modify-write methodology
  // in:  w0 = core mask (msb)
  //      w1 = set or clear bit specified in core mask (0 = clear, 1 = set)
@@ -1703,19 +1678,6 @@ retention_ctrl:
 1:
     rev  w3, w3
     str  w3, [x2, #SCFG_RETREQCR_OFFSET]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function clears a pending SGI 15 interrupt
- // in:  none
- // out: none
- // uses x0, x1
-clearSGI:
-    Get_GICD_Base_Addr x1
-
-    ldr  w0, =GICD_CPENDSGIR_CLR_MASK
-    str  w0, [x1, #GICD_CPENDSGIR3_OFFSET]
     ret
 
 //-----------------------------------------------------------------------------
@@ -2083,50 +2045,6 @@ read_reg_sys_counter:
 
 //-----------------------------------------------------------------------------
 
- // write a register in the GIC400 distributor block
- // in:  x0 = offset
- // in:  w1 = value to write
- // uses x0, x1, x2, x3
-write_reg_gicd:
-    Get_GICD_Base_Addr x2
-    str  w1, [x2, x0]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // read a register in the GIC400 distributor block
- // in:  x0 = offset
- // out: w0 = value read
- // uses x0, x1, x2
-read_reg_gicd:
-    Get_GICD_Base_Addr x2
-    ldr  w0, [x2, x0]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // write a register in the GIC400 CPU interface block
- // in:  x0 = offset
- // in:  w1 = value to write
- // uses x0, x1, x2, x3
-write_reg_gicc:
-    Get_GICC_Base_Addr x2
-    str  w1, [x2, x0]
-    ret
-
-//-----------------------------------------------------------------------------
-
- // read a register in the GIC400 CPU interface block
- // in:  x0 = offset
- // out: w0 = value read
- // uses x0, x1, x2
-read_reg_gicc:
-    Get_GICC_Base_Addr x2
-    ldr  w0, [x2, x0]
-    ret
-
-//-----------------------------------------------------------------------------
-
  // read a register in the ddr controller block
  // in:  x0 = offset
  // out: w0 = value read
@@ -2207,6 +2125,52 @@ init_task_2:
     bl  _soc_core_release
 
     mov  x30, x5
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the base address of the gic distributor
+ // in:  none 
+ // out: x0 = base address of gic distributor
+ // uses x0, x1, x2, [x13, x14, x15]
+_getGICD_BaseAddr:
+    mov  x2, x30
+
+#if (DATA_LOC == DATA_IN_DDR)
+     // request base address
+    mov  x13, #BC_PSCI_BASE_QUERY
+    bl   _getBaseAddrNS
+    mov  x1, x13
+#else
+    ldr  x1, =BC_PSCI_BASE
+#endif
+    add  x1, x1, #AUX_04_DATA
+    ldr  x0, [x1]
+
+    mov  x30, x2
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the base address of the gic distributor
+ // in:  none 
+ // out: x0 = base address of gic controller
+ // uses x0, x1, x2, [x13, x14, x15]
+_getGICC_BaseAddr:
+    mov  x2, x30
+
+#if (DATA_LOC == DATA_IN_DDR)
+     // request base address
+    mov  x13, #BC_PSCI_BASE_QUERY
+    bl   _getBaseAddrNS
+    mov  x1, x13
+#else
+    ldr  x1, =BC_PSCI_BASE
+#endif
+    add  x1, x1, #AUX_04_DATA
+    ldr  x0, [x1, #8]
+
+    mov  x30, x2
     ret
 
 //-----------------------------------------------------------------------------

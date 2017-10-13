@@ -51,7 +51,7 @@
 _gic_init_common:
     mov   x4, x30
 
-    Get_GICD_Base_Addr x0
+    bl   _getGICD_BaseAddr
 
     mov   w2, #0x3                   // EnableGrp0 | EnableGrp1
     str   w2, [x0, GICD_CTLR_OFFSET] // Secure GICD_CTLR
@@ -78,7 +78,7 @@ _gic_init_percpu:
 
      // initialize distributor
 
-    Get_GICD_Base_Addr x0
+    bl   _getGICD_BaseAddr
 
     mov   w2, #~0                         // Config SGIs and PPIs as Grp1
     str   w2, [x0, GICD_IGROUPR0_OFFSET]  // GICD_IGROUPR0
@@ -87,7 +87,9 @@ _gic_init_percpu:
 
      // initialize Cpu Interface
 
-    Get_GICC_Base_Addr x1
+    bl   _getGICC_BaseAddr
+    mov  x1, x0
+
     mov   w2, #0x1e7                      // Disable IRQ/FIQ Bypass &
                                           //  enable Ack Group1 Interrupt &
                                           //  enableGrp0 & EnableGrp1

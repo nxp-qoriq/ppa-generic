@@ -52,38 +52,4 @@
 
 //-----------------------------------------------------------------------------
 
- // Note: $p1 must be a 64-bit register
- // GICD base address returned in $p1
-.macro Get_GICD_Base_Addr $p1
-#if (DATA_LOC == DATA_IN_DDR)
-     // request base address
-    mov  x13, #BC_PSCI_BASE_QUERY
-    bl   _getBaseAddrNS
-    mov  \$p1, x13
-#else
-    ldr  \$p1, =BC_PSCI_BASE
-#endif
-    add  \$p1, \$p1, #AUX_04_DATA
-    ldr  \$p1, [\$p1]
-.endm
-
-//-----------------------------------------------------------------------------
-
- // Note: $p1 must be a 64-bit register
- // GICC base address returned in $p1
-.macro Get_GICC_Base_Addr $p1
-#if (DATA_LOC == DATA_IN_DDR)
-     // request base address
-    mov  x13, #BC_PSCI_BASE_QUERY
-    bl   _getBaseAddrNS
-    mov  \$p1, x13
-#else
-    ldr  \$p1, =BC_PSCI_BASE
-#endif
-    add  \$p1, \$p1, #AUX_04_DATA
-    ldr   \$p1, [\$p1, #8]
-.endm
-
-//-----------------------------------------------------------------------------
-
 #endif // _SOC_MAC
