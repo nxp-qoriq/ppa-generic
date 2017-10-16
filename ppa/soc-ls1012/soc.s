@@ -101,6 +101,8 @@
 .global _set_platform_security
 .global _soc_exit_boot_svcs
 .global _soc_check_sec_enabled
+.global _getGICC_BaseAddr
+.global _getGICD_BaseAddr
 
 //-----------------------------------------------------------------------------
 
@@ -997,6 +999,26 @@ _soc_check_sec_enabled:
     
 1:
     mov x30, x10
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the base address of the gic distributor
+ // in:  none 
+ // out: x0 = base address of gic distributor
+ // uses x0
+_getGICD_BaseAddr:
+    ldr   x0, =GICD_BASE_ADDR
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function returns the base address of the gic controller
+ // in:  none 
+ // out: x0 = base address of gic controller
+ // uses x0
+_getGICC_BaseAddr:
+    ldr   x0, =GICC_BASE_ADDR
     ret
 
 //-----------------------------------------------------------------------------
