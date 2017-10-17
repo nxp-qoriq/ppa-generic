@@ -80,7 +80,7 @@ void timer_init(void)
 	unsigned long long cntfreq = 25000000;	/* sysclk/4 */
 
 	asm volatile("msr cntfrq_el0, %0" : : "r" (cntfreq) : "memory");
-#ifdef CONFIG_SYS_LSCH3
+#if (LSCH == 3)
 	out_le32(cltbenr, 0xf);
 #endif
 	out_le32(cntcr, 0x1);
