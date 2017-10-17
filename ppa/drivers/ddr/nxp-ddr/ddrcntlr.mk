@@ -35,7 +35,7 @@
 
 # NXP ddr cntlr driver files
 
-DDR_CNTLR_C  = addr.c ddr.c ddrc.c debug.c opts.c regs.c spd.c utility.c
+DDR_CNTLR_C  = addr.c ddr.c ddrc.c debug.c opts.c regs.c spd_ddr.c utility.c
 DDR_CNTLR_H  = ddr.h debug.h dimm.h immap.h opts.h regs.h utility.h
 
 $(DDR_CNTLR_C): $(DDR_CNTLR_H) $(DDR_H) $(COMMON_HDRS) src
