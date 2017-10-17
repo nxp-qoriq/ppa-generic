@@ -75,10 +75,20 @@ endif
 ifeq ($(ddr), on)
     DDR_BLD=1
     I2C_BLD=1
+ifeq ($(sd), on)
+    SD_BLD=1
+    ifeq  ($(test), sd)
+	TEST_SD=1
+    endif
+else
+    SD_BLD=0
+endif
 else
     ddr=off
+    sd = off
     DDR_BLD=0
     I2C_BLD=0
+    SD_BLD=0
 endif
 
 # -----------------------------------------------------------------------------
@@ -250,6 +260,8 @@ PLATFLAGS = $(DBG_FLAGS)                   \
 	-DCNFG_DDR=$(DDR_BLD)                  \
 	-DCNFG_I2C=$(I2C_BLD)                  \
 	-DCNFG_UART=$(UART_BLD)                \
+        -DCNFG_SD=$(SD_BLD) 		      \
+        -DCNFG_SD_TEST=$(TEST_SD) 		      \
 	-DDATA_LOC=$(DATA_DDR)                 \
     -DLSCH=$(CHASSIS)
 
@@ -296,6 +308,7 @@ COMMON_C   =ppa_main.c lib.c alloc.c
 COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h runtime_data.h \
 			$(CHASSIS_FILE).h lnkr.cmd
 
+TEST_C =$(TEST_FILE_C)
 # -----------------------------------------------------------------------------
 
 ifeq ($(DDR_BLD), 1)
@@ -343,6 +356,15 @@ $(DIMM_C): $(DDR_H) $(HDRS_SOC) src
 DRIVER_C = $(DDR_CNTLR_C) $(DDR_PHY_C) $(I2C_C) $(TIMER_C) $(DDR_C) $(DIMM_C)
 DRIVER_H = $(DDR_CNTLR_H) $(DDR_PHY_H) $(I2C_H) $(UART_H) $(TIMER_H) $(DDR_H)
 
+ifeq ($(SD_BLD), 1)
+
+SD_PATH=$(DRVR_SRC)/sd
+include $(SD_PATH)/sd.mk
+
+DRIVER_C += $(SD_C)
+DRIVER_H += $(SD_H)
+endif
+
 endif
 
 ifeq ($(UART_BLD), 1)
@@ -389,7 +411,7 @@ PRE_TARG   =monitor.elf
 
 BUILD_ASM +=$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
-BUILD_C   +=$(HASH_DRBG_C) $(SEC_C) $(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C)
+BUILD_C   +=$(HASH_DRBG_C) $(SEC_C) $(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C) $(TEST_C)
 HDRS_ASM  +=$(HDRS_ARMV8) $(HDRS_PLAT)  $(HDRS_MNTR) $(DRIVER_H) $(DDR_H) $(HDRS_PSCI) \
 			$(HASH_DRBG_HDRS) $(SEC_HDRS) $(HDRS_SOC)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
@@ -485,6 +507,9 @@ $(PLAT_ASM): src
 	@cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(TEST_ASM): $(HDRS_SOC) src
+	@cp -r "$(TEST_SRC)/$@" "$(SRC_DIR)/$@"
+
+$(TEST_C): $(HDRS_SOC) src
 	@cp -r "$(TEST_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(COMMON_ASM): $(HDRS_ARMV8) $(HDRS_PSCI) src

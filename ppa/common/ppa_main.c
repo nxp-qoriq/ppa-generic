@@ -38,6 +38,10 @@
 #include "spd.h"
 #endif
 
+#if (CNFG_SD)
+#include "sd_mmc.h"
+#endif
+
 char __bss_start[0] __attribute__((section(".__bss_start")));
 char __bss_end[0] __attribute__((section(".__bss_end")));
 char __rel_dyn_start[0] __attribute__((section(".__rel_dyn_start")));
@@ -69,6 +73,16 @@ void soc_errata(void) __attribute__ ((weak));
 void soc_errata(void)
 {
 }
+unsigned long long _get_PRNG(int prngWidth) __attribute__ ((weak));
+unsigned long long _get_PRNG(int prngWidth)
+{
+	return 0;
+}
+unsigned long long _get_RNG(int prngWidth) __attribute__ ((weak));
+unsigned long long _get_RNG(int prngWidth)
+{
+	return 0;
+}
 
 #if (PSCI_TEST)
 void _populate_membank_data(void) __attribute__ ((weak));
@@ -97,6 +111,8 @@ void uart_init(void)
 int _ppa_main(unsigned long long addr, unsigned long long loadable)
 {
 
+    unsigned long long heap_addr;
+
 #if (CNFG_UART)
     uart_init();
 #endif
@@ -115,13 +131,33 @@ int _ppa_main(unsigned long long addr, unsigned long long loadable)
     timer_init();
     i2c_init();
 #endif
-    alloc_init(&heap, addr + HEAP_OFFSET, HEAP_SIZE);
+
+ // For changed bootflow i.e with CNFG_DDR on, heap has to be on DDR.
+ // Currently hardcoding it to 0x80000000 to test SEC. Needs to be changed - TBD
+#if (CNFG_DDR)
+    heap_addr = 0x80000000;
+#else
+    heap_addr = addr + HEAP_OFFSET;
+#endif
+
+    alloc_init(&heap, heap_addr, HEAP_SIZE);
     sec_init();
 
 #if (CNFG_SPD)
     if (loadable) {
         spd_init(loadable);
     }
+#endif
+
+#if (CNFG_SD)
+    debug("SD flag enabled\n");
+    sd_mmc_init();
+    debug("sd_mmc_init done\n");
+
+#if (CNFG_SD_TEST)
+    debug("testing sd card read write\n");
+    test_sd();
+#endif
 #endif
 
 	return (0);

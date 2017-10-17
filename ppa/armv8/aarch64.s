@@ -990,12 +990,14 @@ _relocate_rela:
      // Find relative load address
     ldr  x1,=__PPA_PROG_START__
     subs  x5, x0, x1
+    b.eq  1f
 
      // Fix .rela.dyn relocations
     ldr  x0, =__REL_DYN_START__
     add  x0, x0, x5
     ldr  x1, =__REL_DYN_END__
     add  x1, x1, x5
+
 relfix:
      // x2,x3 --> SRC, info
     ldp   x2, x3, [x0], #16
@@ -1005,14 +1007,14 @@ relfix:
     cmp   x3, #1027
     bne   relnext
 
-     //rela fix: store addend plus offset at dest location
+     // rela fix: store addend plus offset at dest location
     add   x2, x2, x5
     add   x4, x4, x5
     str   x4, [x2]
 relnext:
     cmp   x0, x1
     b.lo  relfix
-
+1:
     ret
 
  //----------------------------------------------------------------------------
@@ -1024,7 +1026,9 @@ relnext:
 _zeroize_bss:
     ldr  x1,=__PPA_PROG_START__
     subs x5, x0, x1
-     //Load start and end of bss
+    b.eq 2f
+
+     // Load start and end of bss
     ldr   x1, =__BSS_START__
     ldr   x2, =__BSS_END__
     add   x1, x1, x5
@@ -1033,7 +1037,7 @@ _zeroize_bss:
     str   xzr, [x1], #8
     cmp   x1, x2
     b.lo  1b
-
+2:
     ret
 
  //----------------------------------------------------------------------------

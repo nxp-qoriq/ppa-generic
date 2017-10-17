@@ -64,7 +64,7 @@
 #define SEC_NOTIFICATION_TYPE   SEC_NOTIFICATION_TYPE_POLL
 
  // Maximum number of job rings supported by SEC hardware 
-#define MAX_SEC_JOB_RINGS         4
+#define MAX_SEC_JOB_RINGS         1
 
  // Size of cryptographic context that is used directly in communicating
  //  with SEC device.

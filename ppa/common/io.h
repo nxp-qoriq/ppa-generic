@@ -146,21 +146,31 @@ typedef unsigned long phys_size_t;
 #ifdef CONFIG_SYS_FSL_CCSR_SEC_BE
 #define sec_in32(a)	in_be32(a)
 #define sec_out32(a, v)	out_be32(a, v)
-#define sec_in64(addr)    ((u64)sec_in32((u32 *)(addr)) << 32) | \
-    			(sec_in32((u32 *)(addr) + 1))
+#define sec_in64(addr)    ((uint64_t)sec_in32((uint32_t *)(addr)) << 32) | \
+    			(sec_in32((uint32_t *)(addr) + 1))
 #define sec_out64(addr, val)    				\
-    sec_out32((u32 *)(addr), (u32)((val) >> 32));	\
-    sec_out32((u32 *)(addr) + 1, (u32)(val))
+    sec_out32((uint32_t *)(addr), (uint32_t)((val) >> 32));	\
+    sec_out32((uint32_t *)(addr) + 1, (uint32_t)(val))
 #elif defined(CONFIG_SYS_FSL_CCSR_SEC_LE)
 #define sec_in32(a)	in_le32(a)
 #define sec_out32(a, v)	out_le32(a, v)
-#define sec_in64(addr)    ((u64)sec_in32((u32 *)(addr) + 1) << 32) | \
-    			(sec_in32((u32 *)(addr)))
+#define sec_in64(addr)    ((uint64_t)sec_in32((uint32_t *)(addr) + 1) << 32) | \
+    			(sec_in32((uint32_t *)(addr)))
 #define sec_out64(addr, val)    				\
-    sec_out32((u32 *)(addr) + 1, (u32)((val) >> 32));	\
-    sec_out32((u32 *)(addr), (u32)(val))	
+    sec_out32((uint32_t *)(addr) + 1, (uint32_t)((val) >> 32));	\
+    sec_out32((uint32_t *)(addr), (uint32_t)(val))
 #else
 #error Please define CCSR SEC register endianness
+#endif
+
+#ifdef CONFIG_SYS_FSL_CCSR_ESDHC_BE
+#define esdhc_in32(a)		in_be32(a)
+#define esdhc_out32(a, v)	out_be32(a, v)
+#elif defined(CONFIG_SYS_FSL_CCSR_ESDHC_LE)
+#define esdhc_in32(a)		in_le32(a)
+#define esdhc_out32(a, v)	out_le32(a, v)
+#else
+#error Please define CCSR ESDHC register endianness
 #endif
 
 #define mb()		asm volatile("dsb sy" : : : "memory")

@@ -111,6 +111,11 @@ ifeq  ($(test), membank)
 	TEST_PSCI=1
     TEST_FILE=test_membank_data.s
 else
+ifeq  ($(test), sd)
+	TEST_SD=1
+	TEST_PSCI=0
+    TEST_FILE_C=test_sd.c
+else
 ifeq  ($(TEST), sys_off)
 	TEST_PSCI=1
     ifeq ($(NUMBER_OF_CORES), 1)
@@ -121,7 +126,9 @@ ifeq  ($(TEST), sys_off)
 else
     test=none
 	TEST_PSCI=0
+	TEST_SD=0
     TEST_FILE=
+endif
 endif
 endif
 endif

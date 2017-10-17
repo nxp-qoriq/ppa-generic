@@ -58,6 +58,10 @@
 #define WDT3_BASE                 0x02A70000  
 #define WDT4_BASE                 0x02A80000
 #define WDT5_BASE                 0x02A90000
+#define CONFIG_SYS_FSL_DDR_ADDR   0x01080000
+#define CONFIG_SYS_I2C_BASE       0x02180000
+#define CAAM_BASE_ADDR            0x01700000
+#define	ESDHC_BASE_ADDR	          0x01560000  
 
  // OCRAM
 #define  OCRAM_BASE_ADDR     0x10000000
@@ -142,6 +146,7 @@
 #define CONFIG_SYS_FSL_CCSR_GUR_BE
 #define CONFIG_SYS_FSL_CCSR_DDR_BE
 #define CONFIG_SYS_FSL_CCSR_SEC_BE
+#define CONFIG_SYS_FSL_CCSR_ESDHC_BE
 
 #define CONFIG_PHYS_64BIT
 
@@ -149,14 +154,10 @@
 #define CONFIG_CHIP_SELECTS_PER_CTRL  4
 #endif
 
-#define CONFIG_SYS_FSL_DDR_ADDR  0x01080000
-#define CONFIG_SYS_I2C_BASE      0x02180000
-#define CAAM_BASE_ADDR           0x01700000
-
-#define        CAAM_JR0_OFFSET           0x10000
-#define        CAAM_JR1_OFFSET           0x20000
-#define        CAAM_JR2_OFFSET           0x30000
-#define        CAAM_JR3_OFFSET           0x40000
+#define  CAAM_JR0_OFFSET           0x10000
+#define  CAAM_JR1_OFFSET           0x20000
+#define  CAAM_JR2_OFFSET           0x30000
+#define  CAAM_JR3_OFFSET           0x40000
 
 
 #define FSL_CHASSIS_RCWSR0			          0x01ee0100

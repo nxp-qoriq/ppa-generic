@@ -213,14 +213,14 @@ struct jobring_regs {
 
  // Macros for manipulating JR registers
 typedef union {
-    u64 m_whole;
+    uint64_t m_whole;
     struct {
 #ifdef CONFIG_SYS_FSL_CCSR_SEC_BE
-        u32 high;
-        u32 low;
+        uint32_t high;
+        uint32_t low;
 #else
-        u32 low;
-    	u32 high;
+        uint32_t low;
+        uint32_t high;
 #endif
     } m_halfs;
 } ptr_addr_t;
