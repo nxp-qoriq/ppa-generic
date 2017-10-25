@@ -812,8 +812,11 @@ _soc_sys_entr_pwrdn:
     ldr  w1, =RSTRQMR_RPTOE_MASK
     str  w1, [x0, #RST_RSTRQMR1_OFFSET]
 
-     // disable QBman spi and qspi
+     // disable SEC, QBman spi and qspi
     ldr  x2, =DCFG_BASE_ADDR
+    ldr  x0, =DCFG_DEVDISR1_OFFSET
+    ldr  w1, =DCFG_DEVDISR1_SEC
+    str  w1, [x2, x0]
     ldr  x0, =DCFG_DEVDISR3_OFFSET
     ldr  w1, =DCFG_DEVDISR3_QBMAIN
     str  w1, [x2, x0]
@@ -999,8 +1002,9 @@ _soc_sys_exit_pwrdn:
     msr  SCTLR_EL1, x1
     isb
 
-     // enable QBman spi and qspi
+     // enable SEC, QBman spi and qspi
     ldr  x2, =DCFG_BASE_ADDR
+    str  wzr, [x2, #DCFG_DEVDISR1_OFFSET]
     str  wzr, [x2, #DCFG_DEVDISR3_OFFSET]
     str  wzr, [x2, #DCFG_DEVDISR4_OFFSET]
 

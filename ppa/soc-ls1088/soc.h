@@ -72,8 +72,10 @@
 #define EPU_EPGCR_VAL                 (1 << 31)
 
  // dcfg register offsets and values
+#define DCFG_DEVDISR1_OFFSET          0x70
 #define DCFG_DEVDISR3_OFFSET          0x78
 #define DCFG_DEVDISR4_OFFSET          0x7c
+#define DCFG_DEVDISR1_SEC             (1 << 22)
 #define DCFG_DEVDISR3_QBMAIN          (1 << 12)
 #define DCFG_DEVDISR4_SPI_QSPI        (1 << 4 | 1 << 5)
 
