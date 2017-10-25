@@ -1025,14 +1025,15 @@ relnext:
  // uses x1, x2, x5
 _zeroize_bss:
     ldr  x1,=__PPA_PROG_START__
-    subs x5, x0, x1
-    b.eq 2f
+    sub  x5, x0, x1
 
      // Load start and end of bss
     ldr   x1, =__BSS_START__
     ldr   x2, =__BSS_END__
     add   x1, x1, x5
     add   x2, x2, x5
+    cmp   x1, x2
+    b.eq  2f
 1:
     str   xzr, [x1], #8
     cmp   x1, x2
