@@ -42,6 +42,7 @@
 #define SECURE          0
 #define NON_SECURE      1
 #define MAX_ALLOWED_OEN 14
+#define START_OEN	50
 
  // Value of the function number and its mask sent from OPTEE-OS.
 #define TEESMC_TRSTD_OS_TYPE_MASK         0x80000000

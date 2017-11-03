@@ -129,11 +129,11 @@ void smc_trstd_os_handler(uint32_t smc_fid,
          // Trusted-OS has finished initialising itself after a cold boot
         case TEESMC_TRSTD_OS_RETURN_ENTRY_DONE:
              // Trstd_os_vectors_list.
-            oen_list[oen_val_frm_smcfid] = count_trstd_loaded;
+            oen_list[oen_val_frm_smcfid - START_OEN] = count_trstd_loaded;
 
              // Stash the OPTEE entry points information. This is done
              // only once on the primary cpu
-            trstd_os_vectors_list[oen_list[oen_val_frm_smcfid]] = (sp_vectors_t *) x1;
+            trstd_os_vectors_list[oen_list[oen_val_frm_smcfid - START_OEN]] = (sp_vectors_t *) x1;
             count_trstd_loaded++;
 
              // Exit from SP and restore EL3 runtime context
@@ -165,7 +165,7 @@ void smc_trstd_os_handler(uint32_t smc_fid,
         }
     } else {
          // Handle trusted OS smc calls from non-secure OS
-        sp_vector = trstd_os_vectors_list[oen_list[oen_val_frm_smcfid]];
+        sp_vector = trstd_os_vectors_list[oen_list[oen_val_frm_smcfid - START_OEN]];
 
          // Get secure context
         ctx = cm_get_context(SECURE);
