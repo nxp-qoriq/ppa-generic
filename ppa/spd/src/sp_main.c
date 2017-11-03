@@ -79,6 +79,9 @@ int32_t sp_setup_n_init(int sp_index, entry_point_info_t *sp_ep_info)
      // table registered during primary core init.
     if (linear_id != 0) {
         sp_vector = trstd_os_vectors_list[oen_list[oen_val_frm_smcfid - START_OEN]];
+        if (sp_vector == NULL)
+            return ret;
+
         sp_ep_info->pc = (uint64_t) &sp_vector->cpu_on_entry;
     }
 
@@ -184,6 +187,17 @@ void smc_trstd_os_handler(uint32_t smc_fid,
     } else {
          // Handle trusted OS smc calls from non-secure OS
         sp_vector = trstd_os_vectors_list[oen_list[oen_val_frm_smcfid - START_OEN]];
+
+         // Check for sp_vector if NULL means trusted OS uninitialized
+         // Return back to non-secure world with unimplemented in x0.
+        if (sp_vector == NULL) {
+            ctx = cm_get_context(NON_SECURE);
+#define  SMC_UNIMPLEMENTED  -1
+            write_ctx_reg(get_gpregs_ctx(ctx), CPU_CTX_X0, SMC_UNIMPLEMENTED);
+
+            cm_set_next_eret_ctx(NON_SECURE);
+            return;
+        }
 
          // Get secure context
         ctx = cm_get_context(SECURE);
