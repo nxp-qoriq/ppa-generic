@@ -273,6 +273,12 @@ _secondary_core_init:
     mov  x0, x8
     bl   _init_stack_percpu
 
+#if (CNFG_SPD)
+     // Intialize spd on secondary cores
+    mvn  x0, xzr
+    bl   spd_init
+#endif
+
      // exit the EL3 area
     b    _secondary_exit
 

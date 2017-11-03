@@ -62,6 +62,8 @@ int32_t sp_setup_n_init(int sp_index, entry_point_info_t *sp_ep_info)
     uint32_t linear_id;
     uint32_t ep_attr;
     int32_t ret = 0;
+    int oen_val_frm_smcfid = 62;
+    sp_vectors_t *sp_vector;
 
     linear_id = get_curr_core_pos();
     sp_ctx_t *sp_crnt_core_ctx = &(sp_ctx_per_core[linear_id]);
@@ -72,6 +74,13 @@ int32_t sp_setup_n_init(int sp_index, entry_point_info_t *sp_ep_info)
 
      // Set el1 secure context
     cm_set_context(&(sp_crnt_core_ctx->cpu_ctx), SECURE);
+
+     // Assign entry addr for secondary cores from vector
+     // table registered during primary core init.
+    if (linear_id != 0) {
+        sp_vector = trstd_os_vectors_list[oen_list[oen_val_frm_smcfid - START_OEN]];
+        sp_ep_info->pc = (uint64_t) &sp_vector->cpu_on_entry;
+    }
 
      // Configure el1 secure contexy
     ep_attr = SECURE | EP_ST_ENABLE;
@@ -143,7 +152,16 @@ void smc_trstd_os_handler(uint32_t smc_fid,
              // Control should never reach here.
             while(1);
 
-         // Trusted-OS has finished initialising itself after a cold boot
+         // Trusted-OS has finished initialising on secondary core
+        case TEESMC_TRSTD_OS_RETURN_ON_DONE:
+             // Exit from SP and restore EL3 runtime context
+            sp_crnt_core_ctx = &(sp_ctx_per_core[linear_id]);
+            secure_el1os_exit_sp(sp_crnt_core_ctx->c_rt_ctx, x1);
+
+             // Control should never reach here.
+            while(1);
+
+         // Return from Trusted-OS call
         case TEESMC_TRSTD_OS_RETURN_CALL_DONE:
              // Get non-secure context
             ctx = cm_get_context(NON_SECURE);
