@@ -1174,6 +1174,9 @@ _soc_init_finish:
  // out:  none
  // uses 
 _set_platform_security:
+    mov x8, x30
+    bl arm_tzc400_setup
+    mov  x30, x8
     ret
 
 //-----------------------------------------------------------------------------

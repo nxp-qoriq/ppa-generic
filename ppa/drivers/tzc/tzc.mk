@@ -1,6 +1,6 @@
-#------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
 # 
-# Copyright (C) 2015, 2016 Freescale Semiconductor, Inc.
 # Copyright 2017 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -29,40 +29,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Author Rod Dorris <rod.dorris@nxp.com>
+# Pankaj Gupta <pankaj.gupta@nxp.com>
 # 
-#------------------------------------------------------------------------------
-#
-# This file contains the basic architecture definitions that drive the build
-#
-# -----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 
- # set the basic SoC architecture
-NUMBER_OF_CLUSTERS=1
-NUMBER_OF_CORES=4
-CORES_PER_CLUSTER=4
+#TZC driver files
+TZC_HDRS =  $(wildcard  $(DRVR_SRC)/tzc/include/tzc$(TZC_ID).h) 
+TZC_HDRS := $(notdir $(TZC_HDRS))
+TZC_C =  $(wildcard  $(DRVR_SRC)/tzc/src/tzc$(TZC_ID).c) 
+TZC_C := $(notdir $(TZC_C))
 
- # set to 1 if all clusters contain the same number of cores,
- # else set to 0
-CLUSTER_SYMMETRY=1
+$(TZC_C): $(TZC_HDRS) $(COMMON_HDRS) $(CHDRS_SOC) src
+	@cp -r "$(DRVR_SRC)/tzc/src/$@" "$(SRC_DIR)/$@"
 
- # set to GIC400 or GIC500
-GIC=GIC400
+$(TZC_HDRS): src
+	@cp -r "$(DRVR_SRC)/tzc/include/$@" "$(SRC_DIR)/$@"
 
- # set to CCI400 or CCN504
-INTERCONNECT=CCI400
-
- # ddr controller - set to MMDC or NXP
-DDRCNTLR=NXP
-
- # ddr phy - set to NXP or SNPS
-DDRPHY=NXP
-
- # indicate layerscape chassis level - set to 3=LSCH3 or 2=LSCH2
-CHASSIS=2
-
- # TZC IP Details TZC used is 380 or 400?
-TZC_ID=380
-
-# -----------------------------------------------------------------------------
+#------------------------------------------------
 

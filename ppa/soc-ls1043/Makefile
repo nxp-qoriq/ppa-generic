@@ -76,7 +76,7 @@ HDRS_SOC   =soc.h soc.mac
 
 # add soc-specific C source and headers here
 CSRC_SOC   =
-CHDRS_SOC  =
+CHDRS_SOC  =soc_tzasc.h
 
 CMMN_SRC= $(PRE_PATH)../common
 include $(CMMN_SRC)/makefile.inc

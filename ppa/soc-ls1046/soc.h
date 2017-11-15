@@ -67,6 +67,11 @@
 #define  COUNTER_FRQ_EL0  0x017D7840    
 
  //----------------------------------------------------------------------------
+#define PLAT_ARM_TZC_BASE           0x01500000
+#define CONFIG_SYS_FSL_CSU_ADDR     0x01510000
+#define CSU_SEC_ACCESS_REG_OFFSET   (0x0021C)
+#define CCI_TERMINATE_BARRIER_TX    0x8
+#define TZASC_BYPASS_MUX_DISABLE    0x04000000
 
  // base addresses
 #if (SIMULATOR_BUILD)

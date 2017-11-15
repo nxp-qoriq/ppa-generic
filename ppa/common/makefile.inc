@@ -305,7 +305,7 @@ endif
 LINK_ASM   =ppa.ld.s
 COMMON_ASM =utils.s runtime_data.s
 COMMON_C   =ppa_main.c lib.c alloc.c
-COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h runtime_data.h \
+COMMON_HDRS=common.h types.h errno.h io.h  lib.h i2c.h uart.h runtime_data.h\
 			$(CHASSIS_FILE).h lnkr.cmd
 
 TEST_C =$(TEST_FILE_C)
@@ -377,6 +377,7 @@ endif
 
 PRNG_PATH=$(DRVR_SRC)/hash_drbg
 SEC_PATH=$(DRVR_SRC)/fsl_sec
+TZC_PATH=$(DRVR_SRC)/tzc
 PSCI_PATH=$(PSCI_SRC)
 MNTR_PATH=$(MONITOR_SRC)
 ARMV8_PATH=$(ARMV8_SRC)
@@ -386,6 +387,7 @@ CMM_PATH=$(CMM_SRC)
 # get the subsystem makefiles
 include $(PRNG_PATH)/hash_drbg.mk
 include $(SEC_PATH)/sec.mk
+include $(TZC_PATH)/tzc.mk
 include $(PSCI_PATH)/psci.mk
 include $(MNTR_PATH)/mntr.mk
 include $(ARMV8_PATH)/armv8.mk
@@ -411,9 +413,9 @@ PRE_TARG   =monitor.elf
 
 BUILD_ASM +=$(SRC_SOC) $(SRC_ARMV8) $(SRC_MNTR) $(SRC_PSCI) $(PLAT_ASM) $(COMMON_ASM) \
 			$(TEST_ASM)
-BUILD_C   +=$(HASH_DRBG_C) $(SEC_C) $(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C) $(TEST_C)
+BUILD_C   +=$(HASH_DRBG_C) $(SEC_C) $(CSRC_SOC) $(SRC_PLAT) $(COMMON_C) $(DRIVER_C) $(DDR_C) $(TEST_C) $(TZC_C)
 HDRS_ASM  +=$(HDRS_ARMV8) $(HDRS_PLAT)  $(HDRS_MNTR) $(DRIVER_H) $(DDR_H) $(HDRS_PSCI) \
-			$(HASH_DRBG_HDRS) $(SEC_HDRS) $(HDRS_SOC)
+			$(HASH_DRBG_HDRS) $(SEC_HDRS) $(HDRS_SOC) $(TZC_HDRS)
 OBJECTS    =obj $(BUILD_ASM:.s=.o) $(BUILD_C:.c=.o) ppa.ld
 
 # -----------------------------------------------------------------------------

@@ -112,6 +112,8 @@ static inline void panic(char *s)
 	hang();
 }
 
+#define assert(e) ((e) ? (void)0 : hang())
+
 void memcpy(void *dest, const void *src, register unsigned long count);
 void *memset(void *dest, uint8_t ch, size_t n);
 size_t strlen(const char *str);

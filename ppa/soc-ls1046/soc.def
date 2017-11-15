@@ -61,5 +61,8 @@ DDRPHY=NXP
  # indicate layerscape chassis level - set to 3=LSCH3 or 2=LSCH2
 CHASSIS=2
 
+ # TZC IP Details TZC used is 380 or 400
+TZC_ID=400
+
 # -----------------------------------------------------------------------------
 

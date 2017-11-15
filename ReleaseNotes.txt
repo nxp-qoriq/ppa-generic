@@ -42,6 +42,13 @@ Devices Supported:
     LA17xx
     LX2160
 
+Date: 11/14/2017 --------------------------------------------------------------
+
+1) Added TZC-380 and TZC-400 drivers. TZC drivers are currently called from 
+   LS1043 & LS1046.
+
+//- end 11/14/2017 update -----------------------------------------------------
+
 Date: 10/11/2017 --------------------------------------------------------------
 
 1) Making data/stack location in ddr the default, to support the behavior of

@@ -76,7 +76,7 @@ HDRS_SOC   =soc.h soc.mac
 
 # add soc-specific C source and headers here
 CSRC_SOC   =errata.c
-CHDRS_SOC  =
+CHDRS_SOC  =soc_tzasc.h
 
 DIMM_C = dimm.c
 
