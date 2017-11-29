@@ -49,6 +49,83 @@
 #
 # -----------------------------------------------------------------------------
 
+ # check for supported platforms/boards here - these are the valid build targets
+ifeq ($(PLAT_BUILD), 1)
+     # for a platform-level build, the file is local
+    PLAT_PATH=.
+else
+ifeq ($(MAKECMDGOALS), clean)
+else
+
+ifeq ($(MAKECMDGOALS), sim)
+    PLAT_PATH=platform-sim
+else
+ifeq ($(MAKECMDGOALS), sim_out)
+    PLAT_PATH=platform-sim
+else
+ifeq ($(MAKECMDGOALS), sim_bin)
+    PLAT_PATH=platform-sim
+else
+
+ifeq ($(MAKECMDGOALS), rdb)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb_out)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb_bin)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb-fit)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb_fit_out)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb_fit_bin)
+    PLAT_PATH=platform-rdb
+else
+
+ifeq ($(MAKECMDGOALS), qds)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds_out)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds_bin)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds-fit)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds_fit_out)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds_fit_bin)
+    PLAT_PATH=platform-qds
+else
+
+  $(error -> Platform '$(MAKECMDGOALS)' not supported!)
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+
+# -----------------------------------------------------------------------------
+
  # include the basic SoC architecture
 include $(PRE_PATH)soc.def
 
