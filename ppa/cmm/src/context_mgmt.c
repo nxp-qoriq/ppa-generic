@@ -77,6 +77,8 @@ static void cm_init_context_common(core_context_t *ctx, const entry_point_info_t
      // Clear any residual register values from the context
     memset(ctx, 0, sizeof(*ctx));
 
+    if (!ep) return;
+
      // Base the context SCR on the current value, adjust for entry point
      // specific requirements and set trap bits from the IMF
     scr_el3 = read_scr_el3();

@@ -42,6 +42,12 @@ Devices Supported:
     LA17xx
     LX2160
 
+Date: 11/29/2017 --------------------------------------------------------------
+
+1) Fix for launching 32-bit kernel when OpTee is loaded.
+
+//- end 11/29/2017 update -----------------------------------------------------
+
 Date: 11/14/2017 --------------------------------------------------------------
 
 1) Added TZC-380 and TZC-400 drivers. TZC drivers are currently called from 

@@ -103,10 +103,12 @@ static inline void write_ ## _name(uint64_t v)                  \
 DEFINE_SYSREG_READ_FUNC(tpidr_el3, tpidr_el3)
 DEFINE_SYSREG_READ_FUNC(mpidr_el1, mpidr_el1)
 DEFINE_SYSREG_READ_FUNC(sctlr_el3, sctlr_el3)
+DEFINE_SYSREG_READ_FUNC(sctlr_el1, sctlr_el1)
 DEFINE_SYSREG_READ_FUNC(scr_el3, scr_el3)
 DEFINE_SYSREG_WRITE_FUNC(tpidr_el3, tpidr_el3)
 DEFINE_SYSREG_WRITE_FUNC(mpidr_el1, mpidr_el1)
 DEFINE_SYSREG_WRITE_FUNC(sctlr_el3, sctlr_el3)
+DEFINE_SYSREG_WRITE_FUNC(sctlr_el1, sctlr_el1)
 DEFINE_SYSREG_WRITE_FUNC(scr_el3, scr_el3)
 
 #endif //__CONTEXT_ARCH64_H__
