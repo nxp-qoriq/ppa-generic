@@ -117,15 +117,6 @@ debug_stop:
      // setup the interconnect
     bl   _init_interconnect
  
-#if (CNFG_SPD)
-     // determine address of loadable
-    bl  _get_load_addr
-     // the load address will be passed as the second parameter to _ppa_main() below
-    mov x9, x0
-#else
-    mvn x9, xzr
-#endif
-
 #if ((DDR_INIT) && (DATA_LOC == DATA_IN_DDR))
 
      // setup a temporary stack in OCRAM for the bootcore so we can run some C code
@@ -135,8 +126,16 @@ debug_stop:
      // store the caller's LR on the temp stack
     str  x16, [sp, #-16]!
 
+    mvn x1, xzr
+#if (CNFG_SPD)
+     // determine address of loadable
+    bl  _get_load_addr
+     // the load address will be passed as the second parameter to _ppa_main() below
+    mov x1, x0
+#endif
+
     adr  x0, _start_monitor_el3
-    mov  x1, x9
+
     bl   _ppa_main
 
      // initialize the psci data structures
@@ -194,8 +193,15 @@ debug_stop:
      // store the caller's LR on the stack
     str  x16, [sp, #-16]!
 
+    mvn x1, xzr
+#if (CNFG_SPD)
+     // determine address of loadable
+    bl  _get_load_addr
+     // the load address will be passed as the second parameter to _ppa_main() below
+    mov x1, x0
+#endif
+
     adr  x0, _start_monitor_el3
-    mov  x1, x9
     bl   _ppa_main
 
 #endif
