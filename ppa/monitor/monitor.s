@@ -126,16 +126,11 @@ debug_stop:
      // store the caller's LR on the temp stack
     str  x16, [sp, #-16]!
 
-    mvn x1, xzr
-#if (CNFG_SPD)
      // determine address of loadable
     bl  _get_load_addr
      // the load address will be passed as the second parameter to _ppa_main() below
-    mov x1, x0
-#endif
-
+    mov  x1, x0
     adr  x0, _start_monitor_el3
-
     bl   _ppa_main
 
      // initialize the psci data structures
@@ -193,14 +188,10 @@ debug_stop:
      // store the caller's LR on the stack
     str  x16, [sp, #-16]!
 
-    mvn x1, xzr
-#if (CNFG_SPD)
      // determine address of loadable
     bl  _get_load_addr
      // the load address will be passed as the second parameter to _ppa_main() below
-    mov x1, x0
-#endif
-
+    mov  x1, x0
     adr  x0, _start_monitor_el3
     bl   _ppa_main
 

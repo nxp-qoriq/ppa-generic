@@ -270,6 +270,7 @@ _is_mpidr_valid:
  // uses x0, x1, x2
 _get_load_addr:
 
+#if (CNFG_SPD)
      // get the 64-bit base address of the block
     ldr  x0, =LOAD_ADDR_BASE
 
@@ -281,6 +282,10 @@ _get_load_addr:
 
      // create a 64-bit address
     orr  x0, x2, x1, LSL #32
+#else
+    mvn  x0, xzr
+#endif
+
     ret
 
 //-----------------------------------------------------------------------------
