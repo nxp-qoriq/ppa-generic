@@ -133,6 +133,8 @@ debug_stop:
     adr  x0, _start_monitor_el3
     bl   _ppa_main
 
+     // initialize the smc global data
+    bl   _init_global_data
      // initialize the psci data structures
     bl   _initialize_psci
 
@@ -163,6 +165,8 @@ debug_stop:
 
 #else
 
+     // initialize the smc global data
+    bl   _init_global_data
      // initialize the psci data structures
     bl   _initialize_psci
 

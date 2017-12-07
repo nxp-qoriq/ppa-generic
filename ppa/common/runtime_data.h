@@ -183,6 +183,7 @@
 #define BOOTLOC_OFFSET       0x0
 #define BOOT_SVCS_OSET       0x8
 #define PREFETCH_DIS_OFFSET  0x10  // offset to prefetch disable mask
+#define LAST_SMC_GLBL_OFFSET 0x18  // must reference last smc global entry
 
 #define SMC_MISC_OFFSET      0x20
 #define SMC_TASK_OFFSET      0xC

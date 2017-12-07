@@ -34,6 +34,15 @@
 #------------------------------------------------------------------------------
 
 # select the test files ----------
+
+
+$(info test =====> $(test))
+
+test=none
+TEST_PSCI=0
+TEST_SD=0
+TEST_FILE=
+
 ifeq ($(test), smp_boot)
 	TEST_PSCI=1
     ifeq ($(NUMBER_OF_CLUSTERS), 1)
@@ -53,7 +62,8 @@ ifeq ($(test), smp_boot)
     endif
     endif
     endif
-else
+endif
+
 ifeq ($(test), speed_boot)
 	TEST_PSCI=1
     ifeq ($(NUMBER_OF_CLUSTERS), 1)
@@ -73,19 +83,23 @@ ifeq ($(test), speed_boot)
     endif
     endif
     endif
-else
+endif
+
 ifeq ($(test), hotplug)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_hotplug.s
-else
+endif
+
 ifeq ($(test), cpu_errata)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_errata.s
-else
+endif
+
 ifeq ($(test), off_abort)
 	TEST_PSCI=1
     TEST_FILE=test_cpu_hotplug_abort.s
-else
+endif
+
 ifeq ($(test), suspend)
     ifeq ($(NUMBER_OF_CLUSTERS), 1)
 	    TEST_PSCI=1
@@ -94,52 +108,51 @@ ifeq ($(test), suspend)
 	    TEST_PSCI=1
         TEST_FILE=test_cpu_suspend_2cluster.s
     endif
-else
+endif
+
 ifeq ($(test), aarch32)
 	TEST_PSCI=1
     TEST_FILE=test_aarch32_2core.s
-else
+endif
+
 ifeq  ($(test), aarch32BE)
 	TEST_PSCI=1
     TEST_FILE=test_aarch32_2coreBE.s
-else
+endif
+
 ifeq  ($(test), prng)
 	TEST_PSCI=1
     TEST_FILE=test_prng.s
-else
+endif
+
 ifeq  ($(test), membank)
 	TEST_PSCI=1
     TEST_FILE=test_membank_data.s
-else
+endif
+
 ifeq  ($(test), sd)
 	TEST_SD=1
 	TEST_PSCI=0
     TEST_FILE_C=test_sd.c
-else
-ifeq  ($(TEST), sys_off)
+endif
+
+ifeq  ($(test), sys_off)
 	TEST_PSCI=1
     ifeq ($(NUMBER_OF_CORES), 1)
         TEST_FILE=test_sysoff_1core.s
     else
         TEST_FILE=test_sysoff_multi.s
     endif
-else
-    test=none
-	TEST_PSCI=0
-	TEST_SD=0
-    TEST_FILE=
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
 endif
 
+ifeq  ($(test), pre_dis)
+	TEST_PSCI=1
+    TEST_FILE=test_prefetch_disable.s
+    $(info TEST_FILE is $(TEST_FILE))
+endif
+
+TEST_ASM=$(TEST_FILE)
+
 # -----------------------------------------------------------------------------
+
 

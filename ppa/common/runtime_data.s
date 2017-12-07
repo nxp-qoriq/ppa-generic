@@ -62,6 +62,7 @@
 .global _get_task2_core
 .global _set_task2_core
 .global _initialize_memory
+.global _init_global_data
 .global _get_global_data
 .global _set_global_data
 .global _initialize_psci
@@ -858,6 +859,44 @@ _initialize_memory:
     b    8b
 
 9:
+    dsb  sy
+    isb
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function initializes the smc global data entries
+ // Note: the constant LAST_SMC_GLBL_OFFSET must reference the last entry in the
+ //       smc global region
+ // in:  none
+ // out: none
+ // uses x0, x1, x2
+_init_global_data:
+
+#if (DATA_LOC == DATA_IN_DDR)
+     // save LR
+    mov  x1, x30
+     // request base address
+    mov  x13, #SMC_GLBL_BASE_QUERY
+    bl   _getBaseAddrNS
+     // restore LR
+    mov  x30, x1
+    mov  x1, x13
+#else
+    ldr  x1, =SMC_GLBL_BASE
+#endif
+
+     // x1 = SMC_GLBL_BASE
+
+    mov x2, #LAST_SMC_GLBL_OFFSET
+    add x2, x2, x1
+1:
+    str  xzr, [x1]
+    dc   cvac, x1
+    cmp  x2, x1
+    add  x1, x1, #8
+    b.hi 1b
+
     dsb  sy
     isb
     ret
