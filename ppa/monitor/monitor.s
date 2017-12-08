@@ -201,9 +201,6 @@ debug_stop:
 
 #endif
 
-     // initialize the Platform Security Policy here
-    bl   _set_platform_security  
-
      // exit the monitor
     b    monitor_exit_EL3
 
@@ -334,6 +331,9 @@ monitor_exit_EL3:
     bic  x2, x2, #SCTLR_C_MASK
     msr  sctlr_el3, x2
     isb
+
+     // initialize the Platform Security Policy here
+    bl   _set_platform_security  
 
      // restore the LR
     ldr  x30, [sp], #16

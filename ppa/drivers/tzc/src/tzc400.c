@@ -259,6 +259,18 @@ void tzc400_disable_filters(void)
         tzc400_set_gate_keeper(tzc400.base, filter, 0);
 }
 
+void mark_ocram_secure()
+{
+    phys_addr_t ccs_sec_accs_reg;
+    ccs_sec_accs_reg = CONFIG_SYS_FSL_CSU_ADDR;
+    ccs_sec_accs_reg += CSU_SEC_LEVEL_REG_OFFSET;
+    out_le32(ccs_sec_accs_reg, (unsigned int)OCRAM_SECURE_ACCESS_ENABLE);
+
+    __asm__ volatile("dsb sy\n"
+                       "isb\n");
+
+}
+
 #ifdef TZASC_BYPASS_MUX_DISABLE
 void enable_mux_tzasc()
 {
@@ -267,8 +279,12 @@ void enable_mux_tzasc()
          // Setting the TERMINATE BARRIER for TX of CCI.
     out_le32(CCI_400_BASE_ADDR, (unsigned int)CCI_TERMINATE_BARRIER_TX);
 
-        __asm__ volatile("dsb sy\n"
-                         "isb\n");
+#if (DATA_LOC != DATA_IN_DDR)
+     // Mark OCRAM Secure
+    mark_ocram_secure();
+#endif
+    __asm__ volatile("dsb sy\n"
+                     "isb\n");
         
     ccs_sec_accs_reg = CONFIG_SYS_FSL_CSU_ADDR;
     ccs_sec_accs_reg += CSU_SEC_ACCESS_REG_OFFSET;
@@ -306,8 +322,9 @@ void arm_tzc400_setup(void)
      // Later Error Interrupts will be handled.
     tzc400_set_action(TZC400_ACTION_ERR);
 
-         //Enable the TZC400 filters.
+     //Enable the TZC400 filters.
     tzc400_enable_filters();
+
 
 #ifdef TZASC_BYPASS_MUX_DISABLE
     enable_mux_tzasc();
