@@ -85,12 +85,6 @@ int spd_init(unsigned long long addr)
     linear_id = get_curr_core_pos();
     cm_set_context(&ns_core_context[linear_id], NON_SECURE);
 
-     // Restore EL3 SCR and EL1/EL3 SCTLR reg contents
-     // set by non-spd ppa code.
-    write_scr_el3(scr_el3);
-    write_sctlr_el3(sctlr_el3);
-    write_sctlr_el1(sctlr_el1);
-
      // Non-Secure El1/El2 Payload Entry Point info is NULL.
      // till spd module is not setting SCR/SCTLR register..
     cm_init_context(NULL, NON_SECURE);
@@ -98,5 +92,11 @@ int spd_init(unsigned long long addr)
      // Restore el1 secure context
     cm_el1_sysregs_context_restore(NON_SECURE);
     
+     // Restore EL3 SCR and EL1/EL3 SCTLR reg contents
+     // set by non-spd ppa code.
+    write_scr_el3(scr_el3);
+    write_sctlr_el3(sctlr_el3);
+    write_sctlr_el1(sctlr_el1);
+
     return SPD_SUCCESS;
 }
