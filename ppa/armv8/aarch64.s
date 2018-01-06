@@ -62,8 +62,10 @@
 .global _set_spsr_4_startup
 .global _set_EL3_vectors
 .global _zeroize_bss
-.global _disable_ldstr_pfetch
-.global _enable_ldstr_pfetch
+.global _disable_ldstr_pfetch_A72
+.global _enable_ldstr_pfetch_A72
+.global _disable_ldstr_pfetch_A53
+.global _enable_ldstr_pfetch_A53
 
 //-----------------------------------------------------------------------------
 
@@ -142,11 +144,19 @@ _apply_cpu_errata:
 
      // see if we need to apply the dcache cln/invalidate errata
     cmp   x2, #A53_DCACHE_RNPN_START
-    b.lt  4f
+    b.lt  5f
      // apply the errata - turn dcache cln into dcache cln & inv
     mrs   x0, CPUACTLR_EL1
     orr   x0, x0, #CPUACTLR_ENDCCASCI_EN
     msr   CPUACTLR_EL1, x0
+
+5:
+     // see if this core is marked for prefetch disable
+    mov   x0, #PREFETCH_DIS_OFFSET
+    bl    _get_global_data
+    tst   x0, x4
+    b.eq  4f
+    bl    _disable_ldstr_pfetch_A53
     b     4f
 
 2:   // apply a57 errata ------------------------
@@ -160,7 +170,7 @@ _apply_cpu_errata:
     bl    _get_global_data
     tst   x0, x4
     b.eq  4f
-    bl    _disable_ldstr_pfetch
+    bl    _disable_ldstr_pfetch_A72
  
 4:   // exit
     mov   x30, x5
@@ -933,10 +943,11 @@ _getCallerEL:
  //----------------------------------------------------------------------------
 
  // this function disables the load-store prefetch of the calling core
+ // Note: this function is for A72 cores ONLY
  // in:  none
  // out: none
  // uses x0
-_disable_ldstr_pfetch:
+_disable_ldstr_pfetch_A72:
 
      // 
     mrs   x0, CPUACTLR_EL1
@@ -945,7 +956,7 @@ _disable_ldstr_pfetch:
     b     2f
 
 .align 6
-1:   // disable prefetch for this core
+1:   // disable prefetch for this A72 core
     dsb   sy
     isb
     orr   x0, x0, #CPUACTLR_DIS_LS_HW_PRE
@@ -957,20 +968,46 @@ _disable_ldstr_pfetch:
 
  //----------------------------------------------------------------------------
 
- // this function enables the load-store prefetch of the calling core
+ // this function disables the load-store prefetch of the calling core
+ // Note: this function is for A53 cores ONLY
  // in:  none
  // out: none
  // uses x0
-_enable_ldstr_pfetch:
+_disable_ldstr_pfetch_A53:
 
      // 
+    mrs   x0, CPUACTLR_EL1
+    tst   x0, #CPUACTLR_L1PCTL_MASK
+    b.ne  1f
+    b     2f
+
+.align 6
+1:   // disable L1 prefetch for this A53 core
+    dsb   sy
+    isb
+    bic   x0, x0, #CPUACTLR_L1PCTL_MASK
+    msr   CPUACTLR_EL1, x0
+    isb
+
+2:
+    ret
+
+ //----------------------------------------------------------------------------
+
+ // this function enables the load-store prefetch of the calling core
+ // Note: this function is for A72 cores ONLY
+ // in:  none
+ // out: none
+ // uses x0
+_enable_ldstr_pfetch_A72:
+
     mrs   x0, CPUACTLR_EL1
     tst   x0, #CPUACTLR_DIS_LS_HW_PRE
     b.ne  1f
     b     2f
 
 .align 6
-1:   // enable prefetch for this core
+1:   // enable prefetch for this A72 core
     dsb   sy
     isb
     bic   x0, x0, #CPUACTLR_DIS_LS_HW_PRE
@@ -978,6 +1015,29 @@ _enable_ldstr_pfetch:
     isb
 
 2:
+    ret
+
+ //----------------------------------------------------------------------------
+
+ // this function enables the load-store prefetch of the calling core
+ // Note: this function is for A53 cores ONLY
+ // in:  none
+ // out: none
+ // uses x0, x1
+_enable_ldstr_pfetch_A53:
+
+.align 6
+    mrs   x0, CPUACTLR_EL1
+
+     // enable L1 prefetch for this A53 core
+    dsb   sy
+    isb
+    bic   x0, x0, #CPUACTLR_L1PCTL_MASK
+    mov   x1, #CPUACTLR_L1PCTL_EN_5
+    orr   x0, x0, x1
+    msr   CPUACTLR_EL1, x0
+    isb
+
     ret
 
  //----------------------------------------------------------------------------

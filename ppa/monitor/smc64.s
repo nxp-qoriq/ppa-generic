@@ -490,8 +490,30 @@ smc64_prefetch_disable:
 
     tst   x3, x0
     b.eq  1f
-    bl    _disable_ldstr_pfetch
 
+
+     // read midr_el1
+    mrs   x1, midr_el1
+
+     // x1 = midr_el1
+
+    mov   x0, xzr
+    bfxil x0, x1, #MIDR_PARTNUM_START, #MIDR_PARTNUM_WIDTH
+
+     // x0 = part number (a53, a57, a72, etc)
+
+     // branch on cpu-specific
+    cmp   x0, #MIDR_PARTNUM_A53
+    b.eq  2f
+    cmp   x0, #MIDR_PARTNUM_A57
+    b.eq  1f
+    cmp   x0, #MIDR_PARTNUM_A72
+    b.ne  1f
+
+    bl    _disable_ldstr_pfetch_A72
+    b     1f
+2:
+    bl    _disable_ldstr_pfetch_A53
 1:
     mov   x0, #SMC_SUCCESS
     b     _smc_exit

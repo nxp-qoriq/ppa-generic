@@ -145,9 +145,15 @@ ifeq  ($(test), sys_off)
     endif
 endif
 
-ifeq  ($(test), pre_dis)
+ifeq  ($(test), pre_disa72)
 	TEST_PSCI=1
-    TEST_FILE=test_prefetch_disable.s
+    TEST_FILE=test_prefetch_disableA72.s
+    $(info TEST_FILE is $(TEST_FILE))
+endif
+
+ifeq  ($(test), pre_disa53)
+	TEST_PSCI=1
+    TEST_FILE=test_prefetch_disableA53.s
     $(info TEST_FILE is $(TEST_FILE))
 endif
 
