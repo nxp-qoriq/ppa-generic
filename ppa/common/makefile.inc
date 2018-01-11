@@ -135,11 +135,7 @@ NM		    = $(CROSS_COMPILE)nm
 
 MAKE        = @make --no-print-directory
 
-ifeq ($(spd), on)
-    GENITS  = $(CMN_SRC)/gen_spd_its
-else
-    GENITS  = $(CMN_SRC)/gen_its
-endif
+GENITS  = $(CMN_SRC)/gen_its
 
 GIT_VERSION    := $(shell git describe --dirty --always 2>/dev/null)
 CFLAGS		    = -fno-builtin -ggdb -mstrict-align -DVERSION=\"$(GIT_VERSION)\"
@@ -387,7 +383,7 @@ ppa.ld: ppa.ld.s lnkr.cmd src obj
 	$(CC64) $(CFLAGS64) $(PLATFLAGS) $(SRC_DIR)/$< -o $(OBJ_DIR)/$@
 
 ppa.its: $(GENITS) src
-	$(GENITS) $(SRC_DIR)/ppa.its
+	$(GENITS) $(SRC_DIR)/ppa.its spd=$(spd) fuse=$(fuse)
 
 $(SRC_SOC): $(HDRS_SOC) $(COMMON_HDRS) $(LINK_ASM) src
 	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
