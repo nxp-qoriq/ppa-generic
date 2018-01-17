@@ -801,7 +801,7 @@ smc64_psci_cpu_on:
 
     mov   x0, x4
     bl    _get_exit_mode
-    tst   x0, #MODE_EL_MASK
+    tst   x0, #AMODE_EL_MASK
     b.ne  6f
 
 3:   // core will be released to EL2

@@ -234,7 +234,7 @@ _secondary_core_init:
 
     mov   x0, x4
     bl    _get_exit_mode
-    tst   x0, #MODE_EL_MASK
+    tst   x0, #AMODE_EL_MASK
     b.ne  1f
 
      // perform EL2 init on secondary core
@@ -447,7 +447,7 @@ _mon_core_restart:
      // get spsr_el3
     mrs   x0, spsr_el3
     bl    _get_exit_mode
-    tst   x0, #MODE_EL_MASK
+    tst   x0, #AMODE_EL_MASK
     b.ne  1f
 
      // perform EL2 init on core

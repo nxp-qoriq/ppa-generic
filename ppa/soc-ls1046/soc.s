@@ -1175,7 +1175,7 @@ _soc_init_finish:
  // uses 
 _set_platform_security:
 
-#if (CNFG_SPD)
+#if (!SIMULATOR_BUILD) && (CNFG_SPD)
     mov x8, x30
     bl arm_tzc400_setup
     mov  x30, x8

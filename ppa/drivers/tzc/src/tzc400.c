@@ -164,6 +164,7 @@ void tzc400_init(phys_addr_t base)
      // Fetching component id and comparing it as TZC-400 TRM.
      // Value must be equal to "0xB105F00D".
     tzc400_id = tzc400_read_component_id(tzc400.base);
+
     if (tzc400_id != TZC400_COMPONENT_ID) {
         panic("TZC400 : Wrong device ID.\n");
     }

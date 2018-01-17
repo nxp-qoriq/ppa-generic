@@ -39,6 +39,7 @@
 #include "context_mgmt.h"
 #include "context_arch64.h"
 #include "lib.h"
+#include "aarch64.h"
 
  // @brief Get context as per security state
  // @param [in] security_state : SECURE/NONSECURE

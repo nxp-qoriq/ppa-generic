@@ -143,54 +143,16 @@
 #define ARM_CACHE_WRITEBACK_SHIFT    6
 #define CACHE_WRITEBACK_GRANULE        (1 << ARM_CACHE_WRITEBACK_SHIFT)
 
-#define MODE_SP_SHIFT        0x0
-#define MODE_SP_MASK        0x1
-#define MODE_SP_EL0        0x0
-#define MODE_SP_ELX        0x1
-
-#define MODE_EL_MASK        0x3
-#define MODE_EL_SHIFT        0x2
-#define MODE_EL1        0x1
-#define MODE_EL2        0x2
-
-#define MODE_RW_SHIFT        0x4
-#define MODE_RW_MASK        0x1
-#define MODE_RW_64        0x0
-#define MODE_RW_32        0x1
-
-#define MODE32_SHIFT        0
-#define MODE32_MASK        0xf
-#define MODE32_hyp        0xa
-
 #define GET_RW(mode)        (((mode) >> MODE_RW_SHIFT) & MODE_RW_MASK)
 #define GET_EL(mode)        (((mode) >> MODE_EL_SHIFT) & MODE_EL_MASK)
 #define GET_SP(mode)        (((mode) >> MODE_SP_SHIFT) & MODE_SP_MASK)
 #define GET_M32(mode)        (((mode) >> MODE32_SHIFT) & MODE32_MASK)
 
- // SCR definitions
-#define SCR_RES1_BITS           ((1 << 4) | (1 << 5))
-#define SCR_TWE_BIT             (1 << 13)
-#define SCR_TWI_BIT             (1 << 12)
-#define SCR_ST_BIT              (1 << 11)
-#define SCR_RW_BIT              (1 << 10)
-#define SCR_SIF_BIT             (1 << 9)
-#define SCR_HCE_BIT             (1 << 8)
-#define SCR_SMD_BIT             (1 << 7)
-#define SCR_EA_BIT              (1 << 3)
-#define SCR_FIQ_BIT             (1 << 2)
-#define SCR_IRQ_BIT             (1 << 1)
-#define SCR_NS_BIT              (1 << 0)
-
  //Other attributes
-#define SCTLR_EE_BIT        (1 << 25)
-#define SCTLR_EL1_RES1          ((1 << 29) | (1 << 28) | (1 << 23) | (1 << 22) | \
-                                 (1 << 22) | (1 << 20) | (1 << 11))
 #define DAIF_FIQ_BIT        (1 << 0)
 #define DAIF_IRQ_BIT        (1 << 1)
 #define DAIF_ABT_BIT        (1 << 2)
 #define DAIF_DBG_BIT        (1 << 3)
-#define SPSR_DAIF_SHIFT        6
-#define SPSR_DAIF_MASK        0xf
 
 #define DISABLE_ALL_EXCEPTIONS \
         (DAIF_FIQ_BIT | DAIF_IRQ_BIT | DAIF_ABT_BIT | DAIF_DBG_BIT)
@@ -200,6 +162,6 @@
     (MODE_RW_64 << MODE_RW_SHIFT |            \
     ((el) & MODE_EL_MASK) << MODE_EL_SHIFT |    \
     ((sp) & MODE_SP_MASK) << MODE_SP_SHIFT |    \
-    ((daif) & SPSR_DAIF_MASK) << SPSR_DAIF_SHIFT)
+    (daif) & SPSR_DAIF_MASK)
 
 #endif //__ARCH64T_H__

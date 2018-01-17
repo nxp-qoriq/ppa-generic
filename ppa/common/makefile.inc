@@ -160,13 +160,14 @@ PLATFLAGS = $(DBG_FLAGS)                   \
 	-DCLUSTER_COUNT=$(NUMBER_OF_CLUSTERS)  \
 	-DCPU_PER_CLUSTER=$(CORES_PER_CLUSTER) \
 	-DSYMMETRICAL_CLUSTERS=$(CLUSTER_SYMMETRY) \
-	-DL3_VIA_CCN504=$(CCN504_L3)           \
-	-DCNFG_DDR=$(DDR_BLD)                  \
-	-DCNFG_I2C=$(I2C_BLD)                  \
-	-DCNFG_UART=$(UART_BLD)                \
-        -DCNFG_SD=$(SD_BLD) 		      \
-        -DCNFG_SD_TEST=$(TEST_SD) 		      \
-	-DDATA_LOC=$(DATA_DDR)                 \
+    -DCORE=$(CORE_TYPE_A)             \
+	-DL3_VIA_CCN504=$(CCN504_L3)      \
+	-DCNFG_DDR=$(DDR_BLD)             \
+	-DCNFG_I2C=$(I2C_BLD)             \
+	-DCNFG_UART=$(UART_BLD)           \
+    -DCNFG_SD=$(SD_BLD) 		      \
+    -DCNFG_SD_TEST=$(TEST_SD)         \
+	-DDATA_LOC=$(DATA_DDR)            \
     -DLSCH=$(CHASSIS)
 
 # -----------------------------------------------------------------------------
@@ -365,7 +366,7 @@ $(TARGETS):
 	$(OBJ64) -v -O binary $(OBJ_DIR)/$< $(OBJ_DIR)/$@
 	$(call DO_STATIC_RELA_RELOC,$(OBJ_DIR)/$<,$(OBJ_DIR)/$@,$(TEXTBASE))
 
-$(PRE_TARG):
+$(PRE_TARG): $(HDRS_ASM) $(COMMON_HDRS)
 	$(LD64) $(MMAP) $(MSCRIPT) $(LDFLAGS64) $(wildcard $(OBJ_DIR)/*.o) -o $(OBJ_DIR)/$@
 
 ppa.itb: ppa.its monitor.bin
@@ -398,31 +399,31 @@ $(LINK_ASM): $(HDRS_SOC) $(COMMON_HDRS) src
 	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(CSRC_SOC): $(CHDRS_SOC) $(HDRS_SOC) src
-	@cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
+	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(CHDRS_SOC): src
-	@cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
+	cp -r "$(SOC_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(SRC_PLAT): $(HDRS_PLAT) src
-	@cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
+	cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(HDRS_PLAT): src
-	@cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
+	cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(PLAT_ASM): src
-	@cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
+	cp -r "$(PLAT_PATH)/$@" "$(SRC_DIR)/$@"
 
 $(COMMON_ASM): $(HDRS_ARMV8) $(HDRS_PSCI) src
-	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
+	cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(COMMON_C): $(COMMON_HDRS) src
-	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
+	cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(COMMON_HDRS): src
-	@cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
+	cp -r "$(CMN_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(TEST_ASM): $(HDRS_SOC) src
-	@cp -r "$(TEST_SRC)/$@" "$(SRC_DIR)/$@"
+	cp -r "$(TEST_SRC)/$@" "$(SRC_DIR)/$@"
 
 $(TEST_C): $(HDRS_SOC) src
 	cp -r "$(TEST_SRC)/$@" "$(SRC_DIR)/$@"

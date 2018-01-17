@@ -487,11 +487,11 @@ _set_spsr_4_startup:
 
     mov   x0, x4
     bl    _get_exit_mode
-    cmp   x0, #MODE_AARCH64_EL2
+    cmp   x0, #AMODE_AARCH64_EL2
     b.eq  4f
-    cmp   x0, #MODE_AARCH32_EL1
+    cmp   x0, #AMODE_AARCH32_EL1
     b.eq  1f
-    cmp   x0, #MODE_AARCH64_EL1
+    cmp   x0, #AMODE_AARCH64_EL1
     b.eq  3f
 
      // Aarch32 @ EL2
@@ -570,16 +570,16 @@ _get_exit_mode:
     b.eq  1f
 
      // Aarch32
-    mov   x0, #MODE_AARCH_32
+    mov   x0, #AMODE_AARCH_32
     cmp   x2, #ID_AA64PFR0_EL2_64OR32
     b.eq  4f
 
 3:   // EL1
-    orr   x0, x0, #MODE_EL_1
+    orr   x0, x0, #AMODE_EL_1
     b     4f
 
 1:   // Aarch64
-    mov   x0, #MODE_AARCH_64
+    mov   x0, #AMODE_AARCH_64
     cbz   x2, 3b
 
 4:

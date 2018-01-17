@@ -75,7 +75,8 @@
 #define  SCTLR_M_MASK           0x00000001
 #define  SCTLR_EL3_RES1         0x30C50830       
 #define  SCTLR_EL2_RES1         0x30C50830       
-#define  SCTLR_EL1_RES1         0x30D00800       
+#define  SCTLR_EL1_RES1         0x30D00800 
+#define  SCTLR_EE_BIT           SCTLR_EE_MASK
 
 #define  CPTR_EL2_RES1_MASK     0x33FF
 
@@ -96,6 +97,9 @@
 #define  CPUACTLR_ENDCCASCI_EN     0x100000000000
  // A72 CPUACTLR defines
 #define  CPUACTLR_DIS_LS_HW_PRE    0x100000000000000
+#define  CPUACTLR_DIS_SBP_MASK     0x400000000
+#define  CPUACTLR_DIS_BTB_MASK     0x8
+#define  CPUACTLR_DIS_INP_MASK     0x10
  // A53 CPUACTLR defines
 #define  CPUACTLR_L1PCTL_MASK      0x0000E000
 #define  CPUACTLR_L1PCTL_EN_5      0xA000
@@ -131,16 +135,25 @@
 #define  MIDR_PARTNUM_A72        0xD08
 #define  A53_DCACHE_RNPN_START   0x03
 
+#define  SCR_NS_MASK            0x1
 #define  SCR_FIQ_MASK           0x4
 #define  SCR_IRQ_MASK           0x2
+#define  SCR_HCE_MASK           0x100
 #define  SCR_RW_MASK            0x400
 #define  SCR_RW_AARCH64         0x400
+#define  SCR_ST_MASK            0x800
 #define  SCR_EL3_4_EL2_AARCH32  0x131
 #define  SCR_EL3_4_EL1_AARCH32  0x031
 #define  SCR_EL3_HCE_EN         0x100
 #define  SCR_EL3_SIF_DIS        0x200
 #define  SCR_EL3_FIQ_EN         0x4
 #define  SCR_EL3_NS_MASK        0x1
+#define  SCR_FIQ_BIT            SCR_FIQ_MASK
+#define  SCR_IRQ_BIT            SCR_IRQ_MASK
+#define  SCR_RW_BIT             SCR_RW_MASK
+#define  SCR_NS_BIT             SCR_NS_MASK
+#define  SCR_ST_BIT             SCR_ST_MASK
+#define  SCR_HCE_BIT            SCR_HCE_MASK
 
 #define  SPSEL_SP               0x1
 
@@ -151,16 +164,34 @@
 #define  CNTP_CTL_EL0_IMASK     0x2
 #define  CNTP_CTL_EL0_ISTAT     0x4
 
-#define   MODE_AARCH64_EL2       0x0
-#define   MODE_AARCH64_EL1       0x1
-#define   MODE_AARCH32_EL2       0x2
-#define   MODE_AARCH32_EL1       0x3
-#define   MODE_AARCH_MASK        0x2
-#define   MODE_AARCH_64          0x0
-#define   MODE_AARCH_32          0x2
-#define   MODE_EL_MASK           0x1
-#define   MODE_EL_2              0x0
-#define   MODE_EL_1              0x1
+ // these spsr mode bits are somewhat abstract
+#define   AMODE_AARCH64_EL2       0x0
+#define   AMODE_AARCH64_EL1       0x1
+#define   AMODE_AARCH32_EL2       0x2
+#define   AMODE_AARCH32_EL1       0x3
+#define   AMODE_AARCH_MASK        0x2
+#define   AMODE_AARCH_64          0x0
+#define   AMODE_AARCH_32          0x2
+#define   AMODE_EL_MASK           0x1
+#define   AMODE_EL_2              0x0
+#define   AMODE_EL_1              0x1
+
+ // these spsr mode bits more closely resemble the documentation
+#define MODE_SP_SHIFT     0x0
+#define MODE_SP_MASK      0x1
+#define MODE_SP_EL0       0x0
+#define MODE_SP_ELX       0x1
+#define MODE_EL_MASK      0x3
+#define MODE_EL_SHIFT     0x2
+#define MODE_EL1          0x1
+#define MODE_EL2          0x2
+#define MODE_RW_SHIFT     0x4
+#define MODE_RW_MASK      0x1
+#define MODE_RW_64        0x0
+#define MODE_RW_32        0x1
+#define MODE32_SHIFT       0
+#define MODE32_MASK       0xf
+#define MODE32_hyp        0xa
 
 //-----------------------------------------------------------------------------
 

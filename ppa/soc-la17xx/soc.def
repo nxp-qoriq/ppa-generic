@@ -40,6 +40,7 @@
 NUMBER_OF_CLUSTERS=1
 NUMBER_OF_CORES=2
 CORES_PER_CLUSTER=2
+CORE_TYPE_A=72
 
  # set to 1 if all clusters contain the same number of cores,
  # else set to 0

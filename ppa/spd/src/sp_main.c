@@ -37,6 +37,7 @@
 #include "sp_ep_info.h"
 #include "context_mgmt.h"
 #include "lib.h"
+#include "aarch64.h"
 
  // Global data variables used for SP initialization
 static int oen_list[MAX_ALLOWED_OEN];

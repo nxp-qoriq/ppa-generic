@@ -37,6 +37,7 @@
 
 //-----------------------------------------------------------------------------
 
+#include "aarch64.h"
 #include "smc.h"
 
 //-----------------------------------------------------------------------------
@@ -50,6 +51,8 @@
  // EL3 exception vectors
 
    // VBAR_ELn bits [10:0] are RES0
+   // each vector entry is 128-bytes wide,
+   // leaving space for 32 instructions
   .align 11
 _el3_vector_base:
 
@@ -100,20 +103,24 @@ _el3_vector_base:
 
      // synchronous exceptions
   .align 7
+    EL3_IsolateOnEntry
     b  synch_handler
 
      // IRQ interrupts
   .align 7
+    EL3_IsolateOnEntry
     mov  x11, #0x480
     b    __el3_dead_loop
 
      // FIQ interrupts
   .align 7
+    EL3_IsolateOnEntry
     mov  x11, #0x500
     b    __el3_dead_loop
 
      // serror exceptions
   .align 7
+    EL3_IsolateOnEntry
     mov  x11, #0x580
     b    __el3_dead_loop
 
@@ -121,20 +128,24 @@ _el3_vector_base:
 
      // synchronous exceptions
   .align 7
+    EL3_IsolateOnEntry
     b  synch_handler
 
      // IRQ interrupts
   .align 7
+    EL3_IsolateOnEntry
     mov  x11, #0x680
     b    __el3_dead_loop
 
      // FIQ interrupts
   .align 7
+    EL3_IsolateOnEntry
     mov  x11, #0x700
     b    __el3_dead_loop
 
      // serror exceptions
   .align 7
+    EL3_IsolateOnEntry
     mov  x11, #0x780
     b    __el3_dead_loop
 
@@ -201,9 +212,12 @@ a64smc_router:
     str   x11,  [sp, #-16]!
 
 #if (CNFG_SPD)
-    cbz   x10, _smc_trstd_os_handler
+    cbnz  x10, 2f
+    EL3_ExitToSPD
+    b     _smc_trstd_os_handler
 #endif
 
+2:
      // test for smc32 or smc64 interface
     mov   x9, xzr
     bfxil x9, x0, #30, #1
@@ -307,8 +321,9 @@ _smc_exit:
     ldp  x6,  x7,  [sp], #16
     ldp  x4,  x5,  [sp], #16
 2:
-    dsb  sy
-    isb
+
+     // cleanup any of the EL3 isolation that was performed on entry
+    EL3_ExitToNS
 
      // return from exception
     eret

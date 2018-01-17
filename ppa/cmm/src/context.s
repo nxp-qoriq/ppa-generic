@@ -35,6 +35,8 @@
 //
 
 #include "context_arch64_asm.h"
+#include "aarch64.h"
+#include "smc.h"
 
 .section .text, "ax"
 
@@ -318,6 +320,10 @@ gp_regs_ctx_restore_callee_eret:
     mov  x16,  x9
     mov  x17,  x9
 
+     // cleanup any of the secure world isolation that was performed on entry
+    SPD_ExitToNS
+
+     // return from exception
     eret
 
      // -----------------------------------------------------
