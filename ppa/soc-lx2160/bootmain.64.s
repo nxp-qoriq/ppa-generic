@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2013-2016, Freescale Semiconductor, Inc.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -41,7 +41,6 @@
 
   .global __dead_loop
   .global am_i_boot_core
-  .global _reset_vector_el3
   .global init_EL3
   .global init_EL2
   .global read_reg_dcfg
@@ -50,7 +49,13 @@
 
 //-----------------------------------------------------------------------------
 
+#if (SIMULATOR_BUILD)
+.global _reset_vector_el3
 _reset_vector_el3:
+#else
+.global reset_vector_el3
+reset_vector_el3:
+#endif
 
      // perform any critical init that must occur early
     bl   early_init
@@ -84,12 +89,14 @@ _reset_vector_el3:
     cbz  x0, __dead_loop
 
 boot_core_exit:
-     // save the boot address
-    mov  x5, x0
 
-     // branch to the boot loader addr
+#if (SIMULATOR_BUILD)
      // branch to the ppa start
     b    _start_monitor_el3
+#else
+     // branch to the boot loader addr
+    br   x0
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -265,9 +272,6 @@ early_init:
  // uses x0, x1, x2, x3, x4, x5, x6, x7
 init_CCN508:
 
-
- // don't do anything here until we know WHAT to do
-#if 0
      // read the dcfg register GENCR1
     ldr  x1, =DCFG_BASE_ADDR
     ldr  w2, [x1, #GENCR1_OFFSET]
@@ -352,8 +356,6 @@ poll_hnf_sdcr:
     add  x1, x1, #0x10000
     subs x7, x7, #1
     b.ne 2b  
-
-#endif
 
     ret
 

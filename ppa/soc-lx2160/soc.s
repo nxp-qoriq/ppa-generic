@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2015-2016 Freescale Semiconductor, Inc.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -40,6 +40,7 @@
 #include "lsch3.h"
 #include "psci.h"
 #include "soc.mac"
+#include "plat.h"
 
 //-----------------------------------------------------------------------------
 
@@ -757,14 +758,18 @@ init_task_2:
 _set_platform_security:
     mov  x8, x30
 
+#if (!SUPPRESS_TZC)
      // initialize the tzasc
     bl   init_tzasc
 
      // initialize the tzpc
     bl   init_tzpc
+#endif
 
+#if (!SUPPRESS_SEC)
      // initialize secmon
     bl  initSecMon
+#endif
 
     mov  x30, x8
     ret
@@ -776,8 +781,10 @@ _set_platform_security:
 _soc_exit_boot_svcs:
     mov  x10, x30
 
+#if (!SUPPRESS_SEC)
      // reset secmon
     bl  resetSecMon
+#endif
 
     mov  x30, x10
     ret

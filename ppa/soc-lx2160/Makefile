@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # 
 # Copyright (C) 2015-2016 Freescale Semiconductor, Inc.
-# Copyright 2017 NXP Semiconductors
+# Copyright 2017-2018 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -86,7 +86,32 @@ ifeq ($(MAKECMDGOALS), rdb_fit_bin)
     PLAT_PATH=platform-rdb
 else
 
+ifeq ($(MAKECMDGOALS), emu)
+    PLAT_PATH=platform-emu
+else
+ifeq ($(MAKECMDGOALS), emu_out)
+    PLAT_PATH=platform-emu
+else
+ifeq ($(MAKECMDGOALS), emu_bin)
+    PLAT_PATH=platform-emu
+else
+ifeq ($(MAKECMDGOALS), emu-fit)
+    PLAT_PATH=platform-emu
+else
+ifeq ($(MAKECMDGOALS), emu_fit_out)
+    PLAT_PATH=platform-emu
+else
+ifeq ($(MAKECMDGOALS), emu_fit_bin)
+    PLAT_PATH=platform-emu
+else
+
   $(error -> Platform '$(MAKECMDGOALS)' not supported!)
+endif
+endif
+endif
+endif
+endif
+endif
 endif
 endif
 endif

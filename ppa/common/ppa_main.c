@@ -33,6 +33,7 @@
 
 #include "lib.h"
 #include "fsl_sec.h"
+#include "plat.h"
 
 #if (CNFG_SPD)
 #include "spd.h"
@@ -141,7 +142,10 @@ int _ppa_main(unsigned long long addr, unsigned long long loadable)
 #endif
 
     alloc_init(&heap, heap_addr, HEAP_SIZE);
+
+#if (!SUPPRESS_SEC)
     sec_init();
+#endif
 
 #if (CNFG_SPD)
     if (loadable) {

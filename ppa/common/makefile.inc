@@ -3,7 +3,7 @@ SHELL := /bin/bash
 #-----------------------------------------------------------------------------
 # 
 # Copyright (C) 2015-2017 Freescale Semiconductor, Inc. All rights reserved.
-# Copyright 2017 NXP Semiconductors
+# Copyright 2017-2018 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -161,7 +161,7 @@ PLATFLAGS = $(DBG_FLAGS)                   \
 	-DCPU_PER_CLUSTER=$(CORES_PER_CLUSTER) \
 	-DSYMMETRICAL_CLUSTERS=$(CLUSTER_SYMMETRY) \
     -DCORE=$(CORE_TYPE_A)             \
-	-DL3_VIA_CCN504=$(CCN504_L3)      \
+	-DL3_CACHE=$(SYSTEM_L3)           \
 	-DCNFG_DDR=$(DDR_BLD)             \
 	-DCNFG_I2C=$(I2C_BLD)             \
 	-DCNFG_UART=$(UART_BLD)           \

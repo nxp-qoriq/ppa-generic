@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2015-2016, Freescale Semiconductor
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -76,14 +76,6 @@ debug_stop:
     adr  x0, _start_monitor_el3
     bl   _zeroize_bss
 
-     // clean/invalidate the dcache
-    mov x0, #0
-    bl  _cln_inv_all_dcache
-#if (L3_VIA_CCN504)
-    mov x0, #1
-    bl  _manual_L3_flush
-#endif
-
      // invalidate the icache
     ic  iallu
     isb
@@ -117,6 +109,14 @@ debug_stop:
      // setup the interconnect
     bl   _init_interconnect
  
+     // clean/invalidate the dcache
+    mov x0, #0
+    bl  _cln_inv_all_dcache
+#if (L3_CACHE)
+    mov x0, #1
+    bl  _manual_L3_flush
+#endif
+
 #if ((DDR_INIT) && (DATA_LOC == DATA_IN_DDR))
 
      // setup a temporary stack in OCRAM for the bootcore so we can run some C code
@@ -311,7 +311,7 @@ monitor_exit_EL3:
      // flush dcache
     mov x0, #1
     bl  _cln_inv_all_dcache
-#if (L3_VIA_CCN504)
+#if (L3_CACHE)
     mov x0, #0
     bl  _manual_L3_flush
 #endif

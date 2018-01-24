@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 # 
-# Copyright 2017-2018 NXP Semiconductors
+# Copyright 2017 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -32,28 +32,17 @@
 # 
 #------------------------------------------------------------------------------
 
-SYSTEM_L3=0
+PLAT_BUILD=1
 
-# select the interconnect file ---
-ifeq ($(INTERCONNECT), CCI400)
-	INTER_FILE=cci400
-else
-ifeq ($(INTERCONNECT), CCN504)
-	INTER_FILE=ccn504
-    SYSTEM_L3=1
-else
-ifeq ($(INTERCONNECT), CCN508)
-	INTER_FILE=ccn508
-    SYSTEM_L3=1
-else
-ifeq ($(INTERCONNECT), CCN502)
-	INTER_FILE=ccn502
-else
-    $(error -> Interconnect type not set!)
+ifeq ($(PLAT_BUILD), 1)
+    # setup a path prefix so we can find the src files
+    PRE_PATH=../
 endif
-endif
-endif
-endif
+
+# -----------------------------------------------------------------------------
+
+# include the soc makefile
+include ../Makefile
 
 # -----------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 # 
-# Copyright 2017-2018 NXP Semiconductors
+# Copyright 2017 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -31,29 +31,56 @@
 # Author Rod Dorris <rod.dorris@nxp.com>
 # 
 #------------------------------------------------------------------------------
+#
+# emu platform specific definitions
+#
+# supported targets:
+#   emu     - binary image
+#   emu_fit - fit image
+#
+# -----------------------------------------------------------------------------
+#
+# builds a binary image for the emulator
+emu: 
+	$(MAKE) SIM_BUILD=0 emu_out
+	$(MAKE) SIM_BUILD=0 emu_bin
+emu_out:
+	@echo 'build: image=bin \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
+	@echo
+emu_bin: monitor.bin
 
-SYSTEM_L3=0
+# builds a fit image for the emulator
+emu-fit: 
+	$(MAKE) SIM_BUILD=0 emu_fit_out
+	$(MAKE) SIM_BUILD=0 emu_fit_bin
+emu_fit_out:
+	@echo 'build: image=fit \ $(GIC_FILE) \ $(INTER_FILE) \ ddr $(ddr) \ debug $(dbg) \ test "$(test)"'
+	@echo
+emu_fit_bin: ppa.itb
 
-# select the interconnect file ---
-ifeq ($(INTERCONNECT), CCI400)
-	INTER_FILE=cci400
+# -----------------------------------------------------------------------------
+
+# add platform-specific asm here
+PLAT_ASM =
+
+# add platform-specific C source and headers here
+SRC_PLAT   =
+HDRS_PLAT  =policy.h plat.h
+
+# add platform-test-specific asm files here
+TEST_ASM =$(TEST_FILE)
+
+ifeq ($(DDR_BLD), 1)
+  $(error -> ddr not yet supported on this platform!)
+
+  # add ddr-specific source and headers here
+  DDR_C =ddr_init.c
+  DDR_H =
 else
-ifeq ($(INTERCONNECT), CCN504)
-	INTER_FILE=ccn504
-    SYSTEM_L3=1
-else
-ifeq ($(INTERCONNECT), CCN508)
-	INTER_FILE=ccn508
-    SYSTEM_L3=1
-else
-ifeq ($(INTERCONNECT), CCN502)
-	INTER_FILE=ccn502
-else
-    $(error -> Interconnect type not set!)
-endif
-endif
-endif
+  DDR_C =
+  DDR_H =
 endif
 
 # -----------------------------------------------------------------------------
 
+TEXTBASE=0x30100000

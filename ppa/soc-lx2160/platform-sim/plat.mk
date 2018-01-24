@@ -60,7 +60,7 @@ PLAT_ASM =
 
 # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h
+HDRS_PLAT  =policy.h plat.h
 
  # add platform-test-specific asm sources here
 TEST_ASM =$(TEST_FILE)
@@ -74,7 +74,7 @@ ifeq ($(DDR_BLD), 1)
 
   # add ddr-specific source and headers here
   DDR_C    =ddr_init.c
-  DDR_HDRS =plat.h 
+  DDR_HDRS =
 else
   CSRC_SOC  =
   CHDRS_SOC =
