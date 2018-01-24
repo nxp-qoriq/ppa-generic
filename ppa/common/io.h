@@ -131,6 +131,7 @@ typedef unsigned long phys_size_t;
 #else
 #error Please define CCSR DDR register endianness
 #endif
+#endif
 
 #ifdef CONFIG_SYS_FSL_CCSR_GUR_BE
 #define gur_in32(a)	in_be32(a)
@@ -140,7 +141,6 @@ typedef unsigned long phys_size_t;
 #define gur_out32(a, v)	out_le32(a, v)
 #else
 #error Please define CCSR GUR register endianness
-#endif
 #endif
 
 #ifdef CONFIG_SYS_FSL_CCSR_SEC_BE
@@ -161,6 +161,16 @@ typedef unsigned long phys_size_t;
     sec_out32((uint32_t *)(addr), (uint32_t)(val))
 #else
 #error Please define CCSR SEC register endianness
+#endif
+
+#ifdef CONFIG_SYS_FSL_CCSR_SFP_BE
+#define sfp_in32(a)	in_be32(a)
+#define sfp_out32(a, v)	out_be32(a, v)
+#elif defined(CONFIG_SYS_FSL_CCSR_SFP_LE)
+#define sfp_in32(a)	in_le32(a)
+#define sfp_out32(a, v)	out_le32(a, v)
+#else
+#error Please define CCSR SFP register endianness
 #endif
 
 #ifdef CONFIG_SYS_FSL_CCSR_ESDHC_BE
