@@ -66,7 +66,7 @@
 #define  OCRAM_INIT_RETRY    0x2000
 #define  TOP_OF_OCRAM        ((OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES) - 1)
 
- // dcfg block register offsets
+ // dcfg block register offsets and bitfields
 #define DCFG_SCRATCHRW5_OFFSET  0x210
 #define DCFG_SCRATCHRW6_OFFSET  0x214
 #define DCFG_SCRATCHRW7_OFFSET  0x218
@@ -76,6 +76,8 @@
 #define COREDISR_OFFSET         0x94
 #define BOOTLOCPTRL_OFFSET      0x400
 #define BOOTLOCPTRH_OFFSET      0x404
+#define RCW_SR1_OFFSET          0x100
+#define RCWSR1_SYSPLLRAT_MASK   0x7C        
 
  // reset block register offsets
 #define RST_RSTCR_OFFSET      0x0

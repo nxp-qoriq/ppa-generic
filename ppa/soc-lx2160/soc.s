@@ -118,7 +118,7 @@ _soc_init_start:
 
      // make sure the personality has been established by releasing cores
      // that are marked "to-be-disabled" from reset
-    bl  release_disabled  // 0-8
+    bl  release_disabled  // 0-9
 
      // init the task flags
     bl  _init_task_flags   // 0-1
@@ -811,18 +811,64 @@ _soc_check_sec_enabled:
 
 //-----------------------------------------------------------------------------
 
+ // this function returns CLUSTER_3_NORMAL if the cores of cluster 3 are
+ // to be handled normally, and it returns CLUSTER_3_IN_RESET if the cores
+ // are to be held in reset
+ // in:  none
+ // out: x0 = #CLUSTER_3_NORMAL,   cluster 3 treated normal
+ //      x0 = #CLUSTER_3_IN_RESET, cluster 3 cores held in reset
+ // uses x0, x1, x2
+cluster3InReset:
+
+     // default return is hold cores in reset
+    mov  x0, #CLUSTER_3_IN_RESET
+
+     // read RCW_SR1 register
+    mov  x1, #DCFG_BASE_ADDR
+    ldr  w2, [x1, #RCW_SR1_OFFSET]
+
+     // extract the sysclk ratio field
+    and  w2, w2, #RCWSR1_SYSPLLRAT_MASK
+
+     // compare the pll multiplier with our threshold value
+    cmp  w2, #SYS_PLL_RAT_12
+    b.gt 1f
+
+     // platform clock is slow enough to handle cluster 3 cores normal
+    mov  x0, #CLUSTER_3_NORMAL
+1:
+    ret
+
+//-----------------------------------------------------------------------------
+
  // this function checks to see if cores which are to be disabled have been
  // released from reset - if not, it releases them
+ // Note: there may be special handling of cluster 3 cores depending upon the
+ //       sys clk frequency
  // in:  none
  // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
 release_disabled:
-    mov  x8, x30
+    mov  x9, x30
+
+     // check if we need to keep cluster 3 cores in reset
+    bl   cluster3InReset  // 0-2
+    mov  x8, x0
+
+     // x8 = cluster 3 handling
 
      // read COREDISABLESR
     mov  x0, #DCFG_BASE_ADDR
     ldr  w4, [x0, #COREDISABLEDSR_OFFSET]
+    cmp  x8, #CLUSTER_3_IN_RESET
+    b.ne 4f
 
+     // just in case some over-exuberant PBI has set the
+     // bits for cluster 3 cores, and the clocks are running
+     // too high for regular operation, clear the bits for cluster 
+     // 3 cores
+    bic  x4, x4, #CLUSTER_3_CORES_MASK
+4:
      // get the number of cpus on this device
     mov   x6, #CPU_MAX_COUNT
 
@@ -843,7 +889,7 @@ release_disabled:
 
      // see if disabled cores have already been released from reset
     tst  x5, x7
-    b.ne 1f
+    b.ne 5f
 
      // if core has not been released, then release it (0-3)
     mov  x0, x7
@@ -856,6 +902,22 @@ release_disabled:
     bl   _setCoreData
 
 1:
+     // see if this is a cluster 3 core
+    mov   x3, #CLUSTER_3_CORES_MASK
+    tst   x3, x7
+    b.eq  5f
+
+     // this is a cluster 3 core - see if it needs to be held in reset
+    cmp  x8, #CLUSTER_3_IN_RESET
+    b.ne 5f
+
+     // record the core state as disabled in the data area (0-3)
+    mov  x0, x7
+    mov  x1, #CORE_STATE_DATA
+    mov  x2, #CORE_DISABLED
+    bl   _setCoreData
+
+5:
      // decrement the counter
     subs  x6, x6, #1
     b.le  3f
@@ -865,7 +927,35 @@ release_disabled:
      // continue
     b     2b
 3:
-    mov  x30, x8
+    cmp  x8, #CLUSTER_3_IN_RESET
+    b.ne 6f
+
+     // we need to hold the cluster 3 cores in reset,
+     // so mark them in the COREDISR and COREDISABLEDSR registers as
+     // "disabled", and the rest of the sw stack will leave them alone
+     // thinking that they have been disabled
+    mov  x0, #DCFG_BASE_ADDR
+    ldr  w1, [x0, #DCFG_COREDISR_OFFSET]
+    orr  w1, w1, #CLUSTER_3_CORES_MASK
+    str  w1, [x0, #DCFG_COREDISR_OFFSET]
+
+    ldr  w2, [x0, #COREDISABLEDSR_OFFSET]
+    orr  w2, w2, #CLUSTER_3_CORES_MASK
+    str  w2, [x0, #COREDISABLEDSR_OFFSET]
+    dsb  sy
+    isb
+
+#if (PSCI_TEST)
+     // x0 = DCFG_BASE_ADDR
+
+     // read COREDISABLESR
+    ldr  w4, [x0, #COREDISABLEDSR_OFFSET]
+     // read COREDISR
+    ldr  w3, [x0, #DCFG_COREDISR_OFFSET]
+#endif
+
+6:
+    mov  x30, x9
     ret
 
 //-----------------------------------------------------------------------------

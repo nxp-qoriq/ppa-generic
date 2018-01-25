@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2015-2016, Freescale Semiconductor, Inc.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -86,6 +86,17 @@
 #define CONFIG_SYS_DP_DDR_BASE_PHY		0
 #define CONFIG_DP_DDR_CTRL			2
 #define CONFIG_DP_DDR_NUM_CTRLS			1
+
+ // this is the absolute top frequency (in MHZ) that
+ // cluster 3 can be treated as 'normal' - above this
+ // threshold, cluster 3 requires special handling....
+#define CLUSTER_3_CLK_MAX 600
+#define CLUSTER_3_CLK_HI  650
+#define CLUSTER_3_CLK_LO  600
+#define CLUSTER_3_CORES_MASK 0xC0
+#define SYS_PLL_RAT_12    0x30
+#define CLUSTER_3_IN_RESET  1
+#define CLUSTER_3_NORMAL    0
 
 //-----------------------------------------------------------------------------
 
