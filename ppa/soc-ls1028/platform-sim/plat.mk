@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # 
 # Copyright (C) 2015, 2016 Freescale Semiconductor, Inc.
-# Copyright 2017 NXP Semiconductors
+# Copyright 2017-2018 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -61,7 +61,7 @@ PLAT_ASM =
 
  # add platform-specific C source and headers here
 SRC_PLAT   =
-HDRS_PLAT  =policy.h
+HDRS_PLAT  =policy.h plat.h
 
  # add platform-test-specific asm sources here
 TEST_ASM =$(TEST_FILE)
@@ -73,7 +73,7 @@ ifeq ($(DDR_BLD), 1)
 
    # add ddr-specific source and headers here
   DDR_C =ddr_init.c
-  DDR_H =plat.h 
+  DDR_H =
 else
   DDR_C =
   DDR_H =

@@ -32,8 +32,8 @@
 // 
 //-----------------------------------------------------------------------------
 
-#ifndef __LX2160SIM_PLAT_H__
-#define __LX2160SIM_PLAT_H__
+#ifndef __LA17XX_PLAT_H__
+#define __LA17XX_PLAT_H__
 
 
  // set to '1' to suppress accessing the crypto accelerator
@@ -42,4 +42,4 @@
 #define SUPPRESS_TZC 1
 
 
-#endif /* __LX2160SIM_PLAT_H__ */
+#endif /* __LA17XX_PLAT_H__ */
