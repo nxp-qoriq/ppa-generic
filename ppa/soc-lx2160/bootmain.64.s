@@ -70,7 +70,12 @@ reset_vector_el3:
     bl   init_EL3
 
      // determine the SoC personality and configure
-    bl   set_personality
+ // Note: cluster 3 of this device requires special handling
+ //       in some circumstances, it will be a fatal error to
+ //       release the cores of cluster 3 from reset - so, we
+ //       are not going to set the personality here in the
+ //       bootrom, rather we will leave it to the secure fw
+ //   bl   set_personality
 
      // initialize the interconnect and L3 caches
     bl  init_CCN508
