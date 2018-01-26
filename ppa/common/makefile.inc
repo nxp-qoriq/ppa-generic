@@ -279,6 +279,7 @@ endif
 PRNG_PATH=$(DRVR_SRC)/hash_drbg
 SEC_PATH=$(DRVR_SRC)/fsl_sec
 TZC_PATH=$(DRVR_SRC)/tzc
+SFP_PATH=$(DRVR_SRC)/sfp
 PSCI_PATH=$(PSCI_SRC)
 MNTR_PATH=$(MONITOR_SRC)
 ARMV8_PATH=$(ARMV8_SRC)
@@ -289,6 +290,7 @@ CMM_PATH=$(CMM_SRC)
 include $(PRNG_PATH)/hash_drbg.mk
 include $(SEC_PATH)/sec.mk
 include $(TZC_PATH)/tzc.mk
+include $(SFP_PATH)/sfp.mk
 include $(PSCI_PATH)/psci.mk
 include $(MNTR_PATH)/mntr.mk
 include $(ARMV8_PATH)/armv8.mk

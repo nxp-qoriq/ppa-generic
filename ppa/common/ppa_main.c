@@ -34,6 +34,11 @@
 #include "lib.h"
 #include "fsl_sec.h"
 #include "plat.h"
+#include "policy.h"
+
+#if (CNFG_FUSE)
+#include "sfp.h"
+#endif
 
 #if (CNFG_SPD)
 #include "spd.h"
@@ -49,10 +54,16 @@ char __rel_dyn_start[0] __attribute__((section(".__rel_dyn_start")));
 char __rel_dyn_end[0] __attribute__((section(".__rel_dyn_end")));
 
 struct allocator heap;
+
+ //64 KB area reserved by u-boot for MMU page tables
+#define PGTABALE_RES_SIZE	0x10000
+
  //1 MB area in DDR allocated for heap starting from 512K offset
 #define HEAP_OFFSET	0x80000
 #define HEAP_SIZE	0x100000
 
+//512 KB area in DDR allocated for fuse script from 1.5 MB offset
+#define FUSE_SCR_OFFSET	0x180000
 
 #if (CNFG_DDR)
 void _init_membank_data(void) __attribute__ ((weak));
@@ -114,6 +125,10 @@ int _ppa_main(unsigned long long addr, unsigned long long loadable)
 
     unsigned long long heap_addr;
 
+     // Substract reserved size used for PGTABLE in u-boot to get
+     // exact start address of ppa.
+    addr = addr - PGTABALE_RES_SIZE;
+
 #if (CNFG_UART)
     uart_init();
 #endif
@@ -145,6 +160,16 @@ int _ppa_main(unsigned long long addr, unsigned long long loadable)
 
 #if (!SUPPRESS_SEC)
     sec_init();
+#endif
+
+ // Do fuse provisioning only if CNFG_FUSE is enabled and POLICY_FUSE_PROVISION
+ // policy is defined in corresponding policy file of target platform.
+#if defined(CNFG_FUSE) && defined(POLICY_FUSE_PROVISION)
+    unsigned long long fuse_scr_addr;
+     // Fuse script loaded on DDR at 1.5 MB offset from start addr
+    fuse_scr_addr = addr + FUSE_SCR_OFFSET;
+
+    provision_fuses(fuse_scr_addr);
 #endif
 
 #if (CNFG_SPD)
