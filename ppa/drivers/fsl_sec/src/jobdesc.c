@@ -137,3 +137,51 @@ int cnstr_rng_instantiate_jobdesc(uint32_t *desc)
     return 0;
 }
 
+ // Construct descriptor to generate hw key blob
+int cnstr_hw_encap_blob_jobdesc(uint32_t *desc,
+                                uint8_t *key_idnfr, uint32_t key_sz, uint32_t key_class,
+                                uint8_t *plain_txt, uint32_t in_sz,
+                                uint8_t *enc_blob,  uint32_t out_sz,
+                                uint32_t operation)
+{
+    phys_addr_t *phys_key_idnfr, *phys_addr_in, *phys_addr_out;
+    int i = 0;
+
+    phys_key_idnfr = vtop((void *)key_idnfr);
+    phys_addr_in   = vtop((void *)plain_txt);
+    phys_addr_out  = vtop((void *)enc_blob);
+
+    desc_init(desc);
+
+    desc_add_word(desc, 0xb0800000);
+
+      //Key Identifier
+    desc_add_word(desc, (key_class | key_sz));
+    desc_add_ptr(desc, phys_key_idnfr);
+    //desc_add_word(desc, 0x00000000); //None Hi loc
+    //desc_add_word(desc, 0x00000000); //None Lo loc
+
+     //Source Address
+    desc_add_word(desc, 0xf0400000);
+    desc_add_ptr(desc, phys_addr_in);
+    //desc_add_word(desc, 0x00000000); //None Hi loc
+    //desc_add_word(desc, 0x00000000); //None Lo loc
+
+     //In Size = 0x10
+    desc_add_word(desc, in_sz);
+
+     //Out Address
+    desc_add_word(desc, 0xf8400000);
+    desc_add_ptr(desc, phys_addr_out);
+
+     //Out Size = 0x10
+    desc_add_word(desc, out_sz);
+
+     //Operation
+    desc_add_word(desc, operation);
+
+    for(i = 0; i < 15; i++)
+        debug_hex("desc word",desc[i]);
+
+    return 0;
+}

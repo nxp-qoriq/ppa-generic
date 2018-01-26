@@ -50,7 +50,7 @@
 #define TEESMC_TRSTD_OS_RETURN_ENTRY_DONE 0
 #define TEESMC_TRSTD_OS_RETURN_ON_DONE    1
 #define TEESMC_TRSTD_OS_RETURN_CALL_DONE  5
-
+#define TEESMC_TRSTD_OS_HW_UNQ_KEY_REQ    9
 typedef struct aapcs64_params {
     uint64_t arg0;
     uint64_t arg1;

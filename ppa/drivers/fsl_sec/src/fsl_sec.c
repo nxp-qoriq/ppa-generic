@@ -326,3 +326,12 @@ out:
     return result;
 
 }  // _get_RNG()
+
+unsigned int _get_hw_unq_key(unsigned char *hw_key, unsigned int size)
+{
+	int ret = 0;
+	ret = get_hw_unq_key_blob_hw(hw_key, size);
+	if(ret)
+		memset(hw_key, 0xad, size);
+	return ret;
+}

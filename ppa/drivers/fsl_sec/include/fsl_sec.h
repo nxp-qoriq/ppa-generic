@@ -50,4 +50,7 @@ int hw_rng_instantiate(void);
  // This function is used to return random bytes of byte_len from HW RNG
 int get_rand_bytes_hw(uint8_t *bytes, int byte_len);
 
+ // This function is used to set the hw unique key from HW CAAM
+int get_hw_unq_key_blob_hw(uint8_t *hw_key, int size);
+
 #endif // FSL_SEC_H
