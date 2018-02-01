@@ -67,24 +67,24 @@ ifeq ($(MAKECMDGOALS), sim_bin)
     PLAT_PATH=platform-sim
 else
 
-ifeq ($(MAKECMDGOALS), rdb)
-    PLAT_PATH=platform-rdb
-else
-ifeq ($(MAKECMDGOALS), rdb_out)
-    PLAT_PATH=platform-rdb
-else
-ifeq ($(MAKECMDGOALS), rdb_bin)
-    PLAT_PATH=platform-rdb
-else
-ifeq ($(MAKECMDGOALS), rdb-fit)
-    PLAT_PATH=platform-rdb
-else
-ifeq ($(MAKECMDGOALS), rdb_fit_out)
-    PLAT_PATH=platform-rdb
-else
-ifeq ($(MAKECMDGOALS), rdb_fit_bin)
-    PLAT_PATH=platform-rdb
-else
+# ifeq ($(MAKECMDGOALS), rdb)
+#     PLAT_PATH=platform-rdb
+# else
+# ifeq ($(MAKECMDGOALS), rdb_out)
+#     PLAT_PATH=platform-rdb
+# else
+# ifeq ($(MAKECMDGOALS), rdb_bin)
+#     PLAT_PATH=platform-rdb
+# else
+# ifeq ($(MAKECMDGOALS), rdb-fit)
+#     PLAT_PATH=platform-rdb
+# else
+# ifeq ($(MAKECMDGOALS), rdb_fit_out)
+#     PLAT_PATH=platform-rdb
+# else
+# ifeq ($(MAKECMDGOALS), rdb_fit_bin)
+#     PLAT_PATH=platform-rdb
+# else
 
 ifeq ($(MAKECMDGOALS), emu)
     PLAT_PATH=platform-emu
@@ -106,12 +106,12 @@ ifeq ($(MAKECMDGOALS), emu_fit_bin)
 else
 
   $(error -> Platform '$(MAKECMDGOALS)' not supported!)
-endif
-endif
-endif
-endif
-endif
-endif
+# endif
+# endif
+# endif
+# endif
+# endif
+# endif
 endif
 endif
 endif

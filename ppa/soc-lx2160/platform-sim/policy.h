@@ -49,7 +49,7 @@
 
  // set this to 0x0 if the platform is not using/responding to ECC errors
  // set this to 0x1 if ECC is being used (we have to do some init)
-#define  POLICY_USING_ECC 0x1
+#define  POLICY_USING_ECC 0x0
 
  // the following affect system performance
 

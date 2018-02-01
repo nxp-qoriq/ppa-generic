@@ -32,8 +32,10 @@
 // 
 //-----------------------------------------------------------------------------
 
-#ifndef __LX2160ARDB_DDR_H__
-#define __LX2160ARDB_DDR_H__
+#ifndef __LX2160ARDB_PLAT_H__
+#define __LX2160ARDB_PLAT_H__
+
+#ifndef __ASSEMBLER__
 
 struct board_specific_parameters {
 	unsigned int n_ranks;
@@ -86,6 +88,26 @@ static const struct board_specific_parameters *rdimms[] = {
 	rdimm0,
 	rdimm0,
 };
+
+enum ifc_chip_sel {
+        IFC_CS0,
+        IFC_CS1,
+        IFC_CS2,
+        IFC_CS3,
+        IFC_CS4,
+        IFC_CS5,
+        IFC_CS6,
+        IFC_CS7,
+};
+
+enum ifc_ftims {
+        IFC_FTIM0,
+        IFC_FTIM1,
+        IFC_FTIM2,
+        IFC_FTIM3,
+};
+
+#endif
 
 #define CSPR_PORT_SIZE_16	0x00000100
 #define CSPR_PORT_SIZE_8	0x00000080
@@ -186,22 +208,4 @@ static const struct board_specific_parameters *rdimms[] = {
 #define UART_BASE	0x21c0600
 #define UART_BAUD_DIV	190     /* 115200 from 700MHz plat clk */
 
-enum ifc_chip_sel {
-        IFC_CS0,
-        IFC_CS1,
-        IFC_CS2,
-        IFC_CS3,
-        IFC_CS4,
-        IFC_CS5,
-        IFC_CS6,
-        IFC_CS7,
-};
-
-enum ifc_ftims {
-        IFC_FTIM0,
-        IFC_FTIM1,
-        IFC_FTIM2,
-        IFC_FTIM3,
-};
-
-#endif /* __LX2160ARDB_DDR_H__ */
+#endif /* __LX2160ARDB_PLAT_H__ */
