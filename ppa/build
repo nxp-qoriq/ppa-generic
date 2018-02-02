@@ -42,7 +42,7 @@ delimit=" "
  # initialize device and target lists --
 device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 la1575 la17xx lx2160 all"
 device_found="none"
-target_list="clean rdb rdb-fit qds qds-fit sim generic generic-fit frdm frdm-fit emu emu-fit"
+target_list="clean rdb rdb-fit qds qds-fit sim generic generic-fit frdm frdm-fit emu emu-fit frwy frwy-fit"
 
 option_std="dbg dbg=on dbg=off ddr ddr=on ddr=off i2c i2c=on i2c=off tst-rela spd \
 spd=on spd=off data_in_ddr data_in_ddr=on data_in_ddr=off sd sd=on sd=off \

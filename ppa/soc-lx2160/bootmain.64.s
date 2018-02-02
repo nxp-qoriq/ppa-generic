@@ -66,19 +66,15 @@ reset_vector_el3:
 
      // if we're here, then this is the boot core -
 
+#if (SIMULATOR_BUILD)
+     // load a 64-bit start address in x0
+    mov  x0, #0x18010000
+    orr  x0, x0, xzr
+    bl   set_exec_addr
+#endif
+
      // perform EL3 init
     bl   init_EL3
-
-     // determine the SoC personality and configure
- // Note: cluster 3 of this device requires special handling
- //       in some circumstances, it will be a fatal error to
- //       release the cores of cluster 3 from reset - so, we
- //       are not going to set the personality here in the
- //       bootrom, rather we will leave it to the secure fw
- //   bl   set_personality
-
-     // initialize the interconnect and L3 caches
-    bl  init_CCN508
 
      // perform base EL2 init
     bl   init_EL2
@@ -94,7 +90,6 @@ reset_vector_el3:
     cbz  x0, __dead_loop
 
 boot_core_exit:
-
 #if (SIMULATOR_BUILD)
      // branch to the ppa start
     b    _start_monitor_el3
@@ -160,6 +155,24 @@ get_exec_addr:
     orr  x0, x0, x1, LSL #32
     ret
 
+//-----------------------------------------------------------------------------
+
+#if (SIMULATOR_BUILD)
+ // this function writes the 64-bit start address in x0 to the 32-bit
+ // BOOTLOCPTRL and BOOTLOCPTRH registers
+ // in: x0, 64-bit start address
+ // uses x0, x1
+set_exec_addr:
+     // get the 64-bit base address of the dcfg block
+    ldr  x1, =DCFG_BASE_ADDR
+
+    str  w0, [x1, #BOOTLOCPTRL_OFFSET]
+    lsr  x0, x0, #32
+    str  w0, [x1, #BOOTLOCPTRH_OFFSET]
+    dsb  sy
+    isb
+    ret
+#endif
 //-----------------------------------------------------------------------------
 
  // perform base EL3 initialization on this core
@@ -266,166 +279,6 @@ early_init:
     msr   S3_1_c11_c0_2, x1
 1:
     isb
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this function sets snoop mode and dvm domains in the L3 cache, and
- // sets pos_early_wr_comp_en and hni_pos_en
- // in:  none
- // out: none
- // uses x0, x1, x2, x3, x4, x5, x6, x7
-init_CCN508:
-
-     // read the dcfg register GENCR1
-    ldr  x1, =DCFG_BASE_ADDR
-    ldr  w2, [x1, #GENCR1_OFFSET]
-    tst  w2, #0x80000000
-     // leave defaults if SYSBARDISABLE=0
-    beq  1f
-     // if we're here then SYSBARDISABLE=1
-     // clear hni_pos_en
-    ldr  x1, =L3_BASE_HNI
-    mov  x2, xzr
-    str  x2, [x1, #HNI_POS_CNTRL_OFFSET]
-     // clear pos_early_wr_comp_en
-    ldr  x2, =SA_AUX_CTL_SET
-    str  x2, [x1, #HNI_SA_AUX_CTL_OFFSET]
-    b    2f
-
-1:
-     // terminate the pos barriers in sa_aux_ctl reg
-    ldr  x1, =L3_BASE_HNI
-    ldr  x0, [x1, #HNI_SA_AUX_CTL_OFFSET]
-    orr  x0, x0, #0x10
-    str  x0, [x1, #HNI_SA_AUX_CTL_OFFSET]
-
-2:
-     // read the oly_rnf_nodeid_list register for rnf regions
-    ldr  x1, =L3_BASE_MN
-    ldr  x4, [x1, #MN_OLY_RNF_NODEID_LIST]
-
-     // read the oly_rnidvm_nodeid_list for dvm domains
-    ldr  x5, [x1, #MN_OLY_RNIDVM_NODEID_LIST]
-     // orr the rnf_nodeid values in with the dvm_nodeid values 
-    orr  x5, x5, x4
-
-    ldr  x1, =L3_BASE_HNF
-    mov  x2, #0x220
-    mov  x3, #0x210
-    ldr  w6, =L3_SDCR_CLR
-
-     // x1 = hnf base address
-     // x2 = sdcr_clr offset, dvm_clr offset
-     // x3 = sdcr_set offset, dvm_set offset
-     // x4 = sdcr node ids
-     // x5 = dvm domain ids
-     // x6 = sdcr/dvm clr value
-     // x7 = region count
-
-    mov  x7, #8
-write_sdcr_regs:
-    str  x6, [x1, x2]
-    str  x4, [x1, x3]
-    add  x1, x1, #0x10000
-    subs x7, x7, #1
-    b.ne write_sdcr_regs   
-
-     // write to dvm_clr, dvm_set regs
-    ldr  x1, =L3_BASE_MN
-    str  x6, [x1, x2]
-    str  x5, [x1, x3]
-
-    dsb  #0xf
-
-    mov  x0, #800      // retry count for simulator models
-    mov  x2, #0x200
-poll_mn_ddcr:
-    ldr  x6, [x1, x2]
-    cmp  x6, x5
-    b.eq 1f
-    subs x0, x0, #1
-    b.ne poll_mn_ddcr
-1:
-    ldr  x1, =L3_BASE_HNF
-    mov  x7, #8
-2:
-    mov  x0, #800      // retry count for simulator models
-poll_hnf_sdcr:
-    ldr  x6, [x1, x2]
-    cmp  x6, x4
-    b.eq 3f
-    subs x0, x0, #1
-    b.ne poll_hnf_sdcr
-3:
-    add  x1, x1, #0x10000
-    subs x7, x7, #1
-    b.ne 2b  
-
-    ret
-
-//-----------------------------------------------------------------------------
-
- // establish the personality by reading COREDISABLEDSR and releasing from
- // reset the cores marked to be disabled
- // in:  none
- // out: none
- // uses: x0, x1, x2, x3, x4, x5, x6, x7
-set_personality:
-    mov  x7, x30
-
-     // read COREDISABLEDSR
-    ldr  x1, =DCFG_BASE_ADDR
-    ldr  w2, [x1, #COREDISABLEDSR_OFFSET]
-
-     // get the bootcore mask bit
-    bl  get_bootcore_mask
-
-     // x0 = bootcore mask
-
-     // clear the bit for the bootcore - we don't allow
-     // disabling the bootcore
-    bic  w2, w2, w0  
-
-     // exit if there are no cores to disable
-    cbz  w2, 3f
-
-    ldr  w3, =MAX_SOC_CORES
-    mov  w4, #1
-
-     // x1 = base addr of dcfg block
-     // w2 = COREDISABLEDSR
-     // w3 = loop count
-     // w4 = core mask
-2:
-    tst  w2, w4
-    beq  1f
-
-     // if we are here, then the core indicated by the mask in x4
-     // needs to be disabled - to do that we must release it from
-     // reset
-
-     // read-modify-write BRR
-    ldr  x5, =RESET_BASE_ADDR
-    ldr  w6, [x5, #BRR_OFFSET]
-    orr  w6, w6, w4
-    str  w6, [x5, #BRR_OFFSET]
-    isb
-
-     // send sev for any cores trapped in wfe
-    sev
-    isb
-    sev
-    isb
-1:
-     // advance the core bit mask
-    lsl  w4, w4, #1
-
-     // decrement the loop count
-    subs w3, w3, #1
-    bne  2b
-3:
-    mov  x30, x7
     ret
 
 //-----------------------------------------------------------------------------
@@ -651,7 +504,7 @@ write_reg_dcfg:
 //-----------------------------------------------------------------------------
 
 GPP_ROMCODE_VERSION:
-    .long  0x00000004
+    .long  0x00000089
 
 //-----------------------------------------------------------------------------
 
