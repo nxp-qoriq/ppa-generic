@@ -123,14 +123,6 @@
 
      // restore the temp working regs
     ldp  x0, x1, [sp, #-16]
-
-     // invalidate the lower-level TLBs
-    tlbi alle1
-    tlbi alle2
-#else
-     // invalidate the lower-level TLBs
-    tlbi alle1
-    tlbi alle2
 #endif
 .endm
 
@@ -174,13 +166,9 @@
 
      // restore the temp work registers
     ldp  x0, x1, [sp, #-0x40]
-    
-     // invalidate any el3 page translations
-    tlbi alle3
-#else
-     // invalidate any el3 page translations
-    tlbi alle3
 #endif
+     // invalidate any el3 page translations
+    tlbi alle3
 .endm
 
 //-----------------------------------------------------------------------------
@@ -198,13 +186,9 @@
      // enable indirect predictor
     bic  x0, x0, #CPUACTLR_DIS_INP_MASK
     msr  CPUACTLR_EL1, x0
-
-     // invalidate any el3 page translations
-    tlbi alle3
-#else
-     // invalidate any el3 page translations
-    tlbi alle3
 #endif
+     // invalidate any el3 page translations
+    tlbi alle3
 .endm
 
 //-----------------------------------------------------------------------------
@@ -237,13 +221,9 @@
 
      // restore the temp work registers
     ldp  x0, x1, [sp, #-0x40]
-
-     // invalidate any el3 page translations
-    tlbi alle3
-#else
-     // invalidate any el3 page translations
-    tlbi alle3
 #endif
+     // invalidate any el3 page translations
+    tlbi alle3
 .endm
 
 //-----------------------------------------------------------------------------

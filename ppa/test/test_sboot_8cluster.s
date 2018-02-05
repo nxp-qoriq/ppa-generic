@@ -220,6 +220,7 @@ runTest02:
     ldr  x1, =AFFINITY_LEVEL_OFF
     cmp  w0, w1
     b.ne cpu_0_fail_affinity
+
     ret
 
 runTest03:
@@ -233,12 +234,11 @@ runTest03:
     ldr  x1, =PSCI_NOT_SUPPORTED
     cmp  w0, w1
     b.ne cpu_0_fail_unimplemented
+
     ret
 
 runTest04:
     // test PSCI_CPU_ON
-
-    //-------
 
     // (Core 1)     
     ldr  w1, =MPIDR_CORE_1
@@ -249,6 +249,94 @@ runTest04:
     nop
     nop
     cbnz  x0, cpu_0_error_core_1
+
+    //-------
+
+    // (Core 2)
+    ldr  w0, =PSCI64_CPU_ON_ID
+    ldr  w1, =MPIDR_CORE_2
+    adr  x2, cpu_2_start
+    ldr  w3, =CONTEXT_CORE_2
+    smc  0x0
+    nop
+    nop
+    cbnz  x0, cpu_0_error_core_2
+
+    //-------
+
+    // (Core 3)
+    ldr  w0, =PSCI64_CPU_ON_ID
+    ldr  w1, =MPIDR_CORE_3
+    adr  x2, cpu_3_start
+    ldr  w3, =CONTEXT_CORE_3
+    smc  0x0
+    nop
+    nop
+    cbnz  x0, cpu_0_error_core_3
+
+    //-------
+
+    ret
+
+    //-------
+
+runTest05:
+
+    // (Core 4)
+    ldr  w0, =PSCI64_CPU_ON_ID
+    ldr  w1, =MPIDR_CORE_4
+    adr  x2, cpu_4_start
+    ldr  w3, =CONTEXT_CORE_4
+    smc  0x0
+    nop
+    nop
+    cbnz  x0, cpu_0_error_core_4
+
+    // (Core 5)
+    ldr  w0, =PSCI64_CPU_ON_ID
+    ldr  w1, =MPIDR_CORE_5
+    adr  x2, cpu_5_start
+    ldr  w3, =CONTEXT_CORE_5
+    smc  0x0
+    nop
+    nop
+    cbnz  x0, cpu_0_error_core_5
+
+    //-------
+
+    // (Core 6)
+    ldr  w0, =PSCI64_CPU_ON_ID
+    ldr  w1, =MPIDR_CORE_6
+    adr  x2, cpu_6_start
+    ldr  w3, =CONTEXT_CORE_6
+    smc  0x0
+    nop
+    nop
+    cbnz  x0, cpu_0_error_core_6
+
+    //-------
+
+    // (Core 7)
+    ldr  w0, =PSCI64_CPU_ON_ID
+    ldr  w1, =MPIDR_CORE_7
+    adr  x2, cpu_7_start
+    ldr  w3, =CONTEXT_CORE_7
+    smc  0x0
+    nop
+    nop
+    cbnz  x0, cpu_0_error_core_7
+
+    //-------
+
+    // (Core 8)
+    ldr  w0, =PSCI64_CPU_ON_ID
+    ldr  w1, =MPIDR_CORE_8
+    adr  x2, cpu_8_start
+    ldr  w3, =CONTEXT_CORE_8
+    smc  0x0
+    nop
+    nop
+    cbnz  x0, cpu_0_error_core_8
 
     //-------
 
@@ -333,94 +421,9 @@ runTest04:
     nop
     nop
     cbnz  x0, cpu_0_error_core_15
-    ret
 
     //-------
 
-runTest05:
-    //-------
-
-    // (Core 2)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_2
-    adr  x2, cpu_2_start
-    ldr  w3, =CONTEXT_CORE_2
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_2
-
-    //-------
-
-    // (Core 3)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_3
-    adr  x2, cpu_3_start
-    ldr  w3, =CONTEXT_CORE_3
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_3
-
-    //-------
-
-    // (Core 7)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_7
-    adr  x2, cpu_7_start
-    ldr  w3, =CONTEXT_CORE_7
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_7
-
-    //-------
-
-    // (Core 5)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_5
-    adr  x2, cpu_5_start
-    ldr  w3, =CONTEXT_CORE_5
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_5
-
-    //-------
-
-    // (Core 6)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_6
-    adr  x2, cpu_6_start
-    ldr  w3, =CONTEXT_CORE_6
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_6
-
-    //-------
-
-    // (Core 4)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_4
-    adr  x2, cpu_4_start
-    ldr  w3, =CONTEXT_CORE_4
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_4
-
-    //-------
-
-    // (Core 8)
-    ldr  w0, =PSCI64_CPU_ON_ID
-    ldr  w1, =MPIDR_CORE_8
-    adr  x2, cpu_8_start
-    ldr  w3, =CONTEXT_CORE_8
-    smc  0x0
-    nop
-    nop
-    cbnz  x0, cpu_0_error_core_8
     ret
 
     //-------
