@@ -1,7 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2016, NXP Semiconductors
-// Copyright 2017 NXP Semiconductors
+// Copyright 2016-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -154,6 +153,7 @@
 #define CAAM_JR2_OFFSET           0x30000
 #define CAAM_JR3_OFFSET           0x40000
 #define CONFIG_SYS_FSL_CCSR_GUR_LE
+#define CONFIG_SYS_FSL_CCSR_DDR_LE
 #define CONFIG_SYS_FSL_CCSR_SEC_LE
 #define CONFIG_SYS_FSL_CCSR_SFP_LE
 #define CONFIG_SYS_FSL_SFP_VER_3_4
