@@ -80,6 +80,12 @@
 
 #define  CPTR_EL2_RES1_MASK     0x33FF
 
+ // DAIF Attributes
+#define DAIF_FIQ_BIT        (1 << 6)
+#define DAIF_IRQ_BIT        (1 << 7)
+#define DAIF_ABT_BIT        (1 << 8)
+#define DAIF_DBG_BIT        (1 << 9)
+
 #define  DAIF_SET_MASK          0x3C0
 
 #define  CPUECTLR_DISABLE_TWALK_PREFETCH  0x4000000000

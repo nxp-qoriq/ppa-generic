@@ -148,12 +148,6 @@
 #define GET_SP(mode)        (((mode) >> MODE_SP_SHIFT) & MODE_SP_MASK)
 #define GET_M32(mode)        (((mode) >> MODE32_SHIFT) & MODE32_MASK)
 
- //Other attributes
-#define DAIF_FIQ_BIT        (1 << 0)
-#define DAIF_IRQ_BIT        (1 << 1)
-#define DAIF_ABT_BIT        (1 << 2)
-#define DAIF_DBG_BIT        (1 << 3)
-
 #define DISABLE_ALL_EXCEPTIONS \
         (DAIF_FIQ_BIT | DAIF_IRQ_BIT | DAIF_ABT_BIT | DAIF_DBG_BIT)
 
@@ -162,6 +156,6 @@
     (MODE_RW_64 << MODE_RW_SHIFT |            \
     ((el) & MODE_EL_MASK) << MODE_EL_SHIFT |    \
     ((sp) & MODE_SP_MASK) << MODE_SP_SHIFT |    \
-    (daif) & SPSR_DAIF_MASK)
+    (daif) & DAIF_SET_MASK)
 
 #endif //__ARCH64T_H__
