@@ -51,8 +51,8 @@
 #define ERROR_OTPMK_ALREADY_BLOWN   0xc
 #define ERROR_OTPMK_HAMMING_ERROR   0xd
 #define ERROR_OTPMK_USER_MIN        0xe
-#define ERROR_MC_ALREADY_BLOWN      0xf
-#define ERROR_MC_WRITE              0x10
+#define ERROR_OSPR1_ALREADY_BLOWN   0xf
+#define ERROR_OSPR1_WRITE           0x10
 #define ERROR_SC_ALREADY_BLOWN      0x11
 #define ERROR_SC_WRITE              0x12
 

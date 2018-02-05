@@ -279,21 +279,38 @@ static int prog_otpmk(struct fuse_hdr_t *fuse_hdr,
     return 0;
 }
 
- // This function program Monotonic Counter in fuse
- // registers.
-static int prog_mc(struct fuse_hdr_t *fuse_hdr,
-                   struct sfp_ccsr_regs_t *sfp_ccsr_regs)
+ // This function program OSPR1 in fuse registers.
+static int prog_ospr1(struct fuse_hdr_t *fuse_hdr,
+                      struct sfp_ccsr_regs_t *sfp_ccsr_regs)
 {
-     // Check if MC already blown or not
-    if (sfp_in32(&sfp_ccsr_regs->ospr1) & OSPR1_MC_MASK)
-        return ERROR_MC_ALREADY_BLOWN;
+    uint32_t ospr1 = 0;
 
-     // Write MC in OSPR1 mirror register
-    sfp_out32(&sfp_ccsr_regs->ospr1, (fuse_hdr->mc & OSPR1_MC_MASK));
+    ospr1 = sfp_in32(&sfp_ccsr_regs->ospr1);
+
+#ifdef CONFIG_SYS_FSL_SFP_VER_3_4
+    if ((fuse_hdr->flags >> FLAG_MC_SHIFT) & 0x1) {
+         // Check if MC already blown or not
+        if (ospr1 & OSPR1_MC_MASK)
+            return ERROR_OSPR1_ALREADY_BLOWN;
+
+        ospr1 = ospr1 | (fuse_hdr->ospr1 & OSPR1_MC_MASK);
+    }
+#endif
+
+    if ((fuse_hdr->flags >> FLAG_DBG_LVL_SHIFT) & 0x1) {
+         // Check if DBG LVL already blown or not
+        if (ospr1 & OSPR1_DBG_LVL_MASK)
+            return ERROR_OSPR1_ALREADY_BLOWN;
+
+        ospr1 = ospr1 | (fuse_hdr->ospr1 & OSPR1_DBG_LVL_MASK);
+    }
+
+     // Write OSPR1 in corresponding mirror register
+    sfp_out32(&sfp_ccsr_regs->ospr1, ospr1);
 
      // Read back to check if write success
-    if ((sfp_in32(&sfp_ccsr_regs->ospr1) & OSPR1_MC_MASK) != fuse_hdr->mc)
-        return ERROR_MC_WRITE;
+    if (sfp_in32(&sfp_ccsr_regs->ospr1) != ospr1)
+        return ERROR_OSPR1_WRITE;
 
     return 0;
 }
@@ -339,13 +356,6 @@ int provision_fuses(unsigned long long fuse_scr_addr)
             return error_handler(ret);
     }
 
-     // Populate mirror registers from SFP fuses
-    sfp_out32((void *)SFP_INGR_ADDR, SFP_INGR_READFB_CMD);
-    sfp_cmd_status = sfp_in32(SFP_INGR_ADDR) & SFP_INGR_ERROR_MASK;
-    if (sfp_cmd_status != 0) {
-        return error_handler(ERROR_READFB_CMD);
-    }
-
      // Check for Write Protect (WP) fuse. If blown then do
      // no fuse provisioning.
     if (sfp_in32(&sfp_ccsr_regs->ospr) & 0x1)
@@ -384,15 +394,14 @@ int provision_fuses(unsigned long long fuse_scr_addr)
             return error_handler(ret);
     }
 
-#ifdef CONFIG_SYS_FSL_SFP_VER_3_4
-     // Check if MC to be blown or not
-    if ((fuse_hdr->flags >> FLAG_MC_SHIFT) & 0x1) {
-        debug("Fuse: Program MC\n");
-        ret = prog_mc(fuse_hdr, sfp_ccsr_regs);
+     // Check if MC or DBG LVL to be blown or not
+    if (((fuse_hdr->flags >> FLAG_MC_SHIFT) & 0x1) ||
+        ((fuse_hdr->flags >> FLAG_DBG_LVL_SHIFT) & 0x1)) {
+        debug("Fuse: Program OSPR1\n");
+        ret = prog_ospr1(fuse_hdr, sfp_ccsr_regs);
         if (ret != 0)
             return error_handler(ret);
     }
-#endif
 
      // Check if SYSCFG to be blown or not
     if ((fuse_hdr->flags >> FLAG_SYSCFG_SHIFT) & 0x1) {
@@ -404,6 +413,11 @@ int provision_fuses(unsigned long long fuse_scr_addr)
 
      // Program SFP fuses from mirror registers
     sfp_out32((void *)SFP_INGR_ADDR, SFP_INGR_PROGFB_CMD);
+
+     // Wait until fuse programming is successful
+    while (sfp_in32(SFP_INGR_ADDR) & SFP_INGR_PROGFB_CMD);
+
+     // Check for SFP fuse programming error
     sfp_cmd_status = sfp_in32(SFP_INGR_ADDR) & SFP_INGR_ERROR_MASK;
     if (sfp_cmd_status != 0) {
         return error_handler(ERROR_PROGFB_CMD);
