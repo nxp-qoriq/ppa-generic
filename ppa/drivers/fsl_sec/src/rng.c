@@ -132,7 +132,7 @@ static int instantiate_rng(void)
      // Finally, generate the requested random data bytes
     ret = run_descriptor_jr(jobdesc);
     if (ret) {
-	debug("Error in runnign descriptor\n");
+	debug("Error in running descriptor\n");
 	ret = -1;	
     }
 
@@ -178,11 +178,10 @@ hw_rng_generate(uint32_t *add_input, uint32_t add_input_len,
     
      // Finally, generate the requested random data bytes
     ret = run_descriptor_jr(jobdesc);
-
-    if (ret >= 0)
-	ret = 0;
-    else
-	ret = -1;
+    if (ret) {
+	debug("Error in running descriptor\n");
+       ret = -1;
+    }
 
 out:
     free(jobdesc);
@@ -201,7 +200,7 @@ int hw_rng_instantiate(void)
     uint32_t state_handle;
     ret = is_hw_rng_instantiated(&state_handle); 
     if (ret) {
-	debug("RNG alreadu instantiated\n");
+	debug("RNG already instantiated\n");
 	return 0;
     }
     do {
@@ -240,7 +239,7 @@ int hw_rng_instantiate(void)
  //  ~0 - Error occurred somewhere
 int get_rand_bytes_hw(uint8_t *bytes, int byte_len)
 {
-    int ret_code;
+    int ret_code = 0;
     uint32_t state_handle;
     
      // If this is the first time this routine is called,

@@ -75,6 +75,7 @@ endif
 ifeq ($(ddr), on)
     DDR_BLD=1
     I2C_BLD=1
+    TIMER_BLD=1
 ifeq ($(sd), on)
     SD_BLD=1
     ifeq  ($(test), sd)
@@ -88,6 +89,7 @@ else
     sd = off
     DDR_BLD=0
     I2C_BLD=0
+    TIMER_BLD=0
     SD_BLD=0
 endif
 
@@ -159,6 +161,7 @@ PLATFLAGS = $(DBG_FLAGS)                   \
     -DCORE=$(CORE_TYPE_A)             \
 	-DL3_CACHE=$(SYSTEM_L3)           \
 	-DCNFG_DDR=$(DDR_BLD)             \
+	-DCNFG_TIMER=$(TIMER_BLD)             \
 	-DCNFG_I2C=$(I2C_BLD)             \
 	-DCNFG_UART=$(UART_BLD)           \
     -DCNFG_SD=$(SD_BLD) 		      \

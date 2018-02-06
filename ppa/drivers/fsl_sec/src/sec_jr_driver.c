@@ -38,6 +38,7 @@
 #include "lib.h"
 #include "sec_jr_driver.h"
  
+#define CAAM_TIMEOUT   200000 //ms
  // Job rings used for communication with SEC HW 
 struct sec_job_ring_t g_job_rings[MAX_SEC_JOB_RINGS];
  
@@ -149,6 +150,7 @@ int dequeue_jr(void *job_ring_handle, int32_t limit)
     int ret = 0;
     int notified_descs_no = 0;
     struct sec_job_ring_t *job_ring = (sec_job_ring_t *) job_ring_handle;
+    unsigned long start_time, timer;
 
      // Validate driver state 
     if (g_driver_state != SEC_DRIVER_STATE_STARTED) {
@@ -166,25 +168,43 @@ int dequeue_jr(void *job_ring_handle, int32_t limit)
         return -1;
     }
 
-    debug("JR[%p]Polling");
+    debug("JR Polling");
     debug_int("limit[%d] \n", limit);
 
      // Poll job ring
      // If limit < 0 -> poll JR until no more notifications are available.
      // If limit > 0 -> poll JR until limit is reached. 
 
-     // Run hw poll job ring 
-    notified_descs_no = hw_poll_job_ring(job_ring, limit);
-    if(notified_descs_no < 0) {
-        debug("Error polling SEC engine job ring ");
-        return notified_descs_no;
+     // TBD - Remove the ifdef once split image is enabled and timer code is on
+#if (CNFG_TIMER)
+    start_time = get_timer(0);
+#else
+    start_time = 0;
+#endif
+
+    while (notified_descs_no == 0) {
+         // Run hw poll job ring
+        notified_descs_no = hw_poll_job_ring(job_ring, limit);
+        if (notified_descs_no < 0) {
+            debug("Error polling SEC engine job ring ");
+            return notified_descs_no;
+        }
+        debug_int("Jobs notified[%d]. ", notified_descs_no);
+
+#if (CNFG_TIMER)
+        if (get_timer(start_time) >= CAAM_TIMEOUT)
+	    break;
+#else
+	 start_time++;
+	 if (start_time == 100)
+	     break;
+#endif
+
     }
-    debug_int("Jobs notified[%d]. ",
-           notified_descs_no);
 
     if (job_ring->jr_mode == SEC_NOTIFICATION_TYPE_IRQ) {
 
-     // Always enable IRQ generation when in pure IRQ mode 
+         // Always enable IRQ generation when in pure IRQ mode
         ret = jr_enable_irqs(job_ring->irq_fd);
         if (ret) {
             debug("Failed to enable irqs for job ring %p");

@@ -236,7 +236,7 @@ int run_descriptor_jr(struct job_descriptor *jobdesc)
     uint32_t *desc_addr = jobdesc->desc;
     uint32_t desc_len = desc_length(jobdesc->desc);
     uint32_t desc_word;
-    
+
     for (i = 0; i < desc_len; i++) {
         desc_word = desc_addr[i];
         sec_out32((uint32_t *)&desc_addr[i], desc_word);
@@ -256,7 +256,7 @@ int run_descriptor_jr(struct job_descriptor *jobdesc)
     debug("Dequeue in progress");
 
     ret = dequeue_jr(job_ring, -1); 
-    if (ret >= 0) {
+    if (ret > 0) {
 	debug_hex("Dequeue of %d desc success", ret);
         ret = 0;
     } else {
@@ -280,17 +280,6 @@ unsigned long long _get_RNG(int rngWidth)
     int i = 0;
     int ret = 0;
 
-     // TBD - Current allocator doesn't have a free function
-     // Remove static once free implementation is available
-    if (!rand_byte) {
-	rand_byte = alloc(64, 64);
-	if (!rand_byte) {
-	    debug("Allocation for Buffer for random bytes failed\n");
-	    ret = 1;
-	    goto out;
-	}
-    }
-
 #ifdef TEST
     rand_byte[0] = 0x12;
     rand_byte[1] = 0x34;
@@ -306,6 +295,19 @@ unsigned long long _get_RNG(int rngWidth)
         bytes = 4;
     else
         bytes = 8;
+
+     // TBD - Current allocator doesn't have a free function
+     // Remove static once free implementation is available
+    if (!rand_byte) {
+	rand_byte = alloc(64, 64);
+	if (!rand_byte) {
+	    debug("Allocation for Buffer for random bytes failed\n");
+	    ret = 1;
+	    goto out;
+	}
+    }
+
+    memset(rand_byte, 64, 0);
 
     ret = get_rand_bytes_hw(rand_byte, bytes);
 

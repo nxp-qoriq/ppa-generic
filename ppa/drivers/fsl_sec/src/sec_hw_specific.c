@@ -451,6 +451,10 @@ void hw_flush_job_ring(struct sec_job_ring_t *job_ring,
     }
 }
 
+ // return >0 in case of success
+ // -1 in case of error from SEC block
+ // 0 in case job not yet processed by SEC
+ //  or  Descriptor returned is NULL after dequeue
 int hw_poll_job_ring(struct sec_job_ring_t *job_ring,
                  int32_t limit)
 {
@@ -471,7 +475,7 @@ int hw_poll_job_ring(struct sec_job_ring_t *job_ring,
      
     sec_error_code = hw_job_ring_error(job_ring);
     if (unlikely(sec_error_code)) {
-        debug("Error here itself \n");
+        debug("Error during initial processing \n");
         return -1;
     }
      // Compute the number of notifications that need to be raised to UA
@@ -488,10 +492,10 @@ int hw_poll_job_ring(struct sec_job_ring_t *job_ring,
     jobs_no_to_notify = (limit < 0 || limit > number_of_jobs_available) ?
                 number_of_jobs_available : limit;
     debug("JR");
-        debug_int("pi", job_ring->pidx);
-        debug_int("ci", job_ring->cidx);
-        debug_int("Jobs submitted", number_of_jobs_available);
-        debug_int("Jobs to notify", jobs_no_to_notify);
+    debug_int("pi", job_ring->pidx);
+    debug_int("ci", job_ring->cidx);
+    debug_int("Jobs submitted", number_of_jobs_available);
+    debug_int("Jobs to notify", jobs_no_to_notify);
 
     while (jobs_no_to_notify > notified_descs_no) {
 
@@ -502,13 +506,17 @@ int hw_poll_job_ring(struct sec_job_ring_t *job_ring,
         current_desc_addr =
         sec_read_addr(&job_ring->output_ring[job_ring->cidx].desc);
 
-        current_desc =
-        ptov((phys_addr_t *)current_desc_addr);
+        current_desc = ptov((phys_addr_t *)current_desc_addr);
+
+	if (current_desc == 0) {
+		debug("No descriptor returned from SEC");
+		return 0;
+	}
+
          // now increment the consumer index for the current job ring,
          //AFTER saving job in temporary location!
-         
         job_ring->cidx = SEC_CIRCULAR_COUNTER(job_ring->cidx,
-                 SEC_JOB_RING_SIZE);
+                                              SEC_JOB_RING_SIZE);
 
         if (sec_error_code) {
             debug_hex("desc at cidx %d ", job_ring->cidx);
@@ -519,6 +527,8 @@ int hw_poll_job_ring(struct sec_job_ring_t *job_ring,
                         &error_descs_no,
                         &do_driver_shutdown);
 
+            hw_remove_entries(job_ring, 1);
+
             return -1;
         }
 
@@ -526,14 +536,14 @@ int hw_poll_job_ring(struct sec_job_ring_t *job_ring,
         hw_remove_entries(job_ring, 1);
         notified_descs_no++;
 
-	arg_addr = (phys_addr_t *)(phys_addr_t *)(current_desc - sizeof(void *));
+	arg_addr = (phys_addr_t *)(current_desc - sizeof(void *));
 	fnptr = (phys_addr_t *)(current_desc - sizeof(void *) - sizeof(usercall));
 	arg = (void *)*(arg_addr);
         if (*fnptr) {
-            debug("Callback Fucntion called\n");
+            debug("Callback Function called\n");
             usercall = (user_callback)*(fnptr);
             (*usercall)((uint32_t *)current_desc,
-            sec_error_code, arg, job_ring);
+                        sec_error_code, arg, job_ring);
         }
     }
 
