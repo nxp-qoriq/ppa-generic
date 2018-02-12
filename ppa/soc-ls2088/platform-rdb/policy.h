@@ -80,6 +80,9 @@
  // sets SCTLR_EL1.EE
 #define  POLICY_EL1_EE 0x0
 
+ // define this to enable fuse provisioning on this platform
+#define  POLICY_FUSE_PROVISION
+
 //-----------------------------------------------------------------------------
 
 #endif // _POLICY_H

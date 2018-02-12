@@ -205,6 +205,7 @@ static int prog_otpmk(struct fuse_hdr_t *fuse_hdr,
 {
     int i;
     uint32_t otpmk_flags;
+    uint32_t otpmk_random[8];
 
     otpmk_flags = (fuse_hdr->flags >> (FLAG_OTPMK_SHIFT)) & FLAG_OTPMK_MASK;
 
@@ -217,11 +218,8 @@ static int prog_otpmk(struct fuse_hdr_t *fuse_hdr,
 
         memset(fuse_hdr->otpmk, 0, sizeof(fuse_hdr->otpmk));
 
-         // Minimal OTPMK value
-        fuse_hdr->otpmk[252/32] |= (1 << (252%32));
-        fuse_hdr->otpmk[253/32] |= (1 << (253%32));
-        fuse_hdr->otpmk[254/32] |= (1 << (254%32));
-        fuse_hdr->otpmk[255/32] |= (1 << (255%32));
+         // Minimal OTPMK value (252-255 bits set to 1)
+        fuse_hdr->otpmk[0] |= OTPMK_MIM_BITS_MASK;
         break;
 
     case PROG_OTPMK_RANDOM:
@@ -231,11 +229,21 @@ static int prog_otpmk(struct fuse_hdr_t *fuse_hdr,
                 return ERROR_OTPMK_ALREADY_BLOWN;
 
          // Generate Random number using CAAM for OTPMK
-        memset(fuse_hdr->otpmk, 0, sizeof(fuse_hdr->otpmk));
-        get_rand_bytes_hw((uint8_t *)fuse_hdr->otpmk, sizeof(fuse_hdr->otpmk));
+        memset(otpmk_random, 0, sizeof(otpmk_random));
+        get_rand_bytes_hw((uint8_t *)otpmk_random, sizeof(otpmk_random));
 
          // Run hamming over random no. to make OTPMK
-        otpmk_make_code_word_256((uint8_t *)fuse_hdr->otpmk, 0);
+        otpmk_make_code_word_256((uint8_t *)otpmk_random, 0);
+
+         // Swap OTPMK
+        fuse_hdr->otpmk[0] = otpmk_random[7];
+        fuse_hdr->otpmk[1] = otpmk_random[6];
+        fuse_hdr->otpmk[2] = otpmk_random[5];
+        fuse_hdr->otpmk[3] = otpmk_random[4];
+        fuse_hdr->otpmk[4] = otpmk_random[3];
+        fuse_hdr->otpmk[5] = otpmk_random[2];
+        fuse_hdr->otpmk[6] = otpmk_random[1];
+        fuse_hdr->otpmk[7] = otpmk_random[0];
         break;
 
     case PROG_OTPMK_USER:
@@ -250,17 +258,27 @@ static int prog_otpmk(struct fuse_hdr_t *fuse_hdr,
          // blown.
 
          // Generate Random number using CAAM for OTPMK
-        memset(fuse_hdr->otpmk, 0, sizeof(fuse_hdr->otpmk));
-        get_rand_bytes_hw((uint8_t *)fuse_hdr->otpmk, sizeof(fuse_hdr->otpmk));
+        memset(otpmk_random, 0, sizeof(otpmk_random));
+        get_rand_bytes_hw((uint8_t *)otpmk_random, sizeof(otpmk_random));
 
          // Run hamming over random no. to make OTPMK
-        otpmk_make_code_word_256((uint8_t *)fuse_hdr->otpmk, 1);
+        otpmk_make_code_word_256((uint8_t *)otpmk_random, 1);
+
+         // Swap OTPMK
+        fuse_hdr->otpmk[0] = otpmk_random[7];
+        fuse_hdr->otpmk[1] = otpmk_random[6];
+        fuse_hdr->otpmk[2] = otpmk_random[5];
+        fuse_hdr->otpmk[3] = otpmk_random[4];
+        fuse_hdr->otpmk[4] = otpmk_random[3];
+        fuse_hdr->otpmk[5] = otpmk_random[2];
+        fuse_hdr->otpmk[6] = otpmk_random[1];
+        fuse_hdr->otpmk[7] = otpmk_random[0];
         break;
 
     case PROG_OTPMK_USER_MIN:
          // Here assumption is that user is aware of minimal OTPMK already
          // blown. Check if minimal bits are set in user supplied OTPMK.
-        if ((fuse_hdr->otpmk[7] & OTPMK_MIM_BITS_MASK) != OTPMK_MIM_BITS_MASK)
+        if ((fuse_hdr->otpmk[0] & OTPMK_MIM_BITS_MASK) != OTPMK_MIM_BITS_MASK)
             return ERROR_OTPMK_USER_MIN;
         break;
 

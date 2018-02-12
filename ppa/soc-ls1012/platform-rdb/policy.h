@@ -72,6 +72,9 @@
  // set this to 0x1 if ECC is being used (we have to do some init)
 #define  POLICY_USING_ECC 0x0
 
+ // define this to enable fuse provisioning on this platform
+#define  POLICY_FUSE_PROVISION
+
 //-----------------------------------------------------------------------------
 
 #endif // _POLICY_H
