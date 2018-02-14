@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2016, Freescale Semiconductor
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -86,41 +86,6 @@
     msr   sctlr_el3, x0
     isb
 
-     // disable branch prediction
-    mrs  x0, CPUACTLR_EL1
-     // disable static branch predictor
-    orr  x0, x0, #CPUACTLR_DIS_SBP_MASK
-     // disable branch target buffer
-    orr  x0, x0, #CPUACTLR_DIS_BTB_MASK
-     // disable indirect predictor
-    orr  x0, x0, #CPUACTLR_DIS_INP_MASK
-    msr  CPUACTLR_EL1, x0
-    isb
-
-     // save the ttbr0_el2 and vbar_el2
-    mrs  x0, vbar_el2
-    mrs  x1, ttbr0_el2
-    stp  x0, x1, [sp, #-16]!
-     //load dummy values
-    msr  vbar_el2, xzr
-    msr  ttbr0_el2, xzr
-
-     // save the ttbr0_el1 and vbar_el1
-    mrs  x0, vbar_el1
-    mrs  x1, ttbr0_el1
-    stp  x0, x1, [sp, #-16]!
-     //load dummy values
-    msr  vbar_el1, xzr
-    msr  ttbr0_el1, xzr
-
-     // save the ttbr1_el1 and vttbr_el2
-    mrs  x0, vttbr_el2
-    mrs  x1, ttbr1_el1
-    stp  x0, x1, [sp, #-16]!
-     //load dummy values
-    msr  vttbr_el2, xzr
-    msr  ttbr1_el1, xzr
-
      // restore the temp working regs
     ldp  x0, x1, [sp, #-16]
 #endif
@@ -128,100 +93,7 @@
 
 //-----------------------------------------------------------------------------
 
- // this macro performs any necessary unwinding of the EL3 isolation performed
- // above before we return to a lower exception level
- // Note: this macro must be the last thing invoked before the eret instruction
 .macro EL3_ExitToNS
-#if ((CORE == 72) || (CORE == 57))
-     // temporarily save a couple of working registers
-    stp   x0, x1, [sp, #-0x10]
-
-     // get the saved values for vttbr_el2, ttbr1_el1
-    ldp  x0, x1, [sp], #16
-     // restore vttbr_el2, ttbr1_el1
-    msr  vttbr_el2,  x0
-    msr  ttbr1_el1, x1
-
-     // get the saved values for vbar_el1, ttbr0_el1
-    ldp  x0, x1, [sp], #16
-     // restore vbar_el1, ttbr0_el1
-    msr  vbar_el1,  x0
-    msr  ttbr0_el1, x1
-
-     // get the saved values for vbar_el2, ttbr0_el2
-    ldp  x0, x1, [sp], #16
-     // restore vbar_el2, ttbr0_el2
-    msr  vbar_el2,  x0
-    msr  ttbr0_el2, x1
-
-     // re-enable branch prediction
-    mrs  x0, CPUACTLR_EL1
-     // enable static branch predictor
-    bic  x0, x0, #CPUACTLR_DIS_SBP_MASK
-     // enable branch target buffer
-    bic  x0, x0, #CPUACTLR_DIS_BTB_MASK
-     // enable indirect predictor
-    bic  x0, x0, #CPUACTLR_DIS_INP_MASK
-    msr  CPUACTLR_EL1, x0
-
-     // restore the temp work registers
-    ldp  x0, x1, [sp, #-0x40]
-#endif
-     // invalidate any el3 page translations
-    tlbi alle3
-.endm
-
-//-----------------------------------------------------------------------------
-
- // this macro re-enables branch prediction when going from EL3 to secure EL1
- // via the SPD interface
-.macro EL3_ExitToSPD
-#if ((CORE == 72) || (CORE == 57))
-     // reenable branch prediction
-    mrs  x0, CPUACTLR_EL1
-     // enable static branch predictor
-    bic  x0, x0, #CPUACTLR_DIS_SBP_MASK
-     // enable branch target buffer
-    bic  x0, x0, #CPUACTLR_DIS_BTB_MASK
-     // enable indirect predictor
-    bic  x0, x0, #CPUACTLR_DIS_INP_MASK
-    msr  CPUACTLR_EL1, x0
-#endif
-     // invalidate any el3 page translations
-    tlbi alle3
-.endm
-
-//-----------------------------------------------------------------------------
-
- // this macro adjusts the isolation between exception levels as we return from
- // the SPD to a lower exception level on the non-secure side of the machine
- // Note: this macro must be the last thing invoked before the eret instruction
-.macro SPD_ExitToNS
-#if ((CORE == 72) || (CORE == 57))
-     // temporarily save a couple of working registers
-    stp   x0, x1, [sp, #-0x10]
-
-     // get the saved values for vttbr_el2, ttbr1_el1
-    ldp  x0, x1, [sp], #16
-     // restore vttbr_el2, ttbr1_el1
-    msr  vttbr_el2,  x0
-    msr  ttbr1_el1, x1
-
-     // get the saved values for vbar_el1, ttbr0_el1
-    ldp  x0, x1, [sp], #16
-     // restore vbar_el1, ttbr0_el1
-    msr  vbar_el1,  x0
-    msr  ttbr0_el1, x1
-
-     // get the saved values for vbar_el2, ttbr0_el2
-    ldp  x0, x1, [sp], #16
-     // restore vbar_el2, ttbr0_el2
-    msr  vbar_el2,  x0
-    msr  ttbr0_el2, x1
-
-     // restore the temp work registers
-    ldp  x0, x1, [sp, #-0x40]
-#endif
      // invalidate any el3 page translations
     tlbi alle3
 .endm

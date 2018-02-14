@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 //
 // Copyright (c) 2013-2016, ARM Limited and Contributors. All rights reserved.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -319,9 +319,6 @@ gp_regs_ctx_restore_callee_eret:
     mov  x15,  x9
     mov  x16,  x9
     mov  x17,  x9
-
-     // cleanup any of the secure world isolation that was performed on entry
-    SPD_ExitToNS
 
      // return from exception
     eret

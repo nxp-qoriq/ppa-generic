@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2014, 2015 Freescale Semiconductor
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -213,7 +213,6 @@ a64smc_router:
 
 #if (CNFG_SPD)
     cbnz  x10, 2f
-    EL3_ExitToSPD
     b     _smc_trstd_os_handler
 #endif
 
