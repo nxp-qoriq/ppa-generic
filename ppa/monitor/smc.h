@@ -73,7 +73,7 @@
 .macro EL3_IsolateOnEntry
 #if ((CORE == 72) || (CORE == 57))
      // temporarily save a couple of working registers
-    stp   x0, x1, [sp, #-0x40]
+    stp   x0, x1, [sp, #-16]!
 
      // disable and re-enable the mmu - this has the side effect
      // of invalidating BTB
@@ -87,7 +87,7 @@
     isb
 
      // restore the temp working regs
-    ldp  x0, x1, [sp, #-16]
+    ldp  x0, x1, [sp], #16
 #endif
 .endm
 
