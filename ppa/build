@@ -47,7 +47,7 @@ target_list="clean rdb rdb-fit qds qds-fit sim generic generic-fit frdm frdm-fit
 option_std="dbg dbg=on dbg=off ddr ddr=on ddr=off i2c i2c=on i2c=off tst-rela spd \
 spd=on spd=off data_in_ddr data_in_ddr=on data_in_ddr=off sd sd=on sd=off \
 plat=rdb plat=qds fuse fuse=on fuse=off"
-option_test="smp_boot hotplug suspend off_abort aarch32 cpu_errata speed_boot sd pre_disa53 pre_disa72"
+option_test="smp_boot hotplug suspend off_abort aarch32 cpu_errata speed_boot sd pre_disa53 pre_disa72 smc11"
  # these options are restricted to development builds only
 option_rest="uart uart=on uart=off"
 option_list="$option_std $delimit $option_rest"

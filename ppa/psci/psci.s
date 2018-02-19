@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2013-2016 Freescale Semiconductor
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -52,7 +52,6 @@
 //-----------------------------------------------------------------------------
 
  // Note: x11 contains the function number
- //       x12 is used to save/restore the LR
 
 _smc64_std_svc:
      // psci smc64 interface lives here
@@ -178,8 +177,6 @@ smc32_psci_migrate:
     lsr  x1, x1, #32
 
 smc64_psci_migrate:
-    mov   x12, x30
-
      // the return value of this function must be in synch with the
      // return value of migrate_info
     b  psci_unimplemented
@@ -187,8 +184,6 @@ smc64_psci_migrate:
 //-----------------------------------------------------------------------------
 
 smc32_psci_migrate_info:
-    mov   x12, x30
-
      // migrate not needed when Trusted OS not installed
     mov  w0, #MIGRATE_TYPE_NMIGRATE
     b    psci_completed
@@ -196,8 +191,6 @@ smc32_psci_migrate_info:
 //-----------------------------------------------------------------------------
 
 smc32_psci_migrate_info_upcpu:
-    mov   x12, x30
-
      // the return value of this function must be in synch with the
      // return value of migrate_info
     b  psci_unimplemented
@@ -222,7 +215,6 @@ smc64_psci_cpu_suspend:
      // x1 = power state
      // x2 = entry point address
      // x3 = context id
-    mov  x12, x30
     mov  x8, x1
     mov  x9, x2
     mov  x10, x3
@@ -701,9 +693,6 @@ smc64_psci_cpu_on:
      // x2   = start address
      // x3   = context id
 
-	 // save the LR
-    mov  x12, x30
-
 	 // save input parms
 	mov  x6, x1
     mov  x7, x2
@@ -951,9 +940,6 @@ smc64_psci_affinity_info:
      // x1 = target_affinity
      // x2 = lowest_affinity
 
-     // save the LR
-    mov  x12, x30
-
      // core affinity?
     mov   x0, #0
     cmp   x2, x0
@@ -1026,18 +1012,12 @@ affinity_info_1:
 //-----------------------------------------------------------------------------
 
 smc32_psci_version:
-     // save the LR
-    mov  x12, x30
-
     ldr  x0, =PSCI_VERSION
     b    psci_completed
 
 //-----------------------------------------------------------------------------
 
 smc32_psci_cpu_off:
-     // save link register initially in x12 
-    mov  x12, x30
-
      // see if the soc-specific module supports this op
     ldr  x7, =SOC_CORE_OFF
     cbz  x7, psci_unimplemented
@@ -1152,9 +1132,6 @@ smc32_psci_cpu_off:
 //-----------------------------------------------------------------------------
 
 smc32_psci_system_off:
-     // save link register
-    mov  x12, x30
-
      // see if the soc-specific module supports this op
     ldr  x7, =SOC_SYSTEM_OFF
     cbz  x7, psci_unimplemented
@@ -1176,9 +1153,6 @@ smc32_psci_system_off:
 //-----------------------------------------------------------------------------
 
 smc32_psci_system_reset:
-     // save link register
-    mov  x12, x30
-
      // see if the soc-specific module supports this op
     ldr  x7, =SOC_SYSTEM_RESET
     cbz  x7, psci_unimplemented
@@ -1190,9 +1164,6 @@ smc32_psci_system_reset:
 //-----------------------------------------------------------------------------
 
 smc32_psci_features:
-     // save link register
-    mov  x12, x30
-
     b  psci_unimplemented
 
 //-----------------------------------------------------------------------------

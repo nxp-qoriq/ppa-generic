@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2013-2016, Freescale Semiconductor
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -59,7 +59,17 @@
 .equ SIP_ROMUUID_PART3,  0x1A7841A7    // bytes [11:8]
 .equ SIP_ROMUUID_PART4,  0xD3205C97    // bytes [15:12]
 
-.equ SIP32_FUNCTION_COUNT, 0x5
+ // function classes
+.equ  SMC32_ARM_ARCH,   0x80
+.equ  SMC32_CPU_SVC,    0x81
+.equ  SMC32_SIP_SVC,    0x82
+.equ  SMC32_OEM_SVC,    0x83
+.equ  SMC32_STD_SVC,    0x84
+.equ  SMC32_TRST_APP1,  0xB0
+.equ  SMC32_TRST_APP2,  0xB1
+
+ // function counts
+.equ  SIP32_FUNCTION_COUNT, 0x3
 
 //-----------------------------------------------------------------------------
 
@@ -79,40 +89,34 @@ smc32_handler:
      // mask interrupts
     msr  DAIFset, #0xF
 
-     // invalidate tlb
-    tlbi alle3
-    dsb  sy
-    isb
-
      // extract bits 31:24 to see what class of function this is
-    mov   w9, wzr
-    mov   w11, wzr
-    bfxil w9, w0, #24, #8
+    and   w9, w0, #SMC_FCLASS_MASK
+    lsr   w9, w9, #SMC_FCLASS_SHIFT
      // extract bits 15:0 (the function number)
-    bfxil w11, w0, #0, #16
+    and   w11, w0, #SMC_FNUM_MASK
 
      // Note: x11 contains the function number
 
      // is it SMC32: ARM Architecture Call?
-    cmp  w9, #0x80
-    b.eq smc32_no_services
+    cmp  w9, #SMC32_ARM_ARCH
+    b.eq smc32_arch_svc
      // is it SMC32: CPU Service Call?
-    cmp  w9, #0x81
+    cmp  w9, #SMC32_CPU_SVC
     b.eq smc32_no_services
      // is it SMC32: SiP Service Call?
-    cmp  w9, #0x82
+    cmp  w9, #SMC32_SIP_SVC
     b.eq smc32_sip_svc
      // is it SMC32: OEM Service Call?
-    cmp  w9, #0x83
+    cmp  w9, #SMC32_OEM_SVC
     b.eq smc32_no_services
      // is it SMC32: Std Service Call?
-    cmp  w9, #0x84
+    cmp  w9, #SMC32_STD_SVC
     b.eq _smc32_std_svc
      // is it SMC32: Trusted App Call?
-    cmp  w9, #0xB0
+    cmp  w9, #SMC32_TRST_APP1
     b.eq _smc_unimplemented
      // is it SMC32: Trusted App Call?
-    cmp  w9, #0xB1
+    cmp  w9, #SMC32_TRST_APP2
     b.eq _smc_unimplemented
      // is it SMC32: Trusted OS Call? (multiple ranges)
     lsr  w10, w9, #4
@@ -132,7 +136,7 @@ smc32_handler:
 
 smc32_sip_svc:
      // SIP service call COUNT function is 0xFF00
-    mov  w10, #0xFF00
+    mov  w10, #SIP_COUNT
     cmp  w10, w11
     b.eq smc32_sip_count
 
@@ -166,8 +170,6 @@ smc32_sip_svc:
  // this function returns the number of smc32 SIP functions implemented
  // the count includes *this* function
 smc32_sip_count:
-     // save link register
-    mov  x12, x30
 
     mov  x0, #SIP32_FUNCTION_COUNT
     b    _smc_exit
@@ -177,8 +179,6 @@ smc32_sip_count:
  // this function returns the SIP UUID for the secure monitor
  // resident in the bootrom
 smc32_sip_UUID:
-     // save link register
-    mov  x12, x30
 
     ldr  x0, =SIP_ROMUUID_PART1
     ldr  x1, =SIP_ROMUUID_PART2
@@ -191,8 +191,6 @@ smc32_sip_UUID:
  // this function returns the major and minor revision numbers
  // of this secure monitor
 smc32_sip_REVISION:
-     // save link register
-    mov  x12, x30
 
     ldr  x0, =SIP_REVISION_MAJOR
     ldr  x1, =SIP_REVISION_MINOR
@@ -215,7 +213,6 @@ smc32_sip_PRNG:
     lsl  x1, x1, #32
     lsr  x0, x0, #32
     lsr  x1, x1, #32
-    mov  x12, x30
 
     cbz  x1, 1f
      // 64-bit PRNG
@@ -244,7 +241,6 @@ smc32_sip_PRNG:
     b.eq _smc_failure
 
 2:
-    mov  x30, x12
     b    _smc_success
 
      //------------------------------------------
@@ -264,7 +260,6 @@ smc32_sip_RNG:
     lsl  x1, x1, #32
     lsr  x0, x0, #32
     lsr  x1, x1, #32
-    mov  x12, x30
     mov  x11, x1
 
      // For NON-E parts return unimplemented
@@ -301,13 +296,98 @@ smc32_sip_RNG:
     b.eq _smc_failure
 
 2:
-    mov  x30, x12
+    b    _smc_success
+
+     //------------------------------------------
+
+     // Note: w11 contains the function number
+
+smc32_arch_svc:
+     // ARCH service call VERSION function
+    mov  w10, #ARCH_VERSION
+    cmp  w10, w11
+    b.eq smc32_arch_version
+
+     // ARCH service call FEATURES function
+    mov  w10, #ARCH_FEATURES
+    cmp  w10, w11
+    b.eq smc32_arch_features
+
+     // ARCH service call WORKAROUND_1 function
+    mov  w10, #ARCH_WORKAROUND_1
+    cmp  w10, w11
+    b.eq smc32_arch_workaround1
+
+    b    _smc_unimplemented
+
+     //------------------------------------------
+
+ // this is the 32-bit interface to the arch VERSION function (smc v1.1)
+ // in:  x0 = function id
+ // out: x0 = SMC_VERSION_11
+smc32_arch_version:
+
+     // load the version info
+    ldr  x0, =SMC_VERSION_11
+    b    _smc_exit
+
+     //------------------------------------------
+
+ // this is the 32-bit interface to the arch FEATURES function (smc v1.1)
+ // in:  x0 = function id
+ // in:  x1 = function id of ARCH function being queried
+ // out: x0 = SMC_SUCCESS, SMC_NOT_SUPPORTED
+ // uses x0, x1, x2, x3
+smc32_arch_features:
+
+     // extract function range bits [31:16]
+    and   w0, w1, #SMC_FCLASS_MASK
+    lsr   w0, w0, #SMC_FCLASS_SHIFT
+    cmp   w0, #SMC32_ARM_ARCH
+    b.ne  _smc_unimplemented
+
+    ldr   x3, =SMC_FEATURES_TABLE_END
+     // get the address of the features table
+    adr   x0, smc32_arch_features_table
+1:
+     // load the supported feature
+    ldr   w2, [x0]
+
+     // compare this with the TABLE_END value
+    cmp   w2, w3
+    b.eq  _smc_unimplemented
+
+     // see if we have a match to the feature-under-query (x1)
+    cmp   w2, w1
+    add   x0, x0, #4
+    b.ne  1b
+
+    b    _smc_success
+
+     //------------------------------------------
+
+ // this function provides a callable workaround for CVE-2017-5715,
+ // which is Spectre version 2
+ // in:  none
+ // out: none
+smc32_arch_workaround1:
+
+     // disable and re-enable the mmu - this has the side effect
+     // of invalidating BTB
+    mrs   x0, sctlr_el3
+    bic   x1, x0, #SCTLR_M_MASK
+    msr   sctlr_el3, x1
+    isb
+
+     // re-enable the mmu
+    msr   sctlr_el3, x0
+    isb
+
     b    _smc_success
 
      //------------------------------------------
 
 smc32_no_services:
-    mov   x12, x30
      // w11 contains the requested function id
     mov   w10, #0xFF00
      // w10 contains the call count function id
@@ -346,6 +426,23 @@ __dead_loop:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+smc32_sip_features_table:
+    .4byte  SIP32_COUNT_ID
+    .4byte  SIP_PRNG_32
+    .4byte  SIP_RNG_32
+     // table terminating value - must always be last entry in table
+    .4byte  SMC_FEATURES_TABLE_END
+
+//-----------------------------------------------------------------------------
+
+smc32_arch_features_table:
+    .4byte  ARCH32_VERSION_ID
+    .4byte  ARCH32_FEATURES_ID
+    .4byte  ARCH32_WORKAROUND_1
+     // table terminating value - must always be last entry in table
+    .4byte  SMC_FEATURES_TABLE_END
+
 //-----------------------------------------------------------------------------
 
 

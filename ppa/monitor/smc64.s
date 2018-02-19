@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2013-2016, Freescale Semiconductor
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -53,6 +53,12 @@
 
 //-----------------------------------------------------------------------------
 
+ // function counts
+.equ  SIP64_FUNCTION_COUNT,  0x5
+.equ  ARCH64_FUNCTION_COUNT, 0x2
+
+//-----------------------------------------------------------------------------
+
  // function classes
 .equ  SMC64_ARM_ARCH,   0xC0
 .equ  SMC64_CPU_SVC,    0xC1
@@ -61,9 +67,6 @@
 .equ  SMC64_STD_SVC,    0xC4
 .equ  SMC64_TRSTD_APP,  0xF0
 .equ  SMC64_TRSTD_APP2, 0xF1
-
-.equ  SIP64_FUNCTION_COUNT,  0x5
-.equ  ARCH64_FUNCTION_COUNT, 0x2
 
 //-----------------------------------------------------------------------------
 
@@ -78,15 +81,9 @@ smc64_handler:
      // x6     = session id (optional) 
      // x7     = hypervisor client id
      // x8     = indirect result location register
-     // x9-x15 = volatile/scratch
 
      // mask interrupts
     msr  DAIFset, #0xF
-
-     // invalidate tlb
-    tlbi alle3
-    dsb  sy
-    isb
 
      // extract bits 31:24 to see what class of function this is
     mov   x9, xzr
@@ -136,13 +133,13 @@ smc64_handler:
 
 smc64_arch_svc:
          // ARCH64 service call COUNT function is 0xFF00
-    ldr  x10, =ARCH_COUNT_ID
-    and  w10, w10, #SMC_FUNCTION_MASK
+    ldr  x10, =ARCH64_COUNT_ID
+    and  w10, w10, #SMC_FNUM_MASK
     cmp  w10, w11
     b.eq smc64_arch_count
 
     ldr  x10, =ARCH_EL2_2_AARCH32_ID
-    and  w10, w10, #SMC_FUNCTION_MASK
+    and  w10, w10, #SMC_FNUM_MASK
     cmp  w10, w11
     b.eq smc64_arch_el2_2_aarch32
 
@@ -154,8 +151,8 @@ smc64_arch_svc:
 
 smc64_sip_svc:
      // SIP64 service call COUNT function is 0xFF00
-    ldr  x10, =SIP_COUNT_ID
-    and  w10, w10, #SMC_FUNCTION_MASK
+    ldr  x10, =SIP64_COUNT_ID
+    and  w10, w10, #SMC_FNUM_MASK
     cmp  w10, w11
     b.eq smc64_sip_count
 
@@ -186,8 +183,6 @@ smc64_sip_svc:
  // this function returns the number of smc64 SIP functions implemented
  // the count includes *this* function
 smc64_sip_count:
-    mov  x12, x30
-
     mov  x0, #SIP64_FUNCTION_COUNT
     mov  x4,  #0
     mov  x3,  #0
@@ -205,8 +200,6 @@ smc64_sip_count:
  //      x0 != 0, failure
  //      x1 = 32-bit PRNG, or 64-bit PRNG
 smc64_sip_PRNG:
-    mov  x12, x30
-
     cbz  x1, 1f
      // 64-bit PRNG
     mov  x0, #SIP_PRNG_64BIT
@@ -240,7 +233,6 @@ smc64_sip_PRNG:
  //      x0 != 0, failure
  //      x1 = 32-bit RNG, or 64-bit RNG
 smc64_sip_RNG:
-    mov  x12, x30
     mov  x11, x1
 
      // For NON-E parts return unimplemented
@@ -263,7 +255,6 @@ smc64_sip_RNG:
     mov  x1, x0
 
 2:
-    mov  x30, x12
     mov  x3,  xzr
     mov  x4,  xzr
      // check if random number returned is 0
@@ -277,8 +268,6 @@ smc64_sip_RNG:
  // this function returns the number of smc64 SIP functions implemented
  // the count includes *this* function
 smc64_arch_count:
-    mov  x12, x30
-
     mov  x0, #ARCH64_FUNCTION_COUNT
     mov  x4,  #0
     mov  x3,  #0
@@ -296,8 +285,6 @@ smc64_arch_count:
  //      x3 = second parameter to pass to EL2 @ Aarch32
  // uses x0, x1, x2, x3, x12
 smc64_arch_el2_2_aarch32:
-    mov   x12, x30
-
      // x1 = start address
      // x2 = parm 1
      // x3 = parm2
@@ -342,9 +329,6 @@ smc64_arch_el2_2_aarch32:
     ic iallu
     dsb sy
     isb
-
-     // finish
-    mov  x30, x12
     b    _smc_success
 
      //------------------------------------------
@@ -364,8 +348,6 @@ smc64_arch_el2_2_aarch32:
  //      x2     =  size in bytes (not valid unless x0[0]=1)
  // uses x0, x1, x2, x3, x4, x12
 smc64_membank_data:
-    mov   x12, x30
-
      // initialize the return value
     mov   x0, #MEMBANK_INVALID
 
@@ -470,7 +452,6 @@ smc64_membank_data:
  //           if a bit in the mask is set, then prefetch is disabled for that core
  // out: x0 = SMC_SUCCESS
 smc64_prefetch_disable:
-    mov   x12, x30
     mov   x3, x1
 
      // x1 = core prefetch disable mask
@@ -521,7 +502,6 @@ smc64_prefetch_disable:
      //------------------------------------------
 
 smc64_no_services:
-    mov   x12, x30
      // w11 contains the requested function id
      // w10 contains the call count function id
     mov   w10, #0xFF00
@@ -544,5 +524,24 @@ _initialize_smc:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+smc64_sip_features_table:
+    .4byte  SIP64_COUNT_ID
+    .4byte  SIP_PRNG_64
+    .4byte  SIP_RNG_64
+    .4byte  SIP_MEMBANK_64
+    .4byte  SIP_PREFETCH_DISABLE_64
+     // table terminating value - must always be last entry in table
+    .4byte  SMC_FEATURES_TABLE_END
+
 //-----------------------------------------------------------------------------
+
+smc64_arch_features_table:
+    .4byte  ARCH64_COUNT_ID
+    .4byte  ARCH_EL2_2_AARCH32_ID
+     // table terminating value - must always be last entry in table
+    .4byte  SMC_FEATURES_TABLE_END
+
+//-----------------------------------------------------------------------------
+
 

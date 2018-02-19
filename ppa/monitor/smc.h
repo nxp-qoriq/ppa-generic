@@ -51,20 +51,137 @@
  // function return values
 #define  SMC_SUCCESS         0
 #define  SMC_UNIMPLEMENTED  -1
+#define  SMC_NOT_SUPPORTED  -1
 #define  SMC_INVALID        -2
 #define  SMC_BAD_PARM       -3
 #define  SMC_INVALID_EL     -4
 #define  SMC_FAILURE        -5
 
-#define  SIP_PRNG           0xFF10
-#define  SIP_RNG            0xFF11
-#define  SIP_MEMBANK        0xFF12
-#define  SIP_PREFETCH       0xFF13
+#define  SMC_VERSION_10     0x10000
+#define  SMC_VERSION_11     0x10001
 
 .equ SIP_PRNG_32BIT,  0
 .equ SIP_PRNG_64BIT,  1
 .equ SIP_RNG_32BIT,   0
 .equ SIP_RNG_64BIT,   1
+
+ // mask to extract smc function number from the smc functon id
+#define  SMC_FNUM_MASK      0xFFFF
+#define  SMC_FCLASS_MASK    0xFF000000
+#define  SMC_FCLASS_SHIFT   24
+
+#define  SMC_FEATURES_TABLE_END 0x0FF00000
+
+#define  SMC_FAST_CALL_BIT   0x80000000
+#define  SMC_FAST_CALL_FIELD 0x00FF0000
+#define  SMC_INTERFACE_BIT   0x40000000
+
+//-----------------------------------------------------------------------------
+
+ // smc sip function id's - these are "fast", non-preemptible functions
+
+ // this function returns the number of implemented smc64-sip functions
+#define  SIP64_COUNT_ID     0xC200FF00
+ // this function returns the number of implemented smc32-sip functions
+#define  SIP32_COUNT_ID     0x8200FF00
+#define  SIP_COUNT          (SIP64_COUNT_ID & SMC_FNUM_MASK)
+
+ // this is the 32-bit interface to the PRNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit PRNG requested
+ //      x1 = 1, 64-bit PRNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-bit PRNG, or hi-order 32-bits of 64-bit PRNG
+ //      x2 = lo-order 32-bits of 64-bit PRNG
+#define  SIP_PRNG_32 0x8200FF10
+
+ // this is the 32-bit interface to the hw RNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit RNG requested
+ //      x1 = 1, 64-bit RNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-bit PRNG, or hi-order 32-bits of 64-bit PRNG
+ //      x2 = lo-order 32-bits of 64-bit PRNG
+#define  SIP_RNG_32 0x8200FF11
+
+ // this is the 64-bit interface to the PRNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit PRNG requested
+ //      x1 = 1, 64-bit PRNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-or-64-bit PRNG
+#define  SIP_PRNG_64 0xC200FF10
+#define  SIP_PRNG    (SIP_PRNG_64 & SMC_FNUM_MASK)
+
+ // this is the 64-bit interface to the hw RNG function
+ // in:  x0 = function id
+ //      x1 = 0, 32-bit hw RNG requested
+ //      x1 = 1, 64-bit hw RNG requested
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-or-64-bit PRNG
+#define  SIP_RNG_64 0xC200FF11
+#define  SIP_RNG    (SIP_RNG_64 & SMC_FNUM_MASK)
+
+ // this is the 64-bit interface to the MEMBANK function
+ // in:  x0 = function id
+ //      x1 = memory bank requested (1, 2, 3, etc)
+ // out: x0     = -1, failure
+ //             = -2, invalid parameter
+ //      x0 [0] =  1, valid bank
+ //             =  0, invalid bank
+ //       [1:2] =  1, ddr  
+ //             =  2, sram
+ //             =  3, special
+ //         [3] =  1, not the last bank
+ //             =  0, last bank
+ //      x1     =  physical start address (not valid unless x0[0]=1)
+ //      x2     =  size in bytes (not valid unless x0[0]=1)
+#define  SIP_MEMBANK_64 0xC200FF12
+#define  SIP_MEMBANK    (SIP_MEMBANK_64 & SMC_FNUM_MASK)
+
+ // this is the 64-bit interface to the LOAD-STORE PREFETCH DISABLE function
+ // in:  x0 = function id
+ //      x1 = core mask for cores to have prefetch disabled,
+ //           where bit[0] = core0, bit[1] = core1, etc - if bit is set,
+ //           then prefetch (CPUACTLR[56]) is disabled for that core.
+ // out: none
+#define  SIP_PREFETCH_DISABLE_64 0xC200FF13
+#define  SIP_PREFETCH            (SIP_PREFETCH_DISABLE_64 & SMC_FNUM_MASK)
+
+//-----------------------------------------------------------------------------
+
+ // smc arch function id's - these are "fast", non-preemptible functions
+
+ // this function returns the number of implemented smc-arch functions
+#define  ARCH32_COUNT_ID    0x8000FF00
+#define  ARCH64_COUNT_ID    0xC000FF00
+#define  ARCH_COUNT         (ARCH64_COUNT_ID & SMC_FNUM_MASK)
+
+ // this function will return to EL2 @ Aarch32
+ // in:  x0 = function id
+ //      x1 = start address for EL2 @ Aarch32
+ //      x2 = first parameter to EL2
+ //      x3 = second parameter to EL2
+ //      x4 = 0, EL2 in LE (little-endian)
+ //      x4 = 1, EL2 in BE (big-endian)
+#define  ARCH_EL2_2_AARCH32_ID  0xC000FF04
+#define  ARCH_EL2_2_AARCH32     (ARCH_EL2_2_AARCH32_ID & SMC_FNUM_MASK)
+
+ // this function returns the smc version number
+#define  ARCH32_VERSION_ID   0x80000000
+#define  ARCH_VERSION        (ARCH32_VERSION_ID & SMC_FNUM_MASK)
+
+ // this function queries for the implementation of other arch32 functions
+#define  ARCH32_FEATURES_ID  0x80000001
+#define  ARCH_FEATURES       (ARCH32_FEATURES_ID & SMC_FNUM_MASK)
+
+ // this function provides a workaround for CVE-2017-5715
+#define  ARCH32_WORKAROUND_1 0x80008000
+#define  ARCH_WORKAROUND_1   (ARCH32_WORKAROUND_1 & SMC_FNUM_MASK)
 
 //-----------------------------------------------------------------------------
 
@@ -97,89 +214,6 @@
      // invalidate any el3 page translations
     tlbi alle3
 .endm
-
-//-----------------------------------------------------------------------------
-
-#define  SMC_FUNCTION_MASK  0xFFFF
-
- // smc function id's - these are "fast", non-preemptible functions
-
- // this function returns the number of implemented smc-sip functions
-#define  SIP_COUNT_ID     0xC200FF00
-
- // this function returns the number of implemented smc-arch functions
-#define  ARCH_COUNT_ID    0xC000FF00
-
- // this function will return to EL2 @ Aarch32
- // in:  x0 = function id
- //      x1 = start address for EL2 @ Aarch32
- //      x2 = first parameter to EL2
- //      x3 = second parameter to EL2
- //      x4 = 0, EL2 in LE (little-endian)
- //      x4 = 1, EL2 in BE (big-endian)
-#define  ARCH_EL2_2_AARCH32_ID  0xC000FF04
-
- // this is the 32-bit interface to the PRNG function
- // in:  x0 = function id
- //      x1 = 0, 32-bit PRNG requested
- //      x1 = 1, 64-bit PRNG requested
- // out: x0 = 0, success
- //      x0 != 0, failure
- //      x1 = 32-bit PRNG, or hi-order 32-bits of 64-bit PRNG
- //      x2 = lo-order 32-bits of 64-bit PRNG
-#define  SIP_PRNG_32 0x8200FF10
-
- // this is the 32-bit interface to the hw RNG function
- // in:  x0 = function id
- //      x1 = 0, 32-bit RNG requested
- //      x1 = 1, 64-bit RNG requested
- // out: x0 = 0, success
- //      x0 != 0, failure
- //      x1 = 32-bit PRNG, or hi-order 32-bits of 64-bit PRNG
- //      x2 = lo-order 32-bits of 64-bit PRNG
-#define  SIP_RNG_32 0x8200FF11
-
- // this is the 64-bit interface to the PRNG function
- // in:  x0 = function id
- //      x1 = 0, 32-bit PRNG requested
- //      x1 = 1, 64-bit PRNG requested
- // out: x0 = 0, success
- //      x0 != 0, failure
- //      x1 = 32-or-64-bit PRNG
-#define  SIP_PRNG_64 0xC200FF10
-
- // this is the 64-bit interface to the hw RNG function
- // in:  x0 = function id
- //      x1 = 0, 32-bit hw RNG requested
- //      x1 = 1, 64-bit hw RNG requested
- // out: x0 = 0, success
- //      x0 != 0, failure
- //      x1 = 32-or-64-bit PRNG
-#define  SIP_RNG_64 0xC200FF11
-
- // this is the 64-bit interface to the MEMBANK function
- // in:  x0 = function id
- //      x1 = memory bank requested (1, 2, 3, etc)
- // out: x0     = -1, failure
- //             = -2, invalid parameter
- //      x0 [0] =  1, valid bank
- //             =  0, invalid bank
- //       [1:2] =  1, ddr  
- //             =  2, sram
- //             =  3, special
- //         [3] =  1, not the last bank
- //             =  0, last bank
- //      x1     =  physical start address (not valid unless x0[0]=1)
- //      x2     =  size in bytes (not valid unless x0[0]=1)
-#define  SIP_MEMBANK_64 0xC200FF12
-
- // this is the 64-bit interface to the LOAD-STORE PREFETCH DISABLE function
- // in:  x0 = function id
- //      x1 = core mask for cores to have prefetch disabled,
- //           where bit[0] = core0, bit[1] = core1, etc - if bit is set,
- //           then prefetch (CPUACTLR[56]) is disabled for that core.
- // out: none
-#define  SIP_PREFETCH_DISABLE_64 0xC200FF13
 
 //-----------------------------------------------------------------------------
 

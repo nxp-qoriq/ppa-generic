@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # 
 # Copyright (C) 2015, 2016 Freescale Semiconductor, Inc.
-# Copyright 2017 NXP Semiconductors
+# Copyright 2017-2018 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -154,6 +154,12 @@ endif
 ifeq  ($(test), pre_disa53)
 	TEST_PSCI=1
     TEST_FILE=test_prefetch_disableA53.s
+    $(info TEST_FILE is $(TEST_FILE))
+endif
+
+ifeq  ($(test), smc11)
+	TEST_PSCI=1
+    TEST_FILE=test_smc11.s
     $(info TEST_FILE is $(TEST_FILE))
 endif
 

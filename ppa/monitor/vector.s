@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright (c) 2014, 2015 Freescale Semiconductor
+// Copyright (c) 2014-2016 Freescale Semiconductor
 // Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
@@ -184,19 +184,17 @@ a64smc_router:
      // mask interrupts
     msr  DAIFset, #0xF
 
-     // isolate and test bit [31] - must be '1' for "fast-calls"
-    lsr   x2, x0, #31
+     // test bit [31] - must be '1' for "fast-calls"
+    tst   x0, #SMC_FAST_CALL_BIT
 #if (CNFG_SPD)
-    mov   x10, x2
-    cbz   x10, 1f
+    b.eq  1f
 #else
-    cbz   x2, _smc_unimplemented
+    b.eq  _smc_unimplemented
 #endif
 
-     // extract bits [23:16] - must be 0x00 for "fast-calls"
-    mov   x1, xzr
-    bfxil x1, x0, #16, #8
-    cbnz  x1, _smc_unimplemented
+     // test bits [23:16] - must be 0x00 for "fast-calls"
+    tst   x0, #SMC_FAST_CALL_FIELD
+    b.ne  _smc_unimplemented
 
 1:
      // restore the volatile registers
@@ -204,46 +202,47 @@ a64smc_router:
      //  required 16-byte alignment on the stack
     ldp  x2, x3, [sp], #16
     ldp  x0, x1, [sp], #16
+
+     // save the non-volatile aarch64 registers (smc v1.1)
+     //  save these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    stp  x4,  x5,  [sp, #-16]!
+    stp  x6,  x7,  [sp, #-16]!
+    stp  x8,  x9,  [sp, #-16]!
+    stp  x10, x11, [sp, #-16]!
+    stp  x12, x13, [sp, #-16]!
+    stp  x14, x15, [sp, #-16]!
+    stp  x16, x17, [sp, #-16]!
+    stp  x18, x30, [sp, #-16]!
     dsb   sy
     isb
 
-     // set the aarch64 flag
-    mov   x11, #SMC_AARCH64_MODE
-    str   x11,  [sp, #-16]!
-
 #if (CNFG_SPD)
-    cbnz  x10, 2f
-    b     _smc_trstd_os_handler
+    tst   x0, #SMC_FAST_CALL_BIT
+    b.eq  _smc_trstd_os_handler
 #endif
 
-2:
      // test for smc32 or smc64 interface
-    mov   x9, xzr
-    bfxil x9, x0, #30, #1
-    cbz   x9, smc32_handler
-    b     smc64_handler
+    tst   x0, #SMC_INTERFACE_BIT
+    b.eq  smc32_handler
+    b.ne  smc64_handler
 
      //------------------------------------------
 
 a32smc_router:
-     // isolate and test bit [31] - must be '1' for "fast-calls"
-    lsr   w2, w0, #31
-    cbz   w2, _smc_unimplemented
+     // test bit [31] - must be '1' for "fast-calls"
+    tst   w0, #SMC_FAST_CALL_BIT
+    b.eq  _smc_unimplemented
 
-     // extract bits [23:16] - must be 0x00 for "fast-calls"
-    mov   w1, wzr
-    bfxil w1, w0, #16, #8
-    cbnz  w1, _smc_unimplemented
+     // test bits [23:16] - must be 0x00 for "fast-calls"
+    tst   w0, #SMC_FAST_CALL_FIELD
+    b.ne  _smc_unimplemented
 
      // test for smc32 or smc64 interface
-    mov   w2, wzr
-    bfxil w2, w0, #30, #1
-    cbz   w2, 1f
+    tst   w0, #SMC_INTERFACE_BIT
+    b.ne  _smc_unimplemented
 
-     // smc64 interface is not valid for a32 clients
-    b     _smc_unimplemented
-
-1:   // smc32 interface called from aarch32
+     // smc32 interface called from aarch32
      // mask interrupts
     msr  DAIFset, #0xF
 
@@ -264,11 +263,6 @@ a32smc_router:
     stp  x14, x15, [sp, #-16]!
     stp  x16, x17, [sp, #-16]!
     stp  x18, x30, [sp, #-16]!
-
-     // set the aarch32 flag
-    mov   x5, #SMC_AARCH32_MODE
-    str   x5,  [sp, #-16]!
-
     dsb  sy
     isb
     b    smc32_handler
@@ -285,32 +279,7 @@ _smc_exit:
 
      // x0 = status code
 
-     // called from aarch32 or aarch64? - get the flag off the
-     // stack
-    ldr   x4,  [sp], #16
-    cbnz  x4, 1f
-
-     // called from aarch64 -----------
-
-     // restore the LR
-    mov  x30, x12
-
-     // zero-out the scratch registers
-    ldr  x4,  =REGISTER_OBFUSCATE
-    mvn  x5,  x4
-    mov  x6,  x4
-    mov  x7,  x5
-    mov  x8,  x4
-    mov  x9,  x5
-    mov  x10, x4
-    mov  x11, x5
-    mov  x12, x4
-
-    b    2f
-
-1:   // called from aarch32 -----------
-
-     // restore the aarch32 non-volatile registers
+     // restore the aarch32/64 non-volatile registers
     ldp  x18, x30, [sp], #16
     ldp  x16, x17, [sp], #16
     ldp  x14, x15, [sp], #16
@@ -319,9 +288,8 @@ _smc_exit:
     ldp  x8,  x9,  [sp], #16
     ldp  x6,  x7,  [sp], #16
     ldp  x4,  x5,  [sp], #16
-2:
 
-     // cleanup any of the EL3 isolation that was performed on entry
+     // perform some isolation tasks on exit
     EL3_ExitToNS
 
      // return from exception
