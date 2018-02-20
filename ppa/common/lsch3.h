@@ -77,6 +77,7 @@
 #define BOOTLOCPTRL_OFFSET      0x400
 #define BOOTLOCPTRH_OFFSET      0x404
 #define RCW_SR1_OFFSET          0x100
+#define RCW_SR27_OFFSET         0x168
 #define RCWSR1_SYSPLLRAT_MASK   0x7C        
 
  // reset block register offsets

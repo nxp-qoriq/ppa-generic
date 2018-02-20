@@ -96,6 +96,10 @@
 #define CLUSTER_3_IN_RESET  1
 #define CLUSTER_3_NORMAL    0
 
+ // cluster 3 handling no longer based on frequency, but rather on RCW[850],
+ // which is bit 18 of RCWSR27
+#define CLUSTER_3_IN_RESET  0x40000
+
 //-----------------------------------------------------------------------------
 
 #endif // _SOC_H

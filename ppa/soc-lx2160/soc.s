@@ -820,22 +820,19 @@ _soc_check_sec_enabled:
  // uses x0, x1, x2
 cluster3InReset:
 
-     // default return is hold cores in reset
-    mov  x0, #CLUSTER_3_IN_RESET
-
-     // read RCW_SR1 register
-    mov  x1, #DCFG_BASE_ADDR
-    ldr  w2, [x1, #RCW_SR1_OFFSET]
-
-     // extract the sysclk ratio field
-    and  w2, w2, #RCWSR1_SYSPLLRAT_MASK
-
-     // compare the pll multiplier with our threshold value
-    cmp  w2, #SYS_PLL_RAT_12
-    b.gt 1f
-
-     // platform clock is slow enough to handle cluster 3 cores normal
+     // default return is treat cores normal
     mov  x0, #CLUSTER_3_NORMAL
+
+     // read RCW_SR27 register
+    mov  x1, #DCFG_BASE_ADDR
+    ldr  w2, [x1, #RCW_SR27_OFFSET]
+
+     // test the cluster 3 bit
+    tst  w2, #CLUSTER_3_IN_RESET
+    b.eq 1f
+
+     // if we are here, then the bit was set
+    mov  x0, #CLUSTER_3_IN_RESET
 1:
     ret
 
@@ -863,10 +860,8 @@ release_disabled:
     cmp  x8, #CLUSTER_3_IN_RESET
     b.ne 4f
 
-     // just in case some over-exuberant PBI has set the
-     // bits for cluster 3 cores, and the clocks are running
-     // too high for regular operation, clear the bits for cluster 
-     // 3 cores
+     // the cluster 3 cores are to be held in reset, so remove
+     // them from the disable mask
     bic  x4, x4, #CLUSTER_3_CORES_MASK
 4:
      // get the number of cpus on this device
@@ -1053,8 +1048,8 @@ _get_gic_rd_base:
 
 //-----------------------------------------------------------------------------
 
- // this function returns the redistributor base address for the core specified
- // in x1
+ // this function returns the redistributor sgi base address for the core
+ // specified in x1
  // in:  x0 - core mask lsb of specified core
  // out: x0 = redistributor sgi base address for specified core
  // uses x0, x1, x2
