@@ -236,9 +236,8 @@ smc64_sip_RNG:
     mov  x11, x1
 
      // For NON-E parts return unimplemented
-    bl _soc_check_sec_enabled
-    cmp  x2, #0x0
-    b.eq _smc_unimplemented
+    bl   _check_sec_disabled
+    cbz  x0, _smc_unimplemented
 
      // Restore x1
     mov x1, x11
@@ -259,8 +258,8 @@ smc64_sip_RNG:
     mov  x4,  xzr
      // check if random number returned is 0
      // report failure in case random number is 0
-    cmp  x1, #0x0
-    b.eq _smc_failure
+    cbz  x1, _smc_failure
+
     b    _smc_success
 
      //------------------------------------------

@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2013-2016 Freescale Semiconductor, Inc.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -58,6 +58,7 @@
 .global _prep_init_ocram_hi
 .global _prep_init_ocram_lo
 .global _get_load_addr
+.global _check_sec_disabled
 
 //-----------------------------------------------------------------------------
 
@@ -287,6 +288,20 @@ _get_load_addr:
 #endif
 
     ret
+
+//-----------------------------------------------------------------------------
+
+ // this function checks SVR for sec disabled
+ // out: x0  = 0 if SEC disabled
+ //      x0 != 0 if SEC enabled
+ // uses x0, x1
+_check_sec_disabled:
+    ldr  x1, =DCFG_BASE_ADDR
+    ldr  w0, [x1, #DCFG_SVR_OFFSET]
+
+     // w0 = SVR register
+    and  w0, w0, #SVR_SEC_MASK
+    ret    
 
 //-----------------------------------------------------------------------------
 

@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2016 Freescale Semiconductor, Inc.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -100,7 +100,6 @@
 .global _soc_init_percpu
 .global _set_platform_security
 .global _soc_exit_boot_svcs
-.global _soc_check_sec_enabled
 .global _getGICC_BaseAddr
 .global _getGICD_BaseAddr
 
@@ -979,26 +978,6 @@ _set_platform_security:
  // services end
 _soc_exit_boot_svcs:
 
-    ret
-
-//-----------------------------------------------------------------------------
- // this function checks SVR for security enabled
- // out: x2 = 1 of SEC enabled, 0 for SEC disabled
- // uses x0, x1, x2, x10
-_soc_check_sec_enabled:
-    mov  x10, x30
-    mov  x0, #DCFG_SVR_OFFSET
-    bl   read_reg_dcfg
-
-    mov  x2, #1
-     // Check for SEC bit
-    and  w0, w0, #SVR_SEC_MASK
-    cmp  w0, #SVR_SEC_MASK
-    b.ne 1f	  
-    mov  x2, #0
-    
-1:
-    mov x30, x10
     ret
 
 //-----------------------------------------------------------------------------

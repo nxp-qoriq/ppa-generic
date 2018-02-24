@@ -263,9 +263,8 @@ smc32_sip_RNG:
     mov  x11, x1
 
      // For NON-E parts return unimplemented
-    bl _soc_check_sec_enabled
-    cmp  x2, #0x0
-    b.eq _smc_unimplemented
+    bl   _check_sec_disabled
+    cbz  x0, _smc_unimplemented
 
      // Restore x1
     mov x1, x11
@@ -292,9 +291,7 @@ smc32_sip_RNG:
      // result in w1
     mov  w1, w0
      // check if rng number is 0
-    cmp w1, #0
-    b.eq _smc_failure
-
+    cbz  w1, _smc_failure
 2:
     b    _smc_success
 
