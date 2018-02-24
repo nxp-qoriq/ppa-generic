@@ -1,7 +1,6 @@
-#!/bin/bash 
-#-----------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # 
-# Copyright 2017-2018 NXP Semiconductors
+# Copyright 2017 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -29,33 +28,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-#-----------------------------------------------------------------------------
+# Author Rod Dorris <rod.dorris@nxp.com>
+# 
+#------------------------------------------------------------------------------
 
-VERSION=$(git describe --always --dirty --tags 2>/dev/null);
-if [ "$VERSION" = "" ]; then
-VERSION="'none'"
-fi
+PLAT_BUILD=1
 
-printf "/dts-v1/;\n" > $1
-printf "\n" >> $1
-printf "/{\n" >> $1
-printf "	description = \"PPA Firmware\";\n" >> $1
-printf "	#address-cells = <1>;\n" >> $1
-printf "	images {\n" >> $1
-printf "		firmware@1 {\n" >> $1
-printf "			description = \"PPA Firmware: Version %s\";\n" $VERSION >> $1
-printf "			data = /incbin/(\"../obj/monitor.bin\");\n" >> $1
-printf "			type = \"firmware\";\n" >> $1
-printf "			arch = \"arm64\";\n" >> $1
-printf "			compression = \"none\";\n" >> $1
-printf "		};\n" >> $1
-printf "	};\n" >> $1
-printf "\n" >> $1
-printf "	configurations {\n" >> $1
-printf "		default = \"config@1\";\n" >> $1
-printf "		config@1 {\n" >> $1
-printf "			description = \"PPA Secure firmware\";\n" >> $1
-printf "			firmware = \"firmware@1\";\n" >> $1
-printf "		};\n" >> $1
-printf "	};\n" >> $1
-printf "};\n" >> $1
+ifeq ($(PLAT_BUILD), 1)
+    # setup a path prefix so we can find the src files
+    PRE_PATH=../
+endif
+
+# -----------------------------------------------------------------------------
+
+# include the soc makefile
+include ../Makefile
+
+# -----------------------------------------------------------------------------
+

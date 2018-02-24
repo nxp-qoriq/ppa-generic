@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # 
 # Copyright (C) 2015-2017 Freescale Semiconductor, Inc.
-# Copyright 2017 NXP Semiconductors
+# Copyright 2017-2018 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -105,7 +105,32 @@ ifeq ($(MAKECMDGOALS), frdm_fit_bin)
     PLAT_PATH=platform-frdm
 else
 
+ifeq ($(MAKECMDGOALS), frwy)
+    PLAT_PATH=platform-frwy
+else
+ifeq ($(MAKECMDGOALS), frwy_out)
+    PLAT_PATH=platform-frwy
+else
+ifeq ($(MAKECMDGOALS), frwy_bin)
+    PLAT_PATH=platform-frwy
+else
+ifeq ($(MAKECMDGOALS), frwy-fit)
+    PLAT_PATH=platform-frwy
+else
+ifeq ($(MAKECMDGOALS), frwy_fit_out)
+    PLAT_PATH=platform-frwy
+else
+ifeq ($(MAKECMDGOALS), frwy_fit_bin)
+    PLAT_PATH=platform-frwy
+else
+
   $(error -> Platform '$(MAKECMDGOALS)' not supported!)
+endif
+endif
+endif
+endif
+endif
+endif
 endif
 endif
 endif
