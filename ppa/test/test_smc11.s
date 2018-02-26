@@ -165,8 +165,6 @@ test_02:
     nop
     nop
     nop
-    cmp   x0, #SMC_SUCCESS
-    b.ne  fail_workaround_1
 
     ret
 

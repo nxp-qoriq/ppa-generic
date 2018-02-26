@@ -180,8 +180,10 @@
 #define  ARCH_FEATURES       (ARCH32_FEATURES_ID & SMC_FNUM_MASK)
 
  // this function provides a workaround for CVE-2017-5715
-#define  ARCH32_WORKAROUND_1 0x80008000
-#define  ARCH_WORKAROUND_1   (ARCH32_WORKAROUND_1 & SMC_FNUM_MASK)
+#define  ARCH32_WORKAROUND_1  0x80008000
+#define  ARCH32_WKRND_1_UPPER 0x80000000
+#define  ARCH32_WKRND_1_LOWER 0x00008000
+#define  ARCH_WORKAROUND_1    (ARCH32_WORKAROUND_1 & SMC_FNUM_MASK)
 
 //-----------------------------------------------------------------------------
 
@@ -191,6 +193,59 @@
 #if ((CORE == 72) || (CORE == 57))
      // temporarily save a couple of working registers
     stp   x0, x1, [sp, #-16]!
+
+     // disable and re-enable the mmu - this has the side effect
+     // of invalidating BTB
+    mrs   x0, sctlr_el3
+    bic   x1, x0, #SCTLR_M_MASK
+    msr   sctlr_el3, x1
+    isb
+
+     // re-enable the mmu
+    msr   sctlr_el3, x0
+    isb
+
+     // restore the temp working regs
+    ldp  x0, x1, [sp], #16
+#endif
+.endm
+
+//-----------------------------------------------------------------------------
+
+ // this macro isolates EL3 so that there are fewer visible artifacts
+ // between execution levels for speculative execution side channels
+.macro EL3_CkAndIsolate
+#if ((CORE == 72) || (CORE == 57))
+     // temporarily save a couple of working registers
+    stp   x0, x1, [sp, #-16]!
+
+     // provide an extremely fast path for the 
+     // SMCCC_ARCH_WORKAROUND_1 function
+    mov   w1, #ARCH32_WKRND_1_UPPER
+    orr   w1, w1, #ARCH32_WKRND_1_LOWER
+    cmp   w0, w1
+    b.ne  1f
+
+     // fast processing starts here
+
+     // disable and re-enable the mmu - this has the side effect
+     // of invalidating BTB
+    mrs   x0, sctlr_el3
+    bic   x1, x0, #SCTLR_M_MASK
+    msr   sctlr_el3, x1
+    isb
+
+     // re-enable the mmu
+    msr   sctlr_el3, x0
+    isb
+
+     // restore the temp working regs
+    ldp  x0, x1, [sp], #16
+
+    tlbi alle3
+    eret
+
+1:   // normal processing starts here
 
      // disable and re-enable the mmu - this has the side effect
      // of invalidating BTB

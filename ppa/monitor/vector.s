@@ -103,7 +103,7 @@ _el3_vector_base:
 
      // synchronous exceptions
   .align 7
-    EL3_IsolateOnEntry
+    EL3_CkAndIsolate
     b  synch_handler
 
      // IRQ interrupts
@@ -128,7 +128,7 @@ _el3_vector_base:
 
      // synchronous exceptions
   .align 7
-    EL3_IsolateOnEntry
+    EL3_CkAndIsolate
     b  synch_handler
 
      // IRQ interrupts
@@ -230,6 +230,15 @@ a64smc_router:
      //------------------------------------------
 
 a32smc_router:
+#if ((CORE == 72) || (CORE == 57))
+     // provide an extremely fast path for the 
+     // SMCCC_ARCH_WORKAROUND_1 function
+    mov   w1, #ARCH32_WKRND_1_UPPER
+    orr   w1, w1, #ARCH32_WKRND_1_LOWER
+    cmp   w0, w1
+    b.eq  smc_fast_return
+#endif
+
      // test bit [31] - must be '1' for "fast-calls"
     tst   w0, #SMC_FAST_CALL_BIT
     b.eq  _smc_unimplemented
@@ -288,6 +297,23 @@ _smc_exit:
     ldp  x8,  x9,  [sp], #16
     ldp  x6,  x7,  [sp], #16
     ldp  x4,  x5,  [sp], #16
+
+     // perform some isolation tasks on exit
+    EL3_ExitToNS
+
+     // return from exception
+    eret
+
+//-----------------------------------------------------------------------------
+
+ // Note: there is no return value with this fast exit
+smc_fast_return:
+
+     // restore the volatile registers
+     //  access these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    ldp  x2, x3, [sp], #16
+    ldp  x0, x1, [sp], #16
 
      // perform some isolation tasks on exit
     EL3_ExitToNS
