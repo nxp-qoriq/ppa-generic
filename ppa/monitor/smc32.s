@@ -162,6 +162,13 @@ smc32_sip_svc:
     cmp  w10, w11
     b.eq smc32_sip_RNG
 
+#if (DEBUG_BUILD)
+     // SIP service call L1L2_ERR
+    mov  w10, #SIP_L1L2_ERR
+    cmp  w10, w11
+    b.eq smc32_sip_L1L2_ERR_inject
+#endif
+
      // if we are here then we have an unimplemented/unrecognized function
     b    _smc_unimplemented
 
@@ -294,6 +301,22 @@ smc32_sip_RNG:
     cbz  w1, _smc_failure
 2:
     b    _smc_success
+
+     //------------------------------------------
+
+#if (DEBUG_BUILD)
+
+ // this is the 32-bit interface to the SIP_ALLOW_L1L2_ERR_32 function
+ // in:  x0 = function id
+ // out: x0 = SMC_SUCCESS, on success
+ //      x0 = SMC_UNIMPLEMENTED, if function not available
+smc32_sip_L1L2_ERR_inject:
+     // we need to open up access to L2ACTLR, L2Ectlr, and CPUACTLR so that
+     // EL1/EL2 code can access these registers to inject L1/L2 memory errors
+    bl  _allow_L1L2err_inject
+    b   _smc_success
+
+#endif
 
      //------------------------------------------
 

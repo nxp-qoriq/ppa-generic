@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2015-2016, Freescale Semiconductor, Inc. All rights reserved.
-// Copyright 2017 NXP Semiconductor
+// Copyright 2017-2018 NXP Semiconductor
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -66,6 +66,10 @@
 .global _enable_ldstr_pfetch_A72
 .global _disable_ldstr_pfetch_A53
 .global _enable_ldstr_pfetch_A53
+
+#if (DEBUG_BUILD)
+.global _allow_L1L2err_inject
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -1100,6 +1104,33 @@ _zeroize_bss:
     b.lo  1b
 2:
     ret
+
+ //----------------------------------------------------------------------------
+
+#if (DEBUG_BUILD)
+
+ // this function allows EL2/EL1 write access to L2ACTLR, L2ECTLR, CPUACTLR
+ // in:  none
+ // out: none
+ // uses x0, x1
+_allow_L1L2err_inject:
+
+#if ((CORE == 72) || (CORE == 57) || (CORE == 53))
+    mrs x0, actlr_el3
+    mov x1, #(ACTLR_EL3_CPUACTLR | ACTLR_EL3_L2ACTLR | ACTLR_EL3_L2ECTLR)
+    orr x0, x0, x1
+    msr actlr_el3, x0
+
+    mrs x0, actlr_el2
+    mov x1, #(ACTLR_EL2_CPUACTLR | ACTLR_EL2_L2ACTLR | ACTLR_EL2_L2ECTLR)
+    orr x0, x0, x1
+    msr actlr_el2, x0
+
+    isb
+#endif
+
+    ret
+#endif
 
  //----------------------------------------------------------------------------
  //----------------------------------------------------------------------------

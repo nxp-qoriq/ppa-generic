@@ -152,6 +152,13 @@
 #define  SIP_PREFETCH_DISABLE_64 0xC200FF13
 #define  SIP_PREFETCH            (SIP_PREFETCH_DISABLE_64 & SMC_FNUM_MASK)
 
+ // this is the 32-bit interface to the SIP_ALLOW_L1L2_ERR_32 function
+ // in:  x0 = function id
+ // out: x0 = SMC_SUCCESS, on success
+ //      x0 = SMC_UNIMPLEMENTED, if function not available
+#define  SIP_ALLOW_L1L2_ERR_32 0x8200FF15
+#define  SIP_L1L2_ERR          (SIP_ALLOW_L1L2_ERR_32 & SMC_FNUM_MASK)
+
 //-----------------------------------------------------------------------------
 
  // smc arch function id's - these are "fast", non-preemptible functions

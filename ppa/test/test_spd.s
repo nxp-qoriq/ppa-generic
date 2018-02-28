@@ -40,7 +40,6 @@
 #include "soc.h"
 #include "psci.h"
 #include "smc.h"
-#include "aarch64.h"
 
 //-----------------------------------------------------------------------------
 
@@ -54,6 +53,8 @@
 
 .equ  ARCH_FUNCTION_IN_RANGE,   0x8000FF0F
 .equ  ARCH_FUNCTION_OUT_RANGE,  0x89000000
+
+.equ  SPD_DUMMY_FUNCTION,       0x32000000
 
 .equ  REGISTER_x2,   0x00000002
 .equ  REGISTER_x3,   0x00000030
@@ -103,12 +104,6 @@ fail_workaround_1:
     b  .
 
 fail_register_ck:
-    b  .
-
-fail_err_inject_return:
-    b  .
-
-fail_allow_err_inject:
     b  .
 
  //------------------------------------
@@ -164,7 +159,6 @@ test_01:
  //------------------------------------
 
 test_02:
-
      // call the spectre mitigation function
     mov   x0, x30
     bl    load_register
@@ -180,27 +174,22 @@ test_02:
  //------------------------------------
 
 test_03:
-
-     // call the smc_allow_L1L2_err_inject function
+     // call the dummy spd function
     mov   x0, x30
     bl    load_register
     mov   x30, x0
-    ldr   x0, =SIP_ALLOW_L1L2_ERR_32
+    mov   x0, #SPD_DUMMY_FUNCTION
     smc   0x0
     nop
     nop
     nop
-#if (DEBUG_BUILD)
-    cbnz  x0, fail_err_inject_return
-#else
-    cmp   x0, #SMC_UNIMPLEMENTED
-    b.ne  fail_err_inject_return
-#endif
+
     ret
 
  //------------------------------------
 
 load_register:
+
     mov   x4,  #REGISTER_x4
     mov   x5,  #REGISTER_x5
     mov   x6,  #REGISTER_x6

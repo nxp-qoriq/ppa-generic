@@ -87,8 +87,12 @@ _smc_trstd_os_handler:
      // state in x6
     mov  x5, x9
     mov  x6, x10
-    bl   smc_trstd_os_handler
 
+#if ((DEBUG_BUILD) && (PSCI_TEST))
+    b  1f
+#endif
+    bl   smc_trstd_os_handler
+1:
      // Do el3 exit
     b    el3_exit
 

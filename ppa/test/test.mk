@@ -163,6 +163,12 @@ ifeq  ($(test), smc11)
     $(info TEST_FILE is $(TEST_FILE))
 endif
 
+ifeq  ($(test), spd)
+	TEST_PSCI=1
+    TEST_FILE=test_spd.s
+    $(info TEST_FILE is $(TEST_FILE))
+endif
+
 TEST_ASM=$(TEST_FILE)
 
 # -----------------------------------------------------------------------------
