@@ -1115,7 +1115,7 @@ _zeroize_bss:
  // uses x0, x1
 _allow_L1L2err_inject:
 
-#if ((CORE == 72) || (CORE == 57) || (CORE == 53))
+#if (CORE == 53)
     mrs x0, actlr_el3
     mov x1, #(ACTLR_EL3_CPUACTLR | ACTLR_EL3_L2ACTLR | ACTLR_EL3_L2ECTLR)
     orr x0, x0, x1

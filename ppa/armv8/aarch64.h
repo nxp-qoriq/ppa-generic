@@ -199,8 +199,6 @@
 #define MODE32_MASK       0xf
 #define MODE32_hyp        0xa
 
-#if ((CORE == 72) || (CORE == 57) || (core == 53))
-
 #define ACTLR_EL3_CPUACTLR  0x1
 #define ACTLR_EL3_L2ACTLR   0x40
 #define ACTLR_EL3_L2ECTLR   0x20
@@ -208,8 +206,6 @@
 #define ACTLR_EL2_CPUACTLR  0x1
 #define ACTLR_EL2_L2ACTLR   0x40
 #define ACTLR_EL2_L2ECTLR   0x20
-
-#endif
 
 //-----------------------------------------------------------------------------
 
