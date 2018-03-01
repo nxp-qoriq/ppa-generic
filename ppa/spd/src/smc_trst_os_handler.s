@@ -45,7 +45,7 @@
  // This function handles smc calls for trusted os
 _smc_trstd_os_handler:
      // Dummy load from stack
-    ldr  x10, [sp], #16
+    ldr  x10, [sp], #128
 
      // Get core_data_array ptr from tpidr_el3 register
     mrs  x9, tpidr_el3
