@@ -108,6 +108,9 @@ fail_register_ck:
 fail_err_inject_return:
     b  .
 
+fail_err_clear_return:
+    b  .
+
 fail_allow_err_inject:
     b  .
 
@@ -196,6 +199,18 @@ test_03:
     cmp   x0, #SMC_UNIMPLEMENTED
     b.ne  fail_err_inject_return
 #endif
+
+     // call the smc_allow_L2_err_clr function
+    mov   x0, x30
+    bl    load_register
+    mov   x30, x0
+    ldr   x0, =SIP_ALLOW_L2_CLR_32
+    smc   0x0
+    nop
+    nop
+    nop
+    cbnz  x0, fail_err_clear_return
+
     ret
 
  //------------------------------------

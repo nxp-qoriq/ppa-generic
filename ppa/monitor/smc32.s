@@ -169,6 +169,11 @@ smc32_sip_svc:
     b.eq smc32_sip_L1L2_ERR_inject
 #endif
 
+     // SIP service call L1L2_ERR
+    mov  w10, #SIP_L2_CLR
+    cmp  w10, w11
+    b.eq smc32_sip_L2_ERR_clear
+
      // if we are here then we have an unimplemented/unrecognized function
     b    _smc_unimplemented
 
@@ -311,12 +316,24 @@ smc32_sip_RNG:
  // out: x0 = SMC_SUCCESS, on success
  //      x0 = SMC_UNIMPLEMENTED, if function not available
 smc32_sip_L1L2_ERR_inject:
-     // we need to open up access to L2ACTLR, L2Ectlr, and CPUACTLR so that
-     // EL1/EL2 code can access these registers to inject L1/L2 memory errors
+     // we need to open up access to selected EL2/EL3 registers so that
+     // EL1/EL2 code can inject L1/L2 memory errors for testing
     bl  _allow_L1L2err_inject
     b   _smc_success
 
 #endif
+
+     //------------------------------------------
+
+ // this is the 32-bit interface to the SIP_ALLOW_L2_CLR_32 function
+ // in:  x0 = function id
+ // out: x0 = SMC_SUCCESS, on success
+ //      x0 = SMC_UNIMPLEMENTED, if function not available
+smc32_sip_L2_ERR_clear:
+     // we need to open up access to selected EL2/EL3 registers so that
+     // EL1/EL2 code can clear memory errors
+    bl  _allow_L1L2err_clear
+    b   _smc_success
 
      //------------------------------------------
 

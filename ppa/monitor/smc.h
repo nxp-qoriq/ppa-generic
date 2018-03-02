@@ -159,6 +159,13 @@
 #define  SIP_ALLOW_L1L2_ERR_32 0x8200FF15
 #define  SIP_L1L2_ERR          (SIP_ALLOW_L1L2_ERR_32 & SMC_FNUM_MASK)
 
+ // this is the 32-bit interface to the SIP_ALLOW_L2_CLR_32 function
+ // in:  x0 = function id
+ // out: x0 = SMC_SUCCESS, on success
+ //      x0 = SMC_UNIMPLEMENTED, if function not available
+#define  SIP_ALLOW_L2_CLR_32   0x8200FF16
+#define  SIP_L2_CLR            (SIP_ALLOW_L2_CLR_32 & SMC_FNUM_MASK)
+
 //-----------------------------------------------------------------------------
 
  // smc arch function id's - these are "fast", non-preemptible functions

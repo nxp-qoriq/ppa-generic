@@ -66,6 +66,7 @@
 .global _enable_ldstr_pfetch_A72
 .global _disable_ldstr_pfetch_A53
 .global _enable_ldstr_pfetch_A53
+.global _allow_L1L2err_clear
 
 #if (DEBUG_BUILD)
 .global _allow_L1L2err_inject
@@ -1109,7 +1110,8 @@ _zeroize_bss:
 
 #if (DEBUG_BUILD)
 
- // this function allows EL2/EL1 write access to L2ACTLR, L2ECTLR, CPUACTLR
+ // this function allows EL2/EL1 write access to L2ACTLR & CPUACTLR (A53-only)
+ //   for the purpose of injecting L1/L2 memory errors for EDAC drvr testing
  // in:  none
  // out: none
  // uses x0, x1
@@ -1117,12 +1119,12 @@ _allow_L1L2err_inject:
 
 #if (CORE == 53)
     mrs x0, actlr_el3
-    mov x1, #(ACTLR_EL3_CPUACTLR | ACTLR_EL3_L2ACTLR | ACTLR_EL3_L2ECTLR)
+    mov x1, #(ACTLR_EL3_CPUACTLR | ACTLR_EL3_L2ACTLR)
     orr x0, x0, x1
     msr actlr_el3, x0
 
     mrs x0, actlr_el2
-    mov x1, #(ACTLR_EL2_CPUACTLR | ACTLR_EL2_L2ACTLR | ACTLR_EL2_L2ECTLR)
+    mov x1, #(ACTLR_EL2_CPUACTLR | ACTLR_EL2_L2ACTLR)
     orr x0, x0, x1
     msr actlr_el2, x0
 
@@ -1131,6 +1133,31 @@ _allow_L1L2err_inject:
 
     ret
 #endif
+
+ //----------------------------------------------------------------------------
+
+ // this function allows EL2/EL1 write access to L2ECTLR 
+ //   for the purpose of clearing L2 asynch errors
+ // in:  none
+ // out: none
+ // uses x0, x1
+_allow_L1L2err_clear:
+
+#if ((CORE == 53) || (CORE == 57) || (CORE == 72))
+    mrs x0, actlr_el3
+    mov x1, #ACTLR_EL3_L2ECTLR
+    orr x0, x0, x1
+    msr actlr_el3, x0
+
+    mrs x0, actlr_el2
+    mov x1, #ACTLR_EL2_L2ECTLR
+    orr x0, x0, x1
+    msr actlr_el2, x0
+
+    isb
+#endif
+
+    ret
 
  //----------------------------------------------------------------------------
  //----------------------------------------------------------------------------
