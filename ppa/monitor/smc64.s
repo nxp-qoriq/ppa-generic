@@ -236,8 +236,8 @@ smc64_sip_RNG:
     mov  x11, x1
 
      // For NON-E parts return unimplemented
-    bl   _check_sec_disabled
-    cbz  x0, _smc_unimplemented
+    bl    _check_sec_disabled
+    cbnz  x0, _smc_unimplemented
 
      // Restore x1
     mov x1, x11

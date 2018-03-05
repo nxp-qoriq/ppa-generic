@@ -292,16 +292,25 @@ _get_load_addr:
 //-----------------------------------------------------------------------------
 
  // this function checks SVR for sec disabled
- // out: x0  = 0 if SEC disabled
- //      x0 != 0 if SEC enabled
+ // out: x0  = 0 if SEC enabled
+ //      x0 != 0 if SEC disabled
  // uses x0, x1
 _check_sec_disabled:
-    ldr  x1, =DCFG_BASE_ADDR
-    ldr  w0, [x1, #DCFG_SVR_OFFSET]
+    ldr  x0, =DCFG_BASE_ADDR
+    ldr  w1, [x0, #DCFG_SVR_OFFSET]
 
-     // w0 = SVR register
+     // w1 = SVR register
+
+#if (LSCH == 3)
+     // chassis 3 SoC registers are LE
+    mov  w0, w1
+#elif (LSCH == 2)
+     // chassis 2 SoC registers are BE
+    rev  w0, w1
+#endif
+
     and  w0, w0, #SVR_SEC_MASK
-    ret    
+    ret  
 
 //-----------------------------------------------------------------------------
 
