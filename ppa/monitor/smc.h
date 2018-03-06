@@ -152,6 +152,17 @@
 #define  SIP_PREFETCH_DISABLE_64 0xC200FF13
 #define  SIP_PREFETCH            (SIP_PREFETCH_DISABLE_64 & SMC_FNUM_MASK)
 
+ // this is the 32-bit interface to the HUK function
+ // in:  x0 = function id
+ //      x1 = 0, Buffer Physical Address of the request HUK.
+ //      x1 = 1, Size of the HUK
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+ //      x1 = 32-bit PRNG, or hi-order 32-bits of 64-bit PRNG
+ //      x2 = lo-order 32-bits of 64-bit PRNG
+#define  SIP_HW_UNQ_KEY_32 0x8200FF14
+#define  SIP_HW_UNQ_KEY (SIP_HW_UNQ_KEY_32 & SMC_FNUM_MASK)
+
  // this is the 32-bit interface to the SIP_ALLOW_L1L2_ERR_32 function
  // in:  x0 = function id
  // out: x0 = SMC_SUCCESS, on success

@@ -329,11 +329,12 @@ out:
 
 }  // _get_RNG()
 
-unsigned int _get_hw_unq_key(unsigned char *hw_key, unsigned int size)
+unsigned int _get_hw_unq_key(uint64_t hw_key_phy_addr, unsigned int size)
 {
 	int ret = 0;
+        uint8_t *hw_key = (uint8_t*) ptov((phys_addr_t *) hw_key_phy_addr);
+
 	ret = get_hw_unq_key_blob_hw(hw_key, size);
-	if(ret)
-		memset(hw_key, 0xad, size);
+
 	return ret;
 }

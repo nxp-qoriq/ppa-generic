@@ -69,7 +69,7 @@
 .equ  SMC32_TRST_APP2,  0xB1
 
  // function counts
-.equ  SIP32_FUNCTION_COUNT, 0x3
+.equ  SIP32_FUNCTION_COUNT, 0x4
 
 //-----------------------------------------------------------------------------
 
@@ -161,6 +161,11 @@ smc32_sip_svc:
     mov  w10, #SIP_RNG
     cmp  w10, w11
     b.eq smc32_sip_RNG
+
+     // SIP service call HW UNQ Key
+    mov  w10, #SIP_HW_UNQ_KEY
+    cmp  w10, w11
+    b.eq smc32_sip_HW_UNQ_KEY
 
 #if (DEBUG_BUILD)
      // SIP service call L1L2_ERR
@@ -419,6 +424,52 @@ smc32_arch_workaround1:
      // re-enable the mmu
     msr   sctlr_el3, x0
     isb
+
+    b    _smc_success
+
+     //------------------------------------------
+
+ // this is the 32-bit interface to the hw HUK function
+ // in:  x0 = function id
+ //      x1 = TEE OS shared Address for HW Key Buffer
+ //      x2 = Size of the HW key
+ // out: x0 = 0, success
+ //      x0 != 0, failure
+smc32_sip_HW_UNQ_KEY:
+
+     // make sure bits 63:32 in the registers containing input parameters
+     // are zeroed-out (input parameters are in x0-x1)
+    lsl  x0, x0, #32
+    lsl  x1, x1, #32
+    lsl  x2, x2, #32
+    lsr  x0, x0, #32
+    lsr  x1, x1, #32
+    lsr  x2, x2, #32
+
+     // if the SEC block is not present, return unimplemented
+    mov  x3, x1
+    mov  x4, x2
+    bl   _check_sec_disabled
+    cbnz x0, _smc_unimplemented
+
+     // save original function args
+    stp  x3, x4, [sp, #-16]!
+
+    mov  x0, #1
+     // flush dcache
+    bl   _cln_inv_all_dcache
+
+     // Load x0 (physical address of the HUK Buffer)
+     // Load x1 (Size of the HUK)
+     // Restoring to x0,x1 instead of restoring to x1,x2,
+     // so as to be passed as an arguments to _get_hw_unq_key.
+     // Take error exit if size is 0x0
+    ldp  x0, x1, [sp], #16
+    cbz  x1, _smc_failure
+
+     // get the H/W Unique Key
+    bl   _get_hw_unq_key
+    cbnz w0, _smc_failure
 
     b    _smc_success
 

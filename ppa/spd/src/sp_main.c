@@ -38,6 +38,7 @@
 #include "context_mgmt.h"
 #include "lib.h"
 #include "aarch64.h"
+#include "sec_hw_specific.h"
 
  // Global data variables used for SP initialization
 static int oen_list[MAX_ALLOWED_OEN];
@@ -46,12 +47,6 @@ static entry_point_info_t sp_ep_info_list[MAX_ALLOWED_OEN];
 static sp_ctx_t sp_ctx_per_core[CPU_MAX_COUNT];
 static sp_vectors_t *trstd_os_vectors_list[MAX_ALLOWED_OEN];
 extern core_context_t ns_core_context[CPU_MAX_COUNT];
-extern void _cln_inv_all_dcache();
-unsigned int _get_hw_unq_key(unsigned char *hw_key, unsigned int size) __attribute__ ((weak));
-unsigned int _get_hw_unq_key(unsigned char *hw_key, unsigned int size)
-{
-	return 0;
-}
 
  // @brief Get ptr to SP entrypoint info list
  // @retval Ptr to SP entrypoint info list
@@ -185,20 +180,6 @@ void smc_trstd_os_handler(uint32_t smc_fid,
              // Restore el1 secure context
             cm_el1_sysregs_context_restore(NON_SECURE);
             cm_set_next_eret_ctx(NON_SECURE);
-
-            break;
-        case TEESMC_TRSTD_OS_HW_UNQ_KEY_REQ:
-	     // flush dcache
-	    _cln_inv_all_dcache();
-
-             // Get the H/W Unique Key.
-            _get_hw_unq_key((uint8_t*) x1, x2);
-
-             // Get secure context
-            ctx = cm_get_context(SECURE);
-             // Restore el1 secure context
-            cm_el1_sysregs_context_restore(SECURE);
-            cm_set_next_eret_ctx(SECURE);
 
             break;
         default:
