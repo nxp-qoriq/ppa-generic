@@ -72,8 +72,8 @@ fi
 printf "	};\n" >> $1
 printf "\n" >> $1
 printf "	configurations {\n" >> $1
-printf "		default = \"config@1\";\n" >> $1
-printf "		config@1 {\n" >> $1
+printf "		default = \"config-1\";\n" >> $1
+printf "		config-1 {\n" >> $1
 printf "			description = \"PPA Secure firmware\";\n" >> $1
 printf "			firmware = \"firmware@1\";\n" >> $1
 if [[ "$2" = "spd=on" && "$3" = "fuse=on" ]]; then
