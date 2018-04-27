@@ -71,12 +71,6 @@ HDRS_PLAT  =policy.h plat.h
  # add platform-test-specific asm files here
 TEST_ASM =$(TEST_FILE)
 
- # this platform does not yet support OpTee/SPD builds
-ifeq ($(spd), on)
-   # remove this when SPD/OpTee is supported for this board
-  $(error -> OpTee/SPD not yet supported on this board!)
-endif
-
  # add platform-specific source and headers here
 ifeq ($(DDR_BLD), 1)
 
