@@ -764,7 +764,7 @@ _soc_sys_entr_pwrdn:
 
      // enter the cache-only sequence
     mov  x9, #CORE_RESTARTABLE
-    bl   final_shutdown
+    bl   final_pwrdown
     
      // when we are here, the core has come out of wfi and the SoC is back up
 
@@ -796,27 +796,16 @@ _soc_sys_exit_pwrdn:
  // this function turns off the SoC clocks
  // Note: this function is not intended to return, and the only allowable
  //       recovery is POR
- // in:  x0 = core mask lsb
- // out: x0 = 0, success
- //      x0 < 0, failure
- // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x13, x14, x15, x16, x17
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, [x13, x14, x15]
 _soc_sys_off:
-    mov  x10, x30
-
-     // x0 = core mask lsb
-
-     // save DAIF
-    mrs  x2, DAIF
-    mov  x6, x2
-    mov  x1, #DAIF_DATA
-    bl   _setCoreData
-
-     // x6 = DAIF
 
      // mask interrupts at the core
-    ldr  x0, =DAIF_SET_MASK
-    orr  x6, x6, x0
-    msr  DAIF, x6
+    mrs  x1, DAIF
+    mov  x0, #DAIF_SET_MASK
+    orr  x0, x1, x0
+    msr  DAIF, x0
 
      // disable icache, dcache, mmu @ EL1
     mov  x1, #SCTLR_I_C_M_MASK
@@ -831,10 +820,6 @@ _soc_sys_off:
     orr x1, x1, #SCTLR_I_MASK      
     msr SCTLR_EL3, x1 
     isb
-
-     // clean and invalidate all levels of dcache
-    mov x0, #1
-    bl  _cln_inv_all_dcache
 
      // set WFIL2_EN in SCFG_COREPMCR
     ldr  x0, =SCFG_COREPMCR_OFFSET
@@ -1074,18 +1059,16 @@ _soc_sys_off:
      // x6 = DEVDISR5 override mask
      // x7 = [soc_data_area]
 
-     // save DEVDISR1 and load new value
+     // DEVDISR1 - load new value
     mov  x0, #DCFG_DEVDISR1_OFFSET
     bl   read_reg_dcfg
-    mov  w13, w0
     mov  x0, #DCFG_DEVDISR1_OFFSET
     ldr  x1, =DEVDISR1_VALUE
     bl   write_reg_dcfg
 
-     // save DEVDISR2 and load new value
+     // DEVDISR2 - load new value
     mov  x0, #DCFG_DEVDISR2_OFFSET
     bl   read_reg_dcfg
-    mov  w14, w0
     mov  x0, #DCFG_DEVDISR2_OFFSET
     ldr  x1, =DEVDISR2_VALUE
     bic  x1, x1, x5
@@ -1094,26 +1077,23 @@ _soc_sys_off:
      // x6 = DEVDISR5 override mask
      // x7 = [soc_data_area]
 
-     // save DEVDISR3 and load new value
+     // DEVDISR3 - load new value
     mov  x0, #DCFG_DEVDISR3_OFFSET
     bl   read_reg_dcfg
-    mov  w15, w0
     mov  x0, #DCFG_DEVDISR3_OFFSET
     ldr  x1, =DEVDISR3_VALUE
     bl   write_reg_dcfg
 
-     // save DEVDISR4 and load new value
+     // DEVDISR4 - load new value
     mov  x0, #DCFG_DEVDISR4_OFFSET
     bl   read_reg_dcfg
-    mov  w16, w0
     mov  x0, #DCFG_DEVDISR4_OFFSET
     ldr  x1, =DEVDISR4_VALUE
     bl   write_reg_dcfg
 
-     // save DEVDISR5 and load new value
+     // DEVDISR5 - load new value
     mov  x0, #DCFG_DEVDISR5_OFFSET
     bl   read_reg_dcfg
-    mov  w17, w0
     mov  x0, #DCFG_DEVDISR5_OFFSET
     ldr  x1, =DEVDISR5_VALUE
     bic  x1, x1, x6
@@ -1121,9 +1101,8 @@ _soc_sys_off:
 
      // x7 = [soc_data_area]
 
-     // save cpuactlr and disable data prefetch
+     // disable data prefetch
     mrs  x0, CPUACTLR_EL1
-    str  w0, [x7, #CPUACTLR_DATA_OFFSET]
     bic  x0, x0, #CPUACTLR_L1PCTL_MASK
     msr  CPUACTLR_EL1, x0
 
@@ -1150,21 +1129,10 @@ _soc_sys_off:
      // x6  = DDR_CNTRL_BASE_ADDR
      // x7  = DCSR_RCPM2_BASE
      // x8  = DCFG_BASE_ADDR
-     // w13 = DEVDISR1 saved value
-     // w14 = DEVDISR2 saved value
-     // w15 = DEVDISR3 saved value
-     // w16 = DEVDISR4 saved value
-     // w17 = DEVDISR5 saved value
 
-     // enter the cache-only sequence
-    mov  x9, #CORE_NOT_RESTARTABLE
-    bl   final_shutdown
+     // enter the cache-only sequence - there is no return
+    b    final_shutdown
     
-     // execution should not return to here
-
-    mov  x30, x10
-    ret
-
 //-----------------------------------------------------------------------------
 
  // this function resets the system via SoC-specific methods
@@ -2156,7 +2124,7 @@ _getGICC_BaseAddr:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
- // this function will shutdown ddr and the final core - it will do this
+ // this function will pwrdown ddr and the final core - it will do this
  // by loading itself into the icache and then executing from there
  // in:  x5  = ipstpcr4 (IPSTPCR4_VALUE bic DEVDISR5_MASK)
  //      x6  = DDR_CNTRL_BASE_ADDR
@@ -2174,7 +2142,7 @@ _getGICC_BaseAddr:
 
  // 4Kb aligned
 .align 12
-final_shutdown:
+final_pwrdown:
 
     mov  x0, xzr
     b    touch_line_0
@@ -2282,6 +2250,61 @@ continue_restart:
     ret
 
 //-----------------------------------------------------------------------------
+
+ // Note: there is no return from this function
+ // this function will shutdown ddr and the final core - it will do this
+ // by loading itself into the icache and then executing from there
+ // in:  x5  = ipstpcr4 (IPSTPCR4_VALUE bic DEVDISR5_MASK)
+ //      x6  = DDR_CNTRL_BASE_ADDR
+ //      x7  = DCSR_RCPM2_BASE
+ //      x8  = DCFG_BASE_ADDR
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x13, x14, x15, x16, x17
+
+ // 4Kb aligned
+.align 12
+final_shutdown:
+
+    mov  x0, xzr
+    b    touch_line0
+start_line0:
+    mov  x0, #1
+    mov  x2, #DDR_SDRAM_CFG_2_FRCSR         // put ddr in self refresh - start
+    ldr  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]
+    rev  w4, w3
+    orr  w4, w4, w2
+    rev  w3, w4
+    str  w3, [x6, #DDR_SDRAM_CFG_2_OFFSET]  // put ddr in self refresh - end
+    orr  w3, w5, #DEVDISR5_MEM              // quiesce ddr clocks - start
+    rev  w4, w3
+    str  w4, [x7, #RCPM2_IPSTPCR4_OFFSET]   // quiesce ddr clocks - end
+
+    mov  w3, #DEVDISR5_MEM
+    rev  w3, w3                             // polling mask
+    mov  x2, #DDR_SLEEP_RETRY_CNT           // poll on ipstpack4 - start
+touch_line0:
+    cbz  x0, touch_line1
+
+start_line1:
+    ldr  w1, [x7, #RCPM2_IPSTPACKR4_OFFSET]
+    tst  w1, w3
+    b.ne 1f
+    subs x2, x2, #1
+    b.gt start_line1                       // poll on ipstpack4 - end
+    nop
+    nop
+    nop
+    nop
+1:
+    str  w4, [x8, #DCFG_DEVDISR5_OFFSET]    // disable ddr cntrlr clk in devdisr5
+5:
+    wfi                                     // stop the final core
+    b    5b                                 // stay here until POR
+    nop
+    nop
+    nop
+touch_line1:
+    cbz  x0, start_line0
 
 //-----------------------------------------------------------------------------
 

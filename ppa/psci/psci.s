@@ -1132,23 +1132,11 @@ smc32_psci_cpu_off:
 //-----------------------------------------------------------------------------
 
 smc32_psci_system_off:
-     // see if the soc-specific module supports this op
-    ldr  x7, =SOC_SYSTEM_OFF
-    cbz  x7, psci_unimplemented
 
-     // if this is not the last active core of the system, return with error
-    bl   core_on_cnt_sys
-    cmp  x0, #1
-    b.gt  psci_invalid
-
-    bl    _get_current_mask
-
-     // x0 = core mask
-
+     // system off is mandatory
      // system off is soc-specific
-     // Note: we do not expect to return from this call
-    bl   _soc_sys_off
-    b    psci_completed
+     // Note: under no circumstances do we return from this call
+    b    _soc_sys_off
 
 //-----------------------------------------------------------------------------
 

@@ -410,13 +410,54 @@ _soc_sys_exit_pwrdn:
  // this function turns off the SoC clocks
  // Note: this function is not intended to return, and the only allowable
  //       recovery is POR
- // in:  x0 = core mask lsb
- // out: x0 = 0, success
- //      x0 < 0, failure
- // uses 
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7, x8, x9
 _soc_sys_off:
 
-    ret
+     // mask interrupts at the core
+    mrs  x1, DAIF
+    mov  x0, #DAIF_SET_MASK
+    orr  x0, x1, x0
+    msr  DAIF, x0
+
+     // disable icache, dcache, mmu @ EL1
+    mov  x1, #SCTLR_I_C_M_MASK
+    mrs  x0, sctlr_el1
+    bic  x0, x0, x1
+    msr  sctlr_el1, x0
+
+     // disable dcache for EL3
+    mrs x1, SCTLR_EL3
+    bic x1, x1, #SCTLR_C_MASK
+     // make sure icache is enabled
+    orr x1, x1, #SCTLR_I_MASK
+    msr SCTLR_EL3, x1
+    isb
+
+     // enable dynamic retention control (CPUECTLR[2:0]) and SMP (CPUECTLR[6])
+    mrs  x0, CPUECTLR_EL1
+    orr  x0, x0, #CPUECTLR_TIMER_8TICKS
+    orr  x0, x0, #CPUECTLR_SMPEN_EN
+    msr  CPUECTLR_EL1, x0
+
+     // set WFIL2EN in SCFG_CLUSTERPMCR
+    ldr  x0, =SCFG_COREPMCR_OFFSET
+    ldr  x1, =COREPMCR_WFIL2EN
+    bl   write_reg_scfg
+
+     // request LPM20
+    mov  x0, #RCPM_POWMGTCSR_OFFSET
+    bl   read_reg_rcpm
+    orr  x1, x0, #RCPM_POWMGTCSR_LPM20_REQ
+    mov  x0, #RCPM_POWMGTCSR_OFFSET
+    bl   write_reg_rcpm
+
+    dsb  sy
+    isb
+1:
+    wfi
+    b    1b
 
 //-----------------------------------------------------------------------------
 

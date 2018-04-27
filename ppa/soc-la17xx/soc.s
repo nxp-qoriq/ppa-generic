@@ -746,13 +746,20 @@ _soc_sys_exit_pwrdn:
  // this function turns off the SoC clocks
  // Note: this function is not intended to return, and the only allowable
  //       recovery is POR
- // in:  x0 = core mask lsb
- // out: x0 = 0, success
- //      x0 < 0, failure
- // uses 
+ // in:  none
+ // out: none
+ // uses x0, x1
 _soc_sys_off:
 
-    ret
+     // mask interrupts at the core
+    mrs  x1, DAIF
+    mov  x0, #DAIF_SET_MASK
+    orr  x0, x1, x0
+    msr  DAIF, x0
+
+1:
+    wfi
+    b  1b
 
 //-----------------------------------------------------------------------------
 

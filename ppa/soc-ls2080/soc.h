@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2015-2016, Freescale Semiconductor, Inc.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -48,7 +48,7 @@
 #define SOC_CLUSTER_PWR_DWN   0x0  
 #define SOC_SYSTEM_STANDBY    0x0
 #define SOC_SYSTEM_PWR_DWN    0x0 
-#define SOC_SYSTEM_OFF        0x0 
+#define SOC_SYSTEM_OFF        0x1 
 #define SOC_SYSTEM_RESET      0x1 
 
 #define GICR_RD_BASE_ADDR   0x06100000

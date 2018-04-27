@@ -1045,13 +1045,99 @@ _soc_sys_exit_pwrdn:
  // this function turns off the SoC clocks
  // Note: this function is not intended to return, and the only allowable
  //       recovery is POR
- // in:  x0 = core mask lsb
- // out: x0 = 0, success
- //      x0 < 0, failure
- // uses 
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3
 _soc_sys_off:
 
-    ret
+     // A-009810: LPM20 entry sequence might cause
+     // spurious timeout reset request
+     // workaround: MASK RESET REQ RPTOE
+    ldr  x0, =RESET_BASE_ADDR
+    ldr  w1, =RSTRQMR_RPTOE_MASK
+    str  w1, [x0, #RST_RSTRQMR1_OFFSET]
+
+     // disable SEC, QBman spi and qspi
+    ldr  x2, =DCFG_BASE_ADDR
+    ldr  x0, =DCFG_DEVDISR1_OFFSET
+    ldr  w1, =DCFG_DEVDISR1_SEC
+    str  w1, [x2, x0]
+    ldr  x0, =DCFG_DEVDISR3_OFFSET
+    ldr  w1, =DCFG_DEVDISR3_QBMAIN
+    str  w1, [x2, x0]
+    ldr  x0, =DCFG_DEVDISR4_OFFSET
+    ldr  w1, =DCFG_DEVDISR4_SPI_QSPI
+    str  w1, [x2, x0]
+
+     // set TPMWAKEMR0
+    ldr  x0, =TPMWAKEMR0_ADDR
+    mov  w1, #0x1
+    str  w1, [x0]
+
+     // disable icache, dcache, mmu @ EL1
+    mov  x1, #SCTLR_I_C_M_MASK
+    mrs  x0, sctlr_el1
+    bic  x0, x0, x1
+    msr  sctlr_el1, x0
+
+     // disable L2 prefetches
+    mrs  x0, CPUECTLR_EL1
+    orr  x0, x0, #CPUECTLR_SMPEN_EN
+    orr  x0, x0, #CPUECTLR_TIMER_8TICKS
+    msr  CPUECTLR_EL1, x0
+    dsb  sy
+    isb
+
+     // disable CCN snoop domain
+    ldr  x0, =CCI_400_BASE_ADDR
+    mov  w1, #0x1
+    str  w1, [x0]
+
+    mov  x2, #DAIF_SET_MASK
+
+    mrs  x1, spsr_el1
+    orr  x1, x1, x2
+    msr  spsr_el1, x1
+
+    mrs  x1, spsr_el2
+    orr  x1, x1, x2
+    msr  spsr_el2, x1
+
+    mov  x3, #PMU_BASE_ADDR
+
+     // x3 = pmu base addr
+
+     // idle the ACP interfaces
+    mov  w1, #PMU_IDLE_CLUSTER_MASK
+    str  w1, [x3, #PMU_CLAINACTSETR_OFFSET]
+
+     // force the debug interface to be quiescent
+    mrs  x0, osdlr_el1
+    orr  x0, x0, #0x1
+    msr  osdlr_el1, x0
+
+     // x3 = pmu base addr
+
+     // clear flush request and status
+    ldr  x0, =PMU_CLSL2FLUSHCLRR_OFFSET
+    mov  w1, #PMU_FLUSH_CLUSTER_MASK
+    str  w1, [x3, x0]
+
+     // x3 = pmu base addr
+
+     // close the Skyros master port
+    ldr  x0, =PMU_CLSINACTSETR_OFFSET
+    mov  w1, #PMU_FLUSH_CLUSTER_MASK
+    str  w1, [x3, x0]
+
+     // request lpm20
+    ldr  x0, =PMU_POWMGTCSR_OFFSET
+    ldr  w1, =PMU_POWMGTCSR_VAL
+    str  w1, [x3, x0]
+
+1:
+    wfi
+    b  1b
 
 //-----------------------------------------------------------------------------
 

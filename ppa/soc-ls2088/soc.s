@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2015-2016 Freescale Semiconductor, Inc.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -1075,13 +1075,120 @@ _soc_sys_exit_pwrdn:
  // this function turns off the SoC clocks
  // Note: this function is not intended to return, and the only allowable
  //       recovery is POR
- // in:  x0 = core mask lsb
- // out: x0 = 0, success
- //      x0 < 0, failure
- // uses 
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3
 _soc_sys_off:
 
-    ret
+     // A-009810: LPM20 entry sequence might cause
+     // spurious timeout reset request
+     // workaround: MASK RESET REQ RPTOE
+    ldr  x0, =RESET_BASE_ADDR
+    ldr  w1, =RSTRQMR_RPTOE_MASK
+    str  w1, [x0, #RST_RSTRQMR1_OFFSET]
+
+     // disable sec, QBman, spi and qspi
+    ldr  x2, =DCFG_BASE_ADDR
+    ldr  x0, =DCFG_DEVDISR1_OFFSET
+    ldr  w1, =DCFG_DEVDISR1_SEC
+    str  w1, [x2, x0]
+    ldr  x0, =DCFG_DEVDISR3_OFFSET
+    ldr  w1, =DCFG_DEVDISR3_QBMAIN
+    str  w1, [x2, x0]
+    ldr  x0, =DCFG_DEVDISR4_OFFSET
+    ldr  w1, =DCFG_DEVDISR4_SPI_QSPI
+    str  w1, [x2, x0]
+
+     // set TPMWAKEMR0
+    ldr  x0, =TPMWAKEMR0_ADDR
+    mov  w1, #0x1
+    str  w1, [x0]
+
+     // disable icache, dcache, mmu @ EL1
+    mov  x1, #SCTLR_I_C_M_MASK
+    mrs  x0, sctlr_el1
+    bic  x0, x0, x1
+    msr  sctlr_el1, x0
+
+     // disable L2 prefetches
+    mrs  x0, CPUECTLR_EL1
+    orr  x0, x0, #CPUECTLR_SMPEN_EN
+    orr  x0, x0, #CPUECTLR_TIMER_8TICKS
+    msr  CPUECTLR_EL1, x0
+    isb
+
+     // disable CCN snoop domain
+    mov  x1, #CCI_HN_F_0_BASE
+    ldr  x0, =CCN_HN_F_SNP_DMN_CTL_MASK
+    str  x0, [x1, #CCN_HN_F_SNP_DMN_CTL_CLR_OFFSET]
+
+    mov  x1, #CCI_HN_F_0_BASE
+3:
+    ldr  w1, [x1, #CCN_HN_F_SNP_DMN_CTL_OFFSET]
+    cmp  w1, #0x2
+    b.ne 3b
+
+    mov  x3, #PMU_BASE_ADDR
+
+     // x3 = pmu base addr
+
+4:
+    ldr  w1, [x3, #PMU_PCPW20SR_OFFSET]
+    cmp  w1, #PMU_IDLE_CORE_MASK
+    b.ne 4b
+
+	mov  w1, #PMU_IDLE_CLUSTER_MASK
+    str  w1, [x3, #PMU_CLAINACTSETR_OFFSET]
+
+1:
+    ldr  w1, [x3, #PMU_PCPW20SR_OFFSET]
+    cmp  w1, #PMU_IDLE_CORE_MASK
+    b.ne 1b
+
+	mov  w1, #PMU_FLUSH_CLUSTER_MASK
+    str  w1, [x3, #PMU_CLL2FLUSHSETR_OFFSET]
+
+2:
+    ldr  w1, [x3, #PMU_CLL2FLUSHSR_OFFSET]
+    cmp  w1, #PMU_FLUSH_CLUSTER_MASK
+    b.ne 2b
+
+	mov  w1, #PMU_FLUSH_CLUSTER_MASK
+    str  w1, [x3, #PMU_CLSL2FLUSHCLRR_OFFSET]
+
+	mov  w1, #PMU_FLUSH_CLUSTER_MASK
+    str  w1, [x3, #PMU_CLSINACTSETR_OFFSET]
+
+    mov  x2, #DAIF_SET_MASK
+    mrs  x1, spsr_el1
+    orr  x1, x1, x2
+    msr  spsr_el1, x1
+
+    mrs  x1, spsr_el2
+    orr  x1, x1, x2
+    msr  spsr_el2, x1
+
+     // force the debug interface to be quiescent
+    mrs  x0, osdlr_el1
+    orr  x0, x0, #0x1
+    msr  osdlr_el1, x0
+
+     // invalidate all TLB entries at all 3 exception levels
+    tlbi alle1
+    tlbi alle2
+    tlbi alle3
+
+     // x3 = pmu base addr
+
+     // request lpm20
+    ldr  x0, =PMU_POWMGTCSR_OFFSET
+    ldr  w1, =PMU_POWMGTCSR_VAL
+    str  w1, [x3, x0]
+
+    ldr  x3, =EPU_BASE_ADDR
+5:
+    wfe
+    b.eq  5b
 
 //-----------------------------------------------------------------------------
 

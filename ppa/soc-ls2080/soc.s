@@ -526,13 +526,129 @@ _soc_sys_exit_pwrdn:
  // this function turns off the SoC clocks
  // Note: this function is not intended to return, and the only allowable
  //       recovery is POR
- // in:  x0 = core mask lsb
- // out: x0 = 0, success
- //      x0 < 0, failure
- // uses 
+ // in:  none
+ // out: none
+ // uses x0, x1, x2, x3, x4, x5, x6, x7
 _soc_sys_off:
 
-    ret
+     // mask interrupts by setting DAIF[7:4] to 'b1111
+    mrs  x1, DAIF
+    ldr  x2, =DAIF_SET_MASK
+    orr  x1, x1, x2
+    msr  DAIF, x1 
+
+     // x0 = core mask lsb
+
+     // set smp and disable L2 snoops in cpuectlr
+    mrs  x3, CPUECTLR_EL1
+    orr  x3, x3, #CPUECTLR_SMPEN_EN
+    orr  x3, x3, #CPUECTLR_DISABLE_TWALK_PREFETCH
+    bic  x3, x3, #CPUECTLR_INS_PREFETCH_MASK
+    bic  x3, x3, #CPUECTLR_DAT_PREFETCH_MASK
+    msr  CPUECTLR_EL1, x3
+    isb
+    
+     // disable dcache, mmu, and icache for EL1 and EL2 by clearing
+     // bits 0, 2, and 12 of SCTLR_EL1 and SCTLR_EL2 (MMU, dcache, icache)
+    ldr x2, =SCTLR_I_C_M_MASK
+    mrs x1, SCTLR_EL1
+    bic x1, x1, x2
+    msr SCTLR_EL1, x1 
+
+    mrs x1, SCTLR_EL2
+    bic x1, x1, x2
+    msr SCTLR_EL2, x1 
+
+     // disable only dcache for EL3 by clearing SCTLR_EL3[2] 
+    mrs x1, SCTLR_EL3
+    ldr x2, =SCTLR_C_MASK
+    bic x1, x1, x2      
+    msr SCTLR_EL3, x1 
+    isb
+
+     // x0 = core mask lsb
+    mov  x7, x0
+
+     // x7 = core mask lsb
+
+     // get redistributor rd base addr for this core
+    mov  x0, x7
+    bl   _get_gic_rd_base
+    mov  x6, x0
+
+     // get redistributor sgi base addr for this core
+    mov  x0, x7
+    bl   _get_gic_sgi_base
+    mov  x5, x0
+
+     // x5 = gicr sgi base addr
+     // x6 = gicr rd  base addr
+
+     // disable SGI 15 at redistributor - GICR_ICENABLER0
+    mov  w3, #GICR_ICENABLER0_SGI15
+    str  w3, [x5, #GICR_ICENABLER0_OFFSET]
+2:
+     // poll on rwp bit in GICR_CTLR
+    ldr  w4, [x6, #GICR_CTLR_OFFSET]
+    tst  w4, #GICR_CTLR_RWP_MASK
+    b.ne 2b
+
+     // disable GRP1 interrupts at cpu interface
+    msr  ICC_IGRPEN1_EL3, xzr
+
+     // disable GRP0 ints at cpu interface
+    msr  ICC_IGRPEN0_EL1, xzr
+
+     // quiesce the debug interfaces
+    mrs  x3, osdlr_el1
+    orr  x3, x3, #OSDLR_EL1_DLK_LOCK
+    msr  osdlr_el1, x3
+    isb
+
+     // x5 = gicr sgi base addr
+
+     // clear any pending interrupts
+    mvn  w1, wzr
+    str  w1, [x5, #GICR_ICPENDR0_OFFSET]
+
+     // disable EL3 icache
+    mrs  x1, SCTLR_EL3
+    bic  x1, x1, #SCTLR_I_MASK     
+    msr  SCTLR_EL3, x1 
+
+     // invalidate tlbs
+    tlbi alle1
+    tlbi alle2
+    tlbi alle3
+
+     // invalidate icache
+    ic iallu
+    isb
+
+     // make sure system counter is enabled
+    ldr  x3, =TIMER_BASE_ADDR
+    ldr  w0, [x3, #SYS_COUNTER_CNTCR_OFFSET]
+    tst  w0, #SYS_COUNTER_CNTCR_EN
+    b.ne 3f
+    orr  w0, w0, #SYS_COUNTER_CNTCR_EN
+    str  w0, [x3, #SYS_COUNTER_CNTCR_OFFSET]
+3:
+     // enable the core timer and mask timer interrupt
+    mov  x1, #CNTP_CTL_EL0_EN
+    orr  x1, x1, #CNTP_CTL_EL0_IMASK
+    msr  cntp_ctl_el0, x1
+
+     // set retention control in cpuectlr
+    mrs  x1, CPUECTLR_EL1
+    bic  x1, x1, #CPUECTLR_TIMER_MASK
+    orr  x1, x1, #CPUECTLR_TIMER_8TICKS
+    msr  CPUECTLR_EL1, x1
+    isb
+
+1:
+     // enter low-power state by executing wfi
+    wfi
+    b    1b
 
 //-----------------------------------------------------------------------------
 
