@@ -84,6 +84,7 @@ _test_psci:
     nop
     nop
 
+#if 0
 1:
      // test AFFINITY_INFO of core 1
      // x0 = function id = 0xC4000004
@@ -100,6 +101,7 @@ _test_psci:
     ldr  x1, =AFFINITY_LEVEL_ON
     cmp  x0, x1
     b.ne 1b
+#endif
 
 2:
      // test AFFINITY_INFO of core 1

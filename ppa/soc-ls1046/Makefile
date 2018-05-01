@@ -126,8 +126,12 @@ endif
 
 # -----------------------------------------------------------------------------
 
- # include the basic SoC architecture
+ # include the SoC architecture
+ifeq ($(personality), base)
 include $(PRE_PATH)soc.def
+else
+include $(PRE_PATH)soc$(personality).def
+endif
 
 # -----------------------------------------------------------------------------
 

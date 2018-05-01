@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # 
 # Copyright (C) 2015-2017 Freescale Semiconductor, Inc.
-# Copyright 2017 NXP Semiconductors
+# Copyright 2017-2018 NXP Semiconductors
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -101,8 +101,12 @@ endif
 
 # -----------------------------------------------------------------------------
 
- # include the basic SoC architecture
+ # include the SoC architecture
+ifeq ($(personality), base)
 include $(PRE_PATH)soc.def
+else
+include $(PRE_PATH)soc$(personality).def
+endif
 
 # -----------------------------------------------------------------------------
 

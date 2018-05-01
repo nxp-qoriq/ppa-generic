@@ -41,6 +41,8 @@ delimit=" "
 
  # initialize device and target lists --
 device_list="ls1012 ls1028 ls1043 ls1046 ls1088 ls2080 ls2088 la1575 la17xx lx2160 all"
+personalities="ls1046ls1026 ls1043ls1023"
+persona=""
 device_found="none"
 
 target_list="clean rdb rdb-fit qds qds-fit sim generic generic-fit frdm frdm-fit emu emu-fit frwy frwy-fit"
@@ -50,7 +52,7 @@ spd=on spd=off data_in_ddr data_in_ddr=on data_in_ddr=off sd sd=on sd=off \
 plat=rdb plat=qds fuse fuse=on fuse=off"
 
 option_test="smp_boot hotplug suspend off_abort aarch32 cpu_errata speed_boot \
-sd pre_disa53 pre_disa72 smc11 spd"
+sd pre_disa53 pre_disa72 smc11 spd sys_off"
 
  # these options are restricted to development builds only
 option_rest="uart uart=on uart=off"
@@ -428,8 +430,18 @@ until [ "$1" = "" ]; do
         done
 
         if [ "$known_device" == "false" ]; then
-            echo Error: unknown device specified \("$1"\)
-            exit 1
+             # perhaps this is a "personality"
+            for personality in $personalities ; do
+                if [ "$tmp1" == "${personality:6}" ]; then
+                    known_device="true"
+                    shift 1
+                fi
+            done
+
+            if [ "$known_device" == "false" ]; then
+                echo Error: unknown device specified \("$1"\)
+                exit 1
+            fi
         else
             shift 1
         fi
@@ -447,192 +459,220 @@ tools_built="false"
 until [ "$1" = "" ]; do
     tmp1="$(echo $1 | tr '[A-Z]' '[a-z]')"
 
+    known_device="false"
     for device in $device_list ; do
         if [ "$tmp1" == "$device" ]; then
-
-            if [ "$cmd_target" == "clean" ]; then
-                target="$cmd_target"
-            else
-                 # reset the configuration input values
-                cleanSlate
-
-                 # see if there is a soc-level config file
-                cfg_soc="./soc-$device/sec_config.txt"
-                if [ -e "$cfg_soc" ]; then
-
-                     # parse the config file
-                    getInputs "$cfg_soc"
-
-                     # Note: device parameter in soc-level
-                     #       config is ignored
-
-                     # save the soc-level config values
-                    soc_bld_mode="$cfg_bld_mode"
-                    soc_target="$cfg_target"
-                    soc_make_opts="$cfg_make_opts"
-                    soc_bld_opts="$cfg_bld_opts"
-                    soc_test_opt="$cfg_test_opt"
-                fi
-
-                 # determine the target
-                if [ "$cmd_target" != "" ]; then
-                    target="$cmd_target"
-                else
-                    if [ "$soc_target" != "" ]; then
-                        target="$soc_target"
-                    else
-                        target="$glbl_target"
-                    fi
-                fi
-                 # make sure we have a target
-                if [ "$target" == "" ]; then
-                    echo Error: target not specified \(rdb, qds, etc\)
-                    exit 1
-                fi
-            fi
-
-            if [ "$target" == "clean" ]; then
-                action=cleaning
-
-                if [ "$tools_cleaned" == "false" ]; then
-	                cd ./tools
-	                make clean >> ../bldlog.txt
-	                cd - >> ../bldlog.txt
-                    tools_cleaned="true"
-                fi
-
-                 # change into the soc directory
-                cd soc-$device
-
-                echo $action soc-$device
-                make -j24 $target >> ../bldlog.txt
-            else
-                action=building
-
-                 # see if there is a platform-level config file
-                targ_name="${target/"-fit"}"
-                cfg_plat="./soc-$device/platform-$targ_name/sec_config.txt"
-                if [ -e "$cfg_plat" ]; then
-
-                     # parse the config file
-                    getInputs "$cfg_plat"
-
-                     # Note: device and target parameters in platform-level
-                     #       config are ignored
-
-                     # save the platform-level config values
-                    plat_bld_mode="$cfg_bld_mode"
-                    plat_make_opts="$cfg_make_opts"
-                    plat_bld_opts="$cfg_bld_opts"
-                    plat_test_opt="$cfg_test_opt"
-                fi
-
-                 # the order of precedence for args is:
-                 #   (1) cmd-line
-                 #   (2) platform config file
-                 #   (3) soc config file
-                 #   (4) global config file
-                 # apply the args in that order:
-
-                 # first, apply the cmd-line args
-                bld_mode="$cmd_bld_mode"
-                bld_opts="$cmd_bld_opts"
-                make_opts="$cmd_make_opts"
-                test_opt="$cmd_test_opt"
-
-                if [ "$bld_mode" == "" ]; then
-                    if [ "$plat_bld_mode" != "" ]; then
-                        bld_mode="$plat_bld_mode"
-                    else
-                        if [ "$soc_bld_mode" != "" ]; then
-                            bld_mode="$soc_bld_mode"
-                        else
-                            if [ "$glbl_bld_mode" != "" ]; then
-                                bld_mode="$glbl_bld_mode"
-                            fi
-                        fi
-                    fi
-                fi
-
-                if [ "$bld_opts" == "" ]; then
-                    if [ "$plat_bld_opts" != "" ]; then
-                        bld_opts="$plat_bld_opts"
-                    else
-                        if [ "$soc_bld_opts" != "" ]; then
-                            bld_opts="$soc_bld_opts"
-                        else
-                            if [ "$glbl_bld_opts" != "" ]; then
-                                bld_opts="$glbl_bld_opts"
-                            fi
-                        fi
-                    fi
-                fi
-
-                if [ "$make_opts" == "" ]; then
-                    if [ "$plat_make_opts" != "" ]; then
-                        make_opts="$plat_make_opts"
-                    else
-                        if [ "$soc_make_opts" != "" ]; then
-                            make_opts="$soc_make_opts"
-                        else
-                            if [ "$glbl_make_opts" != "" ]; then
-                                make_opts="$glbl_make_opts"
-                            fi
-                        fi
-                    fi
-                fi
-
-                if [ "$test_opt" == "" ]; then
-                    if [ "$plat_test_opt" != "" ]; then
-                        test_opt="$plat_test_opt"
-                    else
-                        if [ "$soc_test_opt" != "" ]; then
-                            test_opt="$soc_test_opt"
-                        else
-                            if [ "$glbl_test_opt" != "" ]; then
-                                test_opt="$glbl_test_opt"
-                            fi
-                        fi
-                    fi
-                fi
-
-                if [ "$bld_mode" == "dev" ]; then
-                    bld_mode=development
-                fi
-                if [ "$bld_mode" != "development" ]; then
-                    bld_mode=production
-                     # remove restricted options
-                    bld_opts=${bld_opts/" uart=on"}
-                    bld_opts=${bld_opts/" uart=off"}
-                    bld_opts=${bld_opts/" uart"}
-                    make_opts=${make_opts/" uart=on"}
-                    make_opts=${make_opts/" uart=off"}
-                else
-                    bld_opts=${bld_opts/" uart=off"}
-                    make_opts=${make_opts/" uart=off"}
-                fi
-
-                if [ "$tools_built" == "false" ]; then
-	                cd ./tools
-	                make -j24  >> ../bldlog.txt
-	                cd - >> ../bldlog.txt
-                    tools_built="true"
-                fi
-
-                 # change into the soc directory
-                cd soc-$device
-
-                echo $action $bld_mode $target [$bld_opts $test_opt ] $device
-                #echo $action $bld_mode $target [$make_opts $test_opt ] $device
-                echo >> ../bldlog.txt
-                echo $action $bld_mode $target [$make_opts $test_opt ] $device >> ../bldlog.txt
-
-                make -j24 $target $make_opts $test_opt >> ../bldlog.txt
-            fi
-            cd ..
+            known_device="true"
+            persona="base"
             break
         fi
     done
+
+    if [ "$known_device" == "false" ]; then
+         # perhaps this is a "personality"
+        for tmp2 in $personalities ; do
+            if [ "$tmp1" == "${tmp2:6}" ]; then
+                known_device="true"
+                persona=${tmp2:6}
+                device=${tmp2:0:6}
+            fi
+        done
+    fi
+
+    if [ "$cmd_target" == "clean" ]; then
+        target="$cmd_target"
+    else
+         # reset the configuration input values
+        cleanSlate
+
+         # see if there is a soc-level config file
+        cfg_soc="./soc-$device/sec_config.txt"
+        if [ -e "$cfg_soc" ]; then
+
+             # parse the config file
+            getInputs "$cfg_soc"
+
+             # Note: device parameter in soc-level
+             #       config is ignored
+
+             # save the soc-level config values
+            soc_bld_mode="$cfg_bld_mode"
+            soc_target="$cfg_target"
+            soc_make_opts="$cfg_make_opts"
+            soc_bld_opts="$cfg_bld_opts"
+            soc_test_opt="$cfg_test_opt"
+        fi
+
+         # determine the target
+        if [ "$cmd_target" != "" ]; then
+            target="$cmd_target"
+        else
+            if [ "$soc_target" != "" ]; then
+                target="$soc_target"
+            else
+                target="$glbl_target"
+            fi
+        fi
+         # make sure we have a target
+        if [ "$target" == "" ]; then
+            echo Error: target not specified \(rdb, qds, etc\)
+            exit 1
+        fi
+    fi
+
+    if [ "$target" == "clean" ]; then
+        action=cleaning
+
+        if [ "$tools_cleaned" == "false" ]; then
+         cd ./tools
+         make clean >> ../bldlog.txt
+         cd - >> ../bldlog.txt
+            tools_cleaned="true"
+        fi
+
+         # change into the soc directory
+        cd soc-$device
+
+        if [ "$persona" == "base" ]; then
+            trailer=""
+        else
+            trailer=":$persona"
+        fi
+        echo $action soc-$device$trailer
+        make -j24 $target personality=$persona >> ../bldlog.txt
+
+    else
+        action=building
+
+         # see if there is a platform-level config file
+        targ_name="${target/"-fit"}"
+        cfg_plat="./soc-$device/platform-$targ_name/sec_config.txt"
+        if [ -e "$cfg_plat" ]; then
+
+             # parse the config file
+            getInputs "$cfg_plat"
+
+             # Note: device and target parameters in platform-level
+             #       config are ignored
+
+             # save the platform-level config values
+            plat_bld_mode="$cfg_bld_mode"
+            plat_make_opts="$cfg_make_opts"
+            plat_bld_opts="$cfg_bld_opts"
+            plat_test_opt="$cfg_test_opt"
+        fi
+
+         # the order of precedence for args is:
+         #   (1) cmd-line
+         #   (2) platform config file
+         #   (3) soc config file
+         #   (4) global config file
+         # apply the args in that order:
+
+         # first, apply the cmd-line args
+        bld_mode="$cmd_bld_mode"
+        bld_opts="$cmd_bld_opts"
+        make_opts="$cmd_make_opts"
+        test_opt="$cmd_test_opt"
+
+        if [ "$bld_mode" == "" ]; then
+            if [ "$plat_bld_mode" != "" ]; then
+                bld_mode="$plat_bld_mode"
+            else
+                if [ "$soc_bld_mode" != "" ]; then
+                    bld_mode="$soc_bld_mode"
+                else
+                    if [ "$glbl_bld_mode" != "" ]; then
+                        bld_mode="$glbl_bld_mode"
+                    fi
+                fi
+            fi
+        fi
+
+        if [ "$bld_opts" == "" ]; then
+            if [ "$plat_bld_opts" != "" ]; then
+                bld_opts="$plat_bld_opts"
+            else
+                if [ "$soc_bld_opts" != "" ]; then
+                    bld_opts="$soc_bld_opts"
+                else
+                    if [ "$glbl_bld_opts" != "" ]; then
+                        bld_opts="$glbl_bld_opts"
+                    fi
+                fi
+            fi
+        fi
+
+        if [ "$make_opts" == "" ]; then
+            if [ "$plat_make_opts" != "" ]; then
+                make_opts="$plat_make_opts"
+            else
+                if [ "$soc_make_opts" != "" ]; then
+                    make_opts="$soc_make_opts"
+                else
+                    if [ "$glbl_make_opts" != "" ]; then
+                        make_opts="$glbl_make_opts"
+                    fi
+                fi
+            fi
+        fi
+
+        if [ "$test_opt" == "" ]; then
+            if [ "$plat_test_opt" != "" ]; then
+                test_opt="$plat_test_opt"
+            else
+                if [ "$soc_test_opt" != "" ]; then
+                    test_opt="$soc_test_opt"
+                else
+                    if [ "$glbl_test_opt" != "" ]; then
+                        test_opt="$glbl_test_opt"
+                    fi
+                fi
+            fi
+        fi
+
+        if [ "$bld_mode" == "dev" ]; then
+            bld_mode=development
+        fi
+        if [ "$bld_mode" != "development" ]; then
+            bld_mode=production
+             # remove restricted options
+            bld_opts=${bld_opts/" uart=on"}
+            bld_opts=${bld_opts/" uart=off"}
+            bld_opts=${bld_opts/" uart"}
+            make_opts=${make_opts/" uart=on"}
+            make_opts=${make_opts/" uart=off"}
+        else
+            bld_opts=${bld_opts/" uart=off"}
+            make_opts=${make_opts/" uart=off"}
+        fi
+
+        if [ "$tools_built" == "false" ]; then
+         cd ./tools
+         make -j24  >> ../bldlog.txt
+         cd - >> ../bldlog.txt
+            tools_built="true"
+        fi
+
+         # change into the soc directory
+        cd soc-$device
+
+        if [ "$persona" == "base" ]; then
+            trailer=""
+        else
+            trailer=":$persona"
+        fi
+
+        echo $action $bld_mode $target [$bld_opts $test_opt ] $device$trailer
+        #echo $action $bld_mode $target [$make_opts $test_opt ] $device$trailer
+        echo >> ../bldlog.txt
+        echo $action $bld_mode $target [$make_opts $test_opt ] $device$trailer >> ../bldlog.txt
+
+        make -j24 $target $make_opts $test_opt personality=$persona >> ../bldlog.txt
+    fi
+    cd ..
+
+
     shift 1
 done
 
