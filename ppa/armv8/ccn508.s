@@ -97,7 +97,6 @@
  // uses x0, x1, x2, x3, x4, x5, x6, x7
 _init_interconnect:
 
-#if 0
      // terminate the pos barriers in sa_aux_ctl reg
     mov  x1, #L3_BASE_HNI
     ldr  x0, [x1, #SA_AUX_CTRL_OFFSET]
@@ -167,7 +166,6 @@ poll_hnf_sdcr:
     add  x1, x1, #HNF_NODE_OFFSET
     subs x7, x7, #1
     b.ne 2b  
-#endif
 
     ret
 
