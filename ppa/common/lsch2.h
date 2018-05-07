@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2016, NXP Semiconductors
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -69,6 +69,7 @@
 #define  OCRAM_INIT_RETRY    0x2000
 #define  OCRAM_REGION_LOWER  0
 #define  OCRAM_REGION_UPPER  1
+#define  OCRAM_REGION_ALL    2
 #define  TOP_OF_OCRAM        ((OCRAM_BASE_ADDR + OCRAM_SIZE_IN_BYTES) - 1)
 
  // register offsets

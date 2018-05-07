@@ -1746,7 +1746,7 @@ _soc_init_start:
     bl  _init_task_flags   // 0-1
 
      // save start address
-    bl   _soc_get_start_addr   // 0-2
+    bl  _soc_get_start_addr   // 0-2
     mov  x1, x0
     mov  x0, #BOOTLOC_OFFSET
     bl   _set_global_data
@@ -1756,36 +1756,20 @@ _soc_init_start:
     cbz x0, 1f
      // initialize the OCRAM for ECC
 
-     // get a secondary core to initialize the upper half of ocram
+     // get a secondary core to initialize ocram
     bl  _find_core      // 0-4
     cbz x0, 2f
-    bl  init_task_1     // 0-4   
-5:
+    bl  init_task_1     // 0-5   
+3:
      // wait til task 1 has started
-    bl  _get_task1_start // 0-1
-    cbnz x0, 4f
-    b    5b
-4:
-     // get a secondary core to initialize the lower
-     // half of ocram
-    bl  _find_core      // 0-4
-    cbz x0, 3f
-    bl  init_task_2     // 0-4
-6:
-     // wait til task 2 has started
-    bl  _get_task2_start // 0-1
-    cbnz x0, 7f
-    b    6b
+    bl   _get_task1_start // 0-1
+    cbz  x0, 3b
+    b    4f
 2:
      // there are no secondary cores available, so the
-     // boot core will have to init upper ocram
-    bl  _ocram_init_upper // 0-10
-3:
-     // there are no secondary cores available, so the
-     // boot core will have to init lower ocram
-    bl  _ocram_init_lower // 0-10
-    b   1f
-7:
+     // boot core will have to init ocram
+    bl  _ocram_init // 0-10
+4:
      // clear bootlocptr
     mov  x0, xzr
     bl    _soc_set_start_addr
@@ -1805,41 +1789,19 @@ _soc_init_finish:
 
      // are we initializing ocram?
     ldr x0, =POLICY_USING_ECC
-    cbz x0, 4f
+    cbz x0, 2f
 
      // if the ocram init is not completed, wait til it is
 1:
     bl   _get_task1_done
-    cbnz x0, 2f
-    wfe
-    b    1b    
+    cbz  x0, 1b
+
 2:
-    bl   _get_task2_done
-    cbnz x0, 3f
-    wfe
-    b    2b    
-3:
-     // set the task 1 core state to IN_RESET
-    bl   _get_task1_core
-    cbz  x0, 5f
-     // x0 = core mask lsb of the task 1 core
-    mov  x1, #CORE_STATE_DATA
-    mov  x2, #CORE_WFE
-    bl   _setCoreData
-5:
-     // set the task 2 core state to IN_RESET
-    bl   _get_task2_core
-    cbz  x0, 4f
-     // x0 = core mask lsb of the task 2 core
-    mov  x1, #CORE_STATE_DATA
-    mov  x2, #CORE_WFE
-    bl   _setCoreData
-4:
      // restore bootlocptr
     mov  x0, #BOOTLOC_OFFSET
     bl   _get_global_data
      // x0 = saved start address
-    bl    _soc_set_start_addr
+    bl   _soc_set_start_addr
 
     mov   x30, x4
     ret
@@ -2014,7 +1976,7 @@ write_reg_ddr:
 //-----------------------------------------------------------------------------
 
  // this is soc initialization task 1
- // this function releases a secondary core to init the upper half of OCRAM
+ // this function releases a secondary core
  // in:  x0 = core mask lsb of the secondary core to put to work
  // out: none
  // uses x0, x1, x2, x3, x4, x5
@@ -2022,49 +1984,17 @@ init_task_1:
     mov  x5, x30
     mov  x4, x0
 
-     // set the core state to WORKING_INIT
-    mov  x1, #CORE_STATE_DATA
-    mov  x2, #CORE_WORKING_INIT
-    bl   _setCoreData
+     // x0 = core mask lsb
+     // x4 = core mask lsb
 
      // save the core mask
-    mov  x0, x4
     bl   _set_task1_core
 
      // load bootlocptr with start addr
-    adr  x0, _prep_init_ocram_hi
+    adr  x0, _prep_ocram_init
     bl   _soc_set_start_addr
 
-     // release secondary core
-    mov  x0, x4
-    bl  _soc_core_release
-
-    mov  x30, x5
-    ret
-
-//-----------------------------------------------------------------------------
-
- // this is soc initialization task 2
- // this function releases a secondary core to init the lower half of OCRAM
- // in:  x0 = core mask lsb of the secondary core to put to work
- // out: none
- // uses x0, x1, x2, x3, x4, x5
-init_task_2:
-    mov  x5, x30
-    mov  x4, x0
-
-     // set the core state to WORKING_INIT
-    mov  x1, #CORE_STATE_DATA
-    mov  x2, #CORE_WORKING_INIT
-    bl   _setCoreData
-
-     // save the core mask
-    mov  x0, x4
-    bl   _set_task2_core
-
-     // load bootlocptr with start addr
-    adr  x0, _prep_init_ocram_lo
-    bl   _soc_set_start_addr
+     // x4 = core mask lsb
 
      // release secondary core
     mov  x0, x4
