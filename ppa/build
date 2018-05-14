@@ -52,7 +52,7 @@ spd=on spd=off data_in_ddr data_in_ddr=on data_in_ddr=off sd sd=on sd=off \
 plat=rdb plat=qds fuse fuse=on fuse=off"
 
 option_test="smp_boot hotplug suspend off_abort aarch32 cpu_errata speed_boot \
-sd pre_disa53 pre_disa72 smc11 spd sys_off"
+sd pre_disa53 pre_disa72 smc11 spd sys_off reset"
 
  # these options are restricted to development builds only
 option_rest="uart uart=on uart=off"

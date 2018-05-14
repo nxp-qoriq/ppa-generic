@@ -89,6 +89,7 @@
 .equ  TICKS_PER_100_USEC,     1200
 .equ  TICKS_PER_200_USEC,     2400
 .equ  TICKS_PER_300_USEC,     3600
+.equ  TICKS_PER_333_USEC,     4000
 
 //-----------------------------------------------------------------------------
 
@@ -342,7 +343,7 @@ reset_pstate:
  // uses x0, x1, x2, x3, x4, x5, x6, x7
 poll_L3_pstate:
      // load the timer value reg with the timeout tick count
-    mov x3, #TICKS_PER_100_USEC
+    mov x3, #TICKS_PER_333_USEC
     msr cntps_tval_el1, x3
 
      // enable the secure timer
