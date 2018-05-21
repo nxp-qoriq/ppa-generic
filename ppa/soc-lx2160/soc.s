@@ -627,33 +627,24 @@ _soc_core_phase2_clnup:
  // out: x0 = [PSCI_SUCCESS | PSCI_INTERNAL_FAILURE | PSCI_NOT_SUPPORTED]
  // uses: x0, x1, x2, x3, x4, x5, x6
 _soc_sys_reset:
-    mov  x3, x30
+    mov  x6, x30
 
-     // make sure the mask is cleared in the reset request mask register
-    mov  x0, #RST_RSTRQMR1_OFFSET
-    mov  w1, wzr
-    bl   _write_reg_reset
-
-     // set the reset request
-    mov  x4, #RST_RSTCR_OFFSET
-    mov  x0, x4
-    mov  w1, #RSTCR_RESET_REQ
-    bl   _write_reg_reset
-
-     // x4 = RST_RSTCR_OFFSET
+     // initiate the sw reset request
+    mov  w0, #SW_RST_REQ_INIT
+    ldr  x2, =SCFG_BASE_ADDR
+    str  w0, [x2, #RSTCNTL_OFFSET]
 
      // just in case this address range is mapped as cacheable,
      // flush the write out of the dcaches
-    mov  x2, #RESET_BASE_ADDR
-    add  x2, x2, x4
+    add  x2, x2, #RSTCNTL_OFFSET
     dc   cvac, x2
     dsb  st
     isb
 
      // now poll on the status bit til it goes high
-    mov  x5, #RST_RSTRQSR1_OFFSET
+    mov  x3, #RESET_RETRY_CNT
     mov  x4, #RSTRQSR1_SWRR
-    mov  x6, #RESET_RETRY_CNT
+    mov  x5, #RST_RSTRQSR1_OFFSET
 1:
     mov  x0, x5
     bl   _read_reg_reset
@@ -663,14 +654,14 @@ _soc_sys_reset:
     b.ne 2f
 
      // decrement retry count and test
-    sub  x6, x6, #1
-    cmp  x6, xzr
+    sub  x3, x3, #1
+    cmp  x3, xzr
     b.ne 1b
 
      // signal failure and return
     ldr  x0, =PSCI_INTERNAL_FAILURE
 2:
-    mov  x30, x3
+    mov  x30, x6
     ret
 
 //-----------------------------------------------------------------------------

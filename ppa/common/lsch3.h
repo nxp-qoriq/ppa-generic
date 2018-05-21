@@ -56,7 +56,7 @@
 #define SEC_REGFILE_BASE_ADDR 0x01E88000
 #define SCFG_BASE_ADDR        0x01E88000
 #define PMU_BASE_ADDR         0x01E30000
-#define ESDHC_BASE_ADDR         0x02140000
+#define ESDHC_BASE_ADDR       0x02140000
 #define SFP_BASE_ADDR         0x01E80000
 
  // OCRAM
@@ -87,8 +87,10 @@
 #define RST_RSTRQSR1_OFFSET   0x18
 #define BRR_OFFSET            0x60
 
- // secure register file offsets
+ // secure register file offsets and bit masks
 #define CORE_HOLD_OFFSET      0x140
+#define RSTCNTL_OFFSET        0x180
+#define SW_RST_REQ_INIT       0x1
 
  // secmon register offsets and bitfields
 #define SECMON_HPCOMR_OFFSET  0x4
