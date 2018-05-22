@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 // 
 // Copyright (c) 2016, Freescale Semiconductor, Inc. All rights reserved.
-// Copyright 2017 NXP Semiconductor
+// Copyright 2017-2018 NXP Semiconductor
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -106,6 +106,7 @@
 #define  CPUACTLR_DIS_SBP_MASK     0x400000000
 #define  CPUACTLR_DIS_BTB_MASK     0x8
 #define  CPUACTLR_DIS_INP_MASK     0x10
+#define  CPUACTLR_DIS_LD_PASS_ST   0x20000000000000
  // A53 CPUACTLR defines
 #define  CPUACTLR_L1PCTL_MASK      0x0000E000
 #define  CPUACTLR_L1PCTL_EN_5      0xA000
