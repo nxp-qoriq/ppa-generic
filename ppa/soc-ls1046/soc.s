@@ -1176,13 +1176,18 @@ _soc_init_finish:
  // out:  none
  // uses 
 _set_platform_security:
-
-#if (!SIMULATOR_BUILD) && (CNFG_SPD)
     mov x8, x30
+
+#if (!SUPPRESS_TZC) && (CNFG_SPD)
     bl arm_tzc400_setup
-    mov  x30, x8
 #endif
 
+#if (!SUPPRESS_SEC)
+     // initialize secmon
+    bl  initSecMon
+#endif
+
+    mov  x30, x8
     ret
 
 //-----------------------------------------------------------------------------
@@ -1190,7 +1195,14 @@ _set_platform_security:
  // this function makes any needed soc-specific configuration changes when boot
  // services end
 _soc_exit_boot_svcs:
+    mov  x10, x30
 
+#if (!SUPPRESS_SEC)
+     // reset secmon
+    bl  resetSecMon
+#endif
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------

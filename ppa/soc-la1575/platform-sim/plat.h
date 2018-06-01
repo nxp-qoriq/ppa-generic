@@ -36,10 +36,4 @@
 #define __LA1575SIM_PLAT_H__
 
 
- // set to '1' to suppress accessing the crypto accelerator
-#define SUPPRESS_SEC 1
- // set to '1' to suppress accessing the tzc
-#define SUPPRESS_TZC 1
-
-
 #endif /* __LA1575SIM_PLAT_H__ */

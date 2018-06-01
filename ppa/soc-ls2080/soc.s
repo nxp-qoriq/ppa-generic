@@ -1153,12 +1153,19 @@ init_task_2:
 _set_platform_security:
     mov  x8, x30
 
+#if (!SUPPRESS_TZC)
      // initialize the tzasc
      // tzasc is missing from LS2080
      //bl   init_tzasc
 
      // initialize the tzpc
     bl   init_tzpc
+#endif
+
+#if (!SUPPRESS_SEC)
+     // initialize secmon
+    bl  initSecMon
+#endif
 
      //   configure secure interrupts
 
@@ -1172,7 +1179,14 @@ _set_platform_security:
  // this function makes any needed soc-specific configuration changes when boot
  // services end
 _soc_exit_boot_svcs:
+    mov  x10, x30
 
+#if (!SUPPRESS_SEC)
+     // reset secmon
+    bl  resetSecMon
+#endif
+
+    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------

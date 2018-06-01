@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2015-2016, Freescale Semiconductor, Inc.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -37,6 +37,14 @@
 #define	_POLICY_H
 
  // the following defines affect the PLATFORM SECURITY POLICY
+
+ // set to '1' to suppress accessing the crypto accelerator
+ // NOTE: THIS WILL LOWER THE SECURITY CAPABILITIES OF THE PLATFORM
+#define SUPPRESS_SEC    1
+
+ // set to '1' to suppress initializing the tzpc and the tzasc
+ // NOTE: THIS WILL LOWER THE SECURITY CAPABILITIES OF THE PLATFORM
+#define SUPPRESS_TZC    0
 
  // set this to 0x0 if secure instruction fetch from non-secure memory is allowed
  // set this to 0x1 if secure instruction fetch from non-secure memory is prohibited

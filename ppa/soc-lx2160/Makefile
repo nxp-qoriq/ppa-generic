@@ -67,51 +67,75 @@ ifeq ($(MAKECMDGOALS), sim_bin)
     PLAT_PATH=platform-sim
 else
 
-# ifeq ($(MAKECMDGOALS), rdb)
-#     PLAT_PATH=platform-rdb
-# else
-# ifeq ($(MAKECMDGOALS), rdb_out)
-#     PLAT_PATH=platform-rdb
-# else
-# ifeq ($(MAKECMDGOALS), rdb_bin)
-#     PLAT_PATH=platform-rdb
-# else
-# ifeq ($(MAKECMDGOALS), rdb-fit)
-#     PLAT_PATH=platform-rdb
-# else
-# ifeq ($(MAKECMDGOALS), rdb_fit_out)
-#     PLAT_PATH=platform-rdb
-# else
-# ifeq ($(MAKECMDGOALS), rdb_fit_bin)
-#     PLAT_PATH=platform-rdb
-# else
+ifeq ($(MAKECMDGOALS), rdb)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb_out)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb_bin)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb-fit)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb_fit_out)
+    PLAT_PATH=platform-rdb
+else
+ifeq ($(MAKECMDGOALS), rdb_fit_bin)
+    PLAT_PATH=platform-rdb
+else
+
+ifeq ($(MAKECMDGOALS), qds)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds_out)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds_bin)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds-fit)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds_fit_out)
+    PLAT_PATH=platform-qds
+else
+ifeq ($(MAKECMDGOALS), qds_fit_bin)
+    PLAT_PATH=platform-qds
+else
 
 ifeq ($(MAKECMDGOALS), emu)
-    PLAT_PATH=platform-emu
+   PLAT_PATH=platform-emu
 else
 ifeq ($(MAKECMDGOALS), emu_out)
-    PLAT_PATH=platform-emu
+   PLAT_PATH=platform-emu
 else
 ifeq ($(MAKECMDGOALS), emu_bin)
-    PLAT_PATH=platform-emu
+   PLAT_PATH=platform-emu
 else
 ifeq ($(MAKECMDGOALS), emu-fit)
-    PLAT_PATH=platform-emu
+   PLAT_PATH=platform-emu
 else
 ifeq ($(MAKECMDGOALS), emu_fit_out)
-    PLAT_PATH=platform-emu
+   PLAT_PATH=platform-emu
 else
 ifeq ($(MAKECMDGOALS), emu_fit_bin)
-    PLAT_PATH=platform-emu
+   PLAT_PATH=platform-emu
 else
-
   $(error -> Platform '$(MAKECMDGOALS)' not supported!)
-# endif
-# endif
-# endif
-# endif
-# endif
-# endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
 endif
 endif
 endif

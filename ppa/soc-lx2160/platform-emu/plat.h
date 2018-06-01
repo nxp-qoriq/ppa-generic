@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -32,8 +32,8 @@
 // 
 //-----------------------------------------------------------------------------
 
-#ifndef __LX2160ARDB_DDR_H__
-#define __LX2160ARDB_DDR_H__
+#ifndef __LX2160A_PLAT_H__
+#define __LX2160A_PLAT_H__
 
 
 #ifndef __ASSEMBLER__
@@ -109,11 +109,6 @@ enum ifc_ftims {
 };
 
 #endif
-
- // set to '1' to suppress accessing the crypto accelerator
-#define SUPPRESS_SEC    1
- // set to '1' to suppress accessing the tzc
-#define SUPPRESS_TZC    1
 
 #define CSPR_PORT_SIZE_16	0x00000100
 #define CSPR_PORT_SIZE_8	0x00000080
@@ -214,4 +209,4 @@ enum ifc_ftims {
 #define UART_BASE	0x21c0600
 #define UART_BAUD_DIV	190     /* 115200 from 700MHz plat clk */
 
-#endif /* __LX2160ARDB_DDR_H__ */
+#endif /* __LX2160A_PLAT_H__ */

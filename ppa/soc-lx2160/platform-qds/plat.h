@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -32,8 +32,11 @@
 // 
 //-----------------------------------------------------------------------------
 
-#ifndef __LX2160AQDS_DDR_H__
-#define __LX2160AQDS_DDR_H__
+#ifndef __LX2160A_PLAT_H__
+#define __LX2160A_PLAT_H__
+
+
+#ifndef __ASSEMBLER__
 
 struct board_specific_parameters {
 	unsigned int n_ranks;
@@ -50,6 +53,7 @@ struct board_specific_parameters {
  * specific parameters. datarate_mhz_high values need to be in ascending order
  * for each n_ranks group.
  */
+
 static const struct board_specific_parameters udimm0[] = {
 	/*
 	 * memory controller 0
@@ -57,9 +61,9 @@ static const struct board_specific_parameters udimm0[] = {
 	 * ranks| mhz| GB  |adjst| start |   ctl2    |  ctl3
 	 */
 	{2,  1350, 0, 8,     6, 0x0708090B, 0x0C0D0E09,},
-	{2,  1666, 0, 8,     7, 0x08090A0C, 0x0D0F100B,},
-	{2,  1900, 0, 8,     7, 0x09090B0D, 0x0E10120B,},
-	{2,  2300, 0, 8,     8, 0x090A0C0F, 0x1012130C,},
+	{2,  1666, 0, 10,    9, 0x090A0B0E, 0x0F11110C,},
+	{2,  1900, 0, 11,  0x9, 0x0A0B0D10, 0x1113130E,},
+	{2,  2300, 0, 12,  0xB, 0x0C0D0F12, 0x14161610,},
 	{}
 };
 
@@ -85,6 +89,26 @@ static const struct board_specific_parameters *rdimms[] = {
 	rdimm0,
 	rdimm0,
 };
+
+enum ifc_chip_sel {
+        IFC_CS0,
+        IFC_CS1,
+        IFC_CS2,
+        IFC_CS3,
+        IFC_CS4,
+        IFC_CS5,
+        IFC_CS6,
+        IFC_CS7,
+};
+
+enum ifc_ftims {
+        IFC_FTIM0,
+        IFC_FTIM1,
+        IFC_FTIM2,
+        IFC_FTIM3,
+};
+
+#endif
 
 #define CSPR_PORT_SIZE_16	0x00000100
 #define CSPR_PORT_SIZE_8	0x00000080
@@ -182,25 +206,7 @@ static const struct board_specific_parameters *rdimms[] = {
 				| CSPR_V)
 #define CONFIG_SYS_CSPR3_EXT	0
 
-#define UART_BASE	0x21c0500
+#define UART_BASE	0x21c0600
 #define UART_BAUD_DIV	190     /* 115200 from 700MHz plat clk */
 
-enum ifc_chip_sel {
-        IFC_CS0,
-        IFC_CS1,
-        IFC_CS2,
-        IFC_CS3,
-        IFC_CS4,
-        IFC_CS5,
-        IFC_CS6,
-        IFC_CS7,
-};
-
-enum ifc_ftims {
-        IFC_FTIM0,
-        IFC_FTIM1,
-        IFC_FTIM2,
-        IFC_FTIM3,
-};
-
-#endif /* __LX2160AQDS_DDR_H__ */
+#endif /* __LX2160A_PLAT_H__ */
