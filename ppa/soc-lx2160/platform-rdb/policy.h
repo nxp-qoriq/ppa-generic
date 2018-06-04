@@ -37,6 +37,10 @@
 
  // the following defines affect the PLATFORM SECURITY POLICY
 
+ // set to '1' to suppress static spectre v4 mitigation (disable load-pass-store)
+ // NOTE: THIS WILL LOWER THE SECURITY CAPABILITIES OF THE PLATFORM
+#define SUPPRESS_SPECTREV4   0
+
  // set to '1' to suppress accessing the crypto accelerator
  // NOTE: THIS WILL LOWER THE SECURITY CAPABILITIES OF THE PLATFORM
 #define SUPPRESS_SEC    0

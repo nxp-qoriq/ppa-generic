@@ -166,20 +166,24 @@ _apply_cpu_errata:
 
 2:   // apply a57 errata ------------------------
 
+#if (!SUPPRESS_SPECTREV4)
      // mitigation for Spectre v4 - disable load-pass-store
     mrs   x0, CPUACTLR_EL1
     orr   x0, x0, #CPUACTLR_DIS_LD_PASS_ST    
     msr   CPUACTLR_EL1, x0
     isb
+#endif
     b     4f
 
 3:   // apply a72 errata ------------------------
 
+#if (!SUPPRESS_SPECTREV4)
      // mitigation for Spectre v4 - disable load-pass-store
     mrs   x0, CPUACTLR_EL1
     orr   x0, x0, #CPUACTLR_DIS_LD_PASS_ST    
     msr   CPUACTLR_EL1, x0
     isb
+#endif
 
      // see if this core is marked for prefetch disable
     mov   x0, #PREFETCH_DIS_OFFSET
