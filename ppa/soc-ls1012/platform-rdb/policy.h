@@ -40,11 +40,11 @@
 
  // set to '1' to suppress accessing the crypto accelerator
  // NOTE: THIS WILL LOWER THE SECURITY CAPABILITIES OF THE PLATFORM
-#define SUPPRESS_SEC    1
+#define SUPPRESS_SEC    0
 
  // set to '1' to suppress initializing the tzpc and the tzasc
  // NOTE: THIS WILL LOWER THE SECURITY CAPABILITIES OF THE PLATFORM
-#define SUPPRESS_TZC    1
+#define SUPPRESS_TZC    0
 
  // set this to 0x0 if EL2 is Aarch32
  // set this to 0x1 if EL2 is Aarch64

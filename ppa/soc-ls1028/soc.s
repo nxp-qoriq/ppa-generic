@@ -724,11 +724,6 @@ _set_platform_security:
     bl   init_tzpc
 #endif
 
-#if (!SUPPRESS_SEC)
-     // initialize secmon
-    bl  initSecMon
-#endif
-
      //   configure secure interrupts
 
      //   configure EL3 mmu

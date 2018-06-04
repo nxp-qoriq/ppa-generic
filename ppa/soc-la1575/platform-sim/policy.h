@@ -46,7 +46,7 @@
 
  // set to '1' to suppress initializing the tzpc and the tzasc
  // NOTE: THIS WILL LOWER THE SECURITY CAPABILITIES OF THE PLATFORM
-#define SUPPRESS_TZC    0
+#define SUPPRESS_TZC    1
 
  // set this to 0x0 if secure instruction fetch from non-secure memory is allowed
  // set this to 0x1 if secure instruction fetch from non-secure memory is prohibited

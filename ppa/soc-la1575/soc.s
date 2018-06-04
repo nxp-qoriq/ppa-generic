@@ -721,11 +721,6 @@ _set_platform_security:
     bl   init_tzpc
 #endif
 
-#if (!SUPPRESS_SEC)
-     // initialize secmon
-    bl  initSecMon
-#endif
-
      //   configure secure interrupts
 
      //   configure EL3 mmu
@@ -738,14 +733,7 @@ _set_platform_security:
  // this function makes any needed soc-specific configuration changes when boot
  // services end
 _soc_exit_boot_svcs:
-    mov  x10, x30
 
-#if (!SUPPRESS_SEC)
-     // reset secmon
-    bl  resetSecMon
-#endif
-
-    mov  x30, x10
     ret
 
 //-----------------------------------------------------------------------------
