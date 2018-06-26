@@ -100,6 +100,35 @@
  // which is bit 18 of RCWSR27
 #define CLUSTER_3_RCW_BIT  0x40000
 
+ // secure watchdog refresh frame
+#define SWDT_REFRESH_BASE       0x023B0000
+#define SWDT_REFRESH_WRR_OFFSET 0x0
+
+ // secure watchdog control frame
+#define SWDT_CNTRL_BASE       0x023C0000
+#define SWDT_CNTRL_WCS_OFFSET 0x0
+#define SWDT_CNTRL_WOR_OFFSET 0x8
+#define SWDT_CNTRL_WSC_OFFSET 0xFD0
+
+ // secure watchdog bit masks
+#define SWDT_WCS_WDOG_EN    0x1
+#define SWDT_WCS_WDOG_WS0S  0x2
+#define SWDT_WCS_WDOG_WS1S  0x4
+
+ // secure watchdog refresh intervals
+#define SWDT_REFRESH_4_SEC      6
+#define SWDT_REFRESH_3_SEC      5
+#define SWDT_REFRESH_2_SEC      4
+#define SWDT_REFRESH_1_SEC      3
+#define SWDT_REFRESH_HALF_SEC   2
+#define SWDT_REFRESH_QUART_SEC  1
+
+ // timeout intervals
+#define  INTERVAL_2_SEC     2000
+#define  INTERVAL_1_SEC     1000
+#define  INTERVAL_HALF_SEC   500
+#define  INTERVAL_QRTR_SEC   250
+
 //-----------------------------------------------------------------------------
 
 #endif // _SOC_H

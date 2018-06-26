@@ -63,6 +63,12 @@
  // set this to 0x1 if ECC is being used (we have to do some init)
 #define  POLICY_USING_ECC 0x0
 
+ // set to 0 to disable the secure watchdog timer
+#define  POLICY_SWDT_ENABLE 0x1
+ // define the period of the watchdog timer - must be in 1/4 second increments
+ // by milliseconds
+#define SWDT_REFRESH_INTERVAL SWDT_REFRESH_1_SEC
+
  // the following affect system performance
 
  // set this to 0x0 to optimize PCIe write traffic

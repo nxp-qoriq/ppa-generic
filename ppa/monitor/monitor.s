@@ -142,10 +142,10 @@ debug_stop:
     bl   _soc_init_start
 
      // configure GIC
-    bl   _gic_init_common
+    bl   _gic_init_common       <-- setup gic for swdt
     bl   _get_current_mask
     mov  x8, x0
-    bl   _gic_init_percpu
+    bl   _gic_init_percpu       <-- setup core for swdt
 
      // apply any cpu-specific errata workarounds
     mov  x0, x8
@@ -316,6 +316,18 @@ monitor_exit_EL3:
     bl  _manual_L3_flush
 #endif
 
+#if (POLICY_SWDT_ENABLE)
+     // initialize the gic for the secure wdt interrupt
+    bl   _gic_configure_SPI89
+
+     // enable this core to receive the swdt interrupt
+    bl   _get_current_mask
+    bl   _setup_core_for_swdt
+
+     // initialize the secure watchdog timer
+    bl   _swdt_init
+#endif
+
      // invalidate the icache
     ic  iallu
     isb
@@ -333,7 +345,7 @@ monitor_exit_EL3:
     isb
 
      // initialize the Platform Security Policy here
-    bl   _set_platform_security  
+    bl   _set_platform_security 
 
      // restore the LR
     ldr  x30, [sp], #16
@@ -397,6 +409,12 @@ _secondary_exit:
     bl   _set_spsr_4_startup
 
      // x6 = core mask lsb
+
+#if (POLICY_SWDT_ENABLE)
+     // enable this core to receive the swdt interrupt
+    mov  x0, x6
+    bl   _setup_core_for_swdt
+#endif
 
      // get the context id into x0
     mov  x0, x6

@@ -175,6 +175,12 @@ ifeq  ($(test), reset)
     $(info TEST_FILE is $(TEST_FILE))
 endif
 
+ifeq  ($(test), swdt)
+	TEST_PSCI=1
+    TEST_FILE=test_swdt.s
+    $(info TEST_FILE is $(TEST_FILE))
+endif
+
 TEST_ASM=$(TEST_FILE)
 
 # -----------------------------------------------------------------------------

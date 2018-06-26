@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // 
 // Copyright (c) 2015-2016, Freescale Semiconductor, Inc. All rights reserved.
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 // 
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -45,6 +45,7 @@
 
 .global _gic_init_percpu
 .global _gic_init_common
+.global _gic_configure_SPI89
 
 .equ  GICR_ISENABLER0_SGI0,  0x1
 .equ  GICR_WAKER_PROCSLEEP,  0x2
@@ -177,6 +178,7 @@ _gic_init_percpu:
     mrs   x2, ICC_CTLR_EL3
     bic   x2, x2, #ICC_CTLR_EL3_RM
     bic   x2, x2, #ICC_CTLR_EL3_EOIMODE_EL3
+    bic   x2, x2, #ICC_CTLR_EL3_CBPR_EL1S
     orr   x2, x2, #ICC_CTLR_EL3_PMHE
     msr   ICC_CTLR_EL3, x2
 
@@ -188,6 +190,77 @@ _gic_init_percpu:
 
     isb
     mov  x30, x7
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function sets up the gic distributor for a secure SPI89 interrupt
+ // in:  none
+ // out: none
+ // uses x0, x1, x2
+_gic_configure_SPI89:
+
+     // pgm GICD_CTLR - disable secure grp0 
+    mov  x0, #GICD_BASE_ADDR
+    ldr  w1, [x0, #GICD_CTLR_OFFSET]
+    bic  w1, w1, #GICD_CTLR_EN_GRP_0
+    str  w1, [x0, #GICD_CTLR_OFFSET]
+
+     // disable forwarding of int
+    mov  w2, #GIC_SPI_89_MASK
+    str  w2, [x0, #GICD_ICENABLER_2]
+
+    dsb sy
+    isb
+     // poll on RWP til writes complete
+1:
+    ldr  w1, [x0, #GICD_CTLR_OFFSET]
+    tst  w1, #GICD_CTLR_RWP_MASK
+    b.ne 1b
+
+    mov  w2, #GIC_SPI_89_MASK
+     // clear pending state for SPI89
+    str  w2, [x0, #GICD_ICPENDR_2]
+     // deactivate SPI89
+    str  w2, [x0, #GICD_ICACTIVER_2]
+ 
+     // set SPI89 as group 0
+    ldr  w1, [x0, #GICD_IGROUPR_2]
+    bic  w1, w1, #GIC_SPI_89_MASK
+    str  w1, [x0, #GICD_IGROUPR_2]
+    
+     // set SPI89 as secure group 0
+    ldr  w2, [x0, #GICD_IGRPMODR_2]
+    bic  w2, w2, #GIC_SPI_89_MASK
+    str  w2, [x0, #GICD_IGRPMODR_2]
+
+     // set SPI89 priority - highest
+    ldr  w1, [x0, #GICD_IPRIORITYR_22]
+    bic  w1, w1, #GIC_SPI89_PRIORITY_MASK
+    str  w1, [x0, #GICD_IPRIORITYR_22]
+
+     // set the routing for this interrupt
+     // Note: this is a 64-bit register
+    mov  x2, #GIC_IRM_SPI89
+    str  x2, [x0, #GICD_IROUTER89_OFFSET]
+
+     // pgm GICD_CTLR - enable secure grp0 
+    ldr  w1, [x0, #GICD_CTLR_OFFSET]
+    orr  w1, w1, #GICD_CTLR_EN_GRP_0
+    str  w1, [x0, #GICD_CTLR_OFFSET]
+
+     // enable forwarding of int
+    mov  w2, #GIC_SPI_89_MASK
+    str  w2, [x0, #GICD_ISENABLER_2]
+
+    dsb sy
+    isb
+     // poll on RWP til writes complete
+2:
+    ldr  w1, [x0, #GICD_CTLR_OFFSET]
+    tst  w1, #GICD_CTLR_RWP_MASK
+    b.ne 2b
+
     ret
 
 //-----------------------------------------------------------------------------

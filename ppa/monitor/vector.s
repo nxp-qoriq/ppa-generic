@@ -37,7 +37,12 @@
 
 //-----------------------------------------------------------------------------
 
-#include "aarch64.h"
+#if (LSCH == 3)
+#include "lsch3.h"
+#else
+#include "lsch2.h"
+#endif
+
 #include "smc.h"
 
 //-----------------------------------------------------------------------------
@@ -92,7 +97,7 @@ _el3_vector_base:
 
      // FIQ interrupts
   .align 7
-    b  synch_handler
+    b  fiq_handler_s
 
      // serror exceptions
   .align 7
@@ -115,8 +120,7 @@ _el3_vector_base:
      // FIQ interrupts
   .align 7
     EL3_IsolateOnEntry
-    mov  x11, #0x500
-    b    __el3_dead_loop
+    b  fiq_handler_ns
 
      // serror exceptions
   .align 7
@@ -140,8 +144,7 @@ _el3_vector_base:
      // FIQ interrupts
   .align 7
     EL3_IsolateOnEntry
-    mov  x11, #0x700
-    b    __el3_dead_loop
+    b  fiq_handler_ns
 
      // serror exceptions
   .align 7
@@ -175,8 +178,115 @@ synch_handler:
     cmp   w2, #0x13
     b.eq  a32smc_router
 
-     // unhandled exception
+     // unhandled synchronous exception
+    mov  x11, #0x20
     b    __el3_dead_loop
+
+     //------------------------------------------
+
+  .align 2
+ // this is the handler for FIQ taken while executing in non-secure world
+fiq_handler_ns:
+     // save the volatile registers
+     //  save these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    stp   x0, x1, [sp, #-16]!
+    stp   x2, x3, [sp, #-16]!
+    dsb   sy
+    isb
+
+#if (POLICY_SWDT_ENABLE)
+     // check if this is SPI 89
+    mrs  x0, ICC_IAR0_EL1
+    cmp  x0, #ICC_IAR0_INTID_SPI_89
+    b.ne fiq_unhandled_ns
+
+    mov  x3, x30
+    bl   swdt_refresh
+    mov  x30, x3
+#else
+    b    fiq_unhandled_ns
+#endif
+
+     // restore the volatile registers
+     //  access these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    ldp  x2, x3, [sp], #16
+    ldp  x0, x1, [sp], #16
+
+     // perform some isolation tasks on exit
+    EL3_ExitToNS
+    eret
+
+fiq_unhandled_ns:
+     // this is an unhandled fiq - load an error code into x11
+    mov  x11, #0x500
+    b    __el3_dead_loop
+
+     //------------------------------------------
+
+  .align 2
+ // this is the handler for FIQ taken while executing in secure world
+fiq_handler_s:
+     // save the volatile registers
+     //  save these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    stp   x0, x1, [sp, #-16]!
+    stp   x2, x3, [sp, #-16]!
+    dsb   sy
+    isb
+
+#if (POLICY_SWDT_ENABLE)
+     // check if this is SPI 89
+    mrs  x0, ICC_IAR0_EL1
+    cmp  x0, #ICC_IAR0_INTID_SPI_89
+    b.ne fiq_unhandled_s
+
+    mov  x3, x30
+    bl   swdt_refresh
+    mov  x30, x3
+#else
+    b    fiq_unhandled_s
+#endif
+
+     // restore the volatile registers
+     //  access these as pairs of registers to maintain the
+     //  required 16-byte alignment on the stack
+    ldp  x2, x3, [sp], #16
+    ldp  x0, x1, [sp], #16
+
+    eret
+
+fiq_unhandled_s:
+     // this is an unhandled fiq - load an error code into x11
+    mov  x11, #0x300
+    b    __el3_dead_loop
+
+     //------------------------------------------
+
+#if (POLICY_SWDT_ENABLE)
+
+ // this is the handler for the secure watchdog timer interrupt
+swdt_refresh:
+
+     // x0 = INTID of secure wdt interrupt
+
+
+     // Note: Put code here to check on security status of
+     //       system before refreshing secure watchdog timer
+
+
+     // write to the secure watchdog timer refresh register
+    mov  x1, #SWDT_REFRESH_BASE
+    mov  x2, #1
+    str  x2, [x1, #SWDT_REFRESH_WRR_OFFSET]
+
+     // signal end-of-interrupt
+    msr  ICC_EOIR0_EL1, x0
+
+    ret
+
+#endif
 
      //------------------------------------------
 

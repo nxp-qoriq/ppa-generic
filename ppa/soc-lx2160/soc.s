@@ -82,6 +82,9 @@
 .global _get_gic_sgi_base
 .global _soc_exit_boot_svcs
 
+.global _swdt_init
+.global _setup_core_for_swdt
+
 //-----------------------------------------------------------------------------
 
 .equ TZPC_BASE,              0x02200000
@@ -1047,6 +1050,106 @@ _get_gic_sgi_base:
     sub  x2, x2, #1
     b    2b
 1:
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function configures the core for the secure WDT interrupt
+ // in:   x0 = core mask lsb
+ // out: none
+ // uses x0, x1, x2, x3
+_setup_core_for_swdt:
+    mov   x3, x30
+
+     // x0 = core mask lsb
+
+     // FIQ taken to EL3, set SCR_EL3[FIQ]
+    mrs   x1, scr_el3
+    bic   x1, x1, #SCR_IRQ_MASK
+    orr   x1, x1, #SCR_FIQ_MASK
+    msr   scr_el3, x1
+
+     // enable group 0 interrupts at the cpu interface
+    mrs  x2, ICC_IGRPEN0_EL1 
+    orr  x2, x2, #ICC_IGRPEN0_EL1_EN
+    msr  ICC_IGRPEN0_EL1, x2
+
+     // x0 = core mask lsb
+
+    bl   _get_gic_rd_base
+
+     // x0 = gic rd base addr for this core
+
+     // enable group 0 interrupts at the redistributor
+    ldr  w1, [x0, #GICR_CTLR_OFFSET]
+    bic  w1, w1, #GICR_CTLR_DPG0_MASK
+    str  w1, [x0, #GICR_CTLR_OFFSET]
+    dsb sy
+    isb
+
+     // poll on RWP til writes complete
+1:
+    ldr  w2, [x0, #GICD_CTLR_OFFSET]
+    tst  w2, #GICR_CTLR_RWP_MASK
+    b.ne 1b
+
+    mov  x30, x3
+    ret
+
+//-----------------------------------------------------------------------------
+
+ // this function initializes the secure watchdog timer
+ // in:  none
+ // out: none
+ // uses x0, x1, x2
+_swdt_init:
+
+     // make sure system counter is enabled
+    ldr  x1, =TIMER_BASE_ADDR
+    ldr  w0, [x1, #SYS_COUNTER_CNTCR_OFFSET]
+    tst  w0, #SYS_COUNTER_CNTCR_EN
+    b.ne 2f
+    orr  w0, w0, #SYS_COUNTER_CNTCR_EN
+    str  w0, [x1, #SYS_COUNTER_CNTCR_OFFSET]
+2:
+     // enable the core timer and mask timer interrupt
+    mov  x2, #CNTP_CTL_EL0_EN
+    orr  x2, x2, #CNTP_CTL_EL0_IMASK
+    msr  cntp_ctl_el0, x2
+
+     // read cntfrq_el0 to get timer frequency
+    mrs  x0, cntfrq_el0
+
+     // load secure watchdog control frame base address
+    mov  x1, #SWDT_CNTRL_BASE
+
+     // generate wdt period based on desired elapsed time
+#if (SWDT_REFRESH_INTERVAL == SWDT_REFRESH_4_SEC)
+    lsl  x0, x0, #2
+#elif (SWDT_REFRESH_INTERVAL == SWDT_REFRESH_3_SEC)
+    lsl  x2, x0, #1
+    add  x0, x2, x0
+#elif (SWDT_REFRESH_INTERVAL == SWDT_REFRESH_2_SEC)
+    lsl  x0, x0, #1
+#elif (SWDT_REFRESH_INTERVAL == SWDT_REFRESH_1_SEC)
+     // nothing to do here
+#elif (SWDT_REFRESH_INTERVAL == SWDT_REFRESH_HALF_SEC)
+    lsr  x0, x0, #1
+#elif (SWDT_REFRESH_INTERVAL == SWDT_REFRESH_QUART_SEC)
+    lsr  x0, x0, #2
+#else 
+#error "Please specify secure WDT refresh interval in policy.h"
+#endif
+
+     // x1 = secure watchdog control frame base address
+
+     // write the timer refresh count to the secure watchdog offset reg
+    str  w0, [x1, #SWDT_CNTRL_WOR_OFFSET]
+
+     // enable the secure watchdog timer
+    mov  x2, #SWDT_WCS_WDOG_EN
+    str  w2, [x1, #SWDT_CNTRL_WCS_OFFSET]
+
     ret
 
 //-----------------------------------------------------------------------------
