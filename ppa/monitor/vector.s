@@ -291,9 +291,6 @@ swdt_refresh:
      //------------------------------------------
 
 a64smc_router:
-     // mask interrupts
-    msr  DAIFset, #0xF
-
      // test bit [31] - must be '1' for "fast-calls"
     tst   x0, #SMC_FAST_CALL_BIT
 #if (CNFG_SPD)
@@ -362,8 +359,6 @@ a32smc_router:
     b.ne  _smc_unimplemented
 
      // smc32 interface called from aarch32
-     // mask interrupts
-    msr  DAIFset, #0xF
 
      // restore the volatile registers
      //  access these as pairs of registers to maintain the

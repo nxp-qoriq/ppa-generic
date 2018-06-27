@@ -46,6 +46,7 @@
 #define  SPSR_EL3        0xC
 #define  SPSR_EL3_M4     0x10
 #define  SPSR_EL3_M4_32  0x10
+#define  SPSR_EL3_F      0x40
 
 #define  SPSR32_E_MASK          0x200
 #define  SPSR32_E_BE            0x200

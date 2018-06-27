@@ -38,6 +38,7 @@
 
 #include "soc.h"
 #include "psci.h"
+#include "aarch64.h"
 
 //-----------------------------------------------------------------------------
 
@@ -93,23 +94,38 @@ _test_psci:
     isb
     nop
 
+    bl  check_fiq_mask_01
     bl  runTest01
+    bl  check_fiq_mask_02
     
 cpu_0_stop:
-    b  cpu_0_stop
+    b .
 
+cpu_0_fiq_err_01:
+    b .
+
+cpu_0_fiq_err_02:
+    b .
+
+cpu_1_start:
+    bl  check_fiq_mask_03
 cpu_1_spin:
-    b cpu_1_spin
+    b .
 
+cpu_2_start:
+    bl  check_fiq_mask_03
 cpu_2_spin:
-    b cpu_2_spin
+    b .
+
+cpu_fiq_err:
+    b .
 
 runTest01:
     // execute PSCI_CPU_ON
 
     // (Core 1)     
     ldr  w1, =MPIDR_CORE_1
-    adr  x2, cpu_1_spin
+    adr  x2, cpu_1_start
     ldr  w3, =CONTEXT_CORE_1
     ldr  w0, =PSCI64_CPU_ON_ID
     smc  0x0
@@ -121,7 +137,7 @@ runTest01:
     // (Core 2)
     ldr  w0, =PSCI64_CPU_ON_ID
     ldr  w1, =MPIDR_CORE_2
-    adr  x2, cpu_2_spin
+    adr  x2, cpu_2_start
     ldr  w3, =CONTEXT_CORE_2
     smc  0x0
     nop
@@ -133,5 +149,22 @@ runTest01:
 
     //-------
 
+check_fiq_mask_01:
+    mrs  x0, daif
+    tst  x0, #DAIF_FIQ_BIT
+    b.ne cpu_0_fiq_err_01
+    ret
+
+check_fiq_mask_02:
+    mrs  x0, daif
+    tst  x0, #DAIF_FIQ_BIT
+    b.ne cpu_0_fiq_err_02
+    ret
+
+check_fiq_mask_03:
+    mrs  x0, daif
+    tst  x0, #DAIF_FIQ_BIT
+    b.ne cpu_fiq_err
+    ret
 
 

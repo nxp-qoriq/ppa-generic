@@ -86,9 +86,6 @@ smc32_handler:
      // w8     = indirect result location register
      // w9-w15 = volatile/scratch
 
-     // mask interrupts
-    msr  DAIFset, #0xF
-
      // extract bits 31:24 to see what class of function this is
     and   w9, w0, #SMC_FCLASS_MASK
     lsr   w9, w9, #SMC_FCLASS_SHIFT

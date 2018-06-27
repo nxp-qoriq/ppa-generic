@@ -479,6 +479,10 @@ _set_spsr_4_exit:
     mov  x1, #SPSR32_EL1_BE
 
 5:
+#if (POLICY_SWDT_ENABLE)
+     // unmask the fiq bit so this core can take swdt interrupts
+    bic  x1, x1, #SPSR_EL3_F
+#endif
      // set SPSR_EL3
     msr  spsr_el3, x1
     mov  x0, x2
@@ -537,6 +541,10 @@ _set_spsr_4_startup:
     mov   x0, #SPSR_FOR_EL2H
 
 5:  // set SPSR_EL3
+#if (POLICY_SWDT_ENABLE)
+     // unmask the fiq bit so this core can take swdt interrupts
+    bic  x0, x0, #SPSR_EL3_F
+#endif
     msr  spsr_el3, x0
 
     isb

@@ -82,9 +82,6 @@ smc64_handler:
      // x7     = hypervisor client id
      // x8     = indirect result location register
 
-     // mask interrupts
-    msr  DAIFset, #0xF
-
      // extract bits 31:24 to see what class of function this is
     mov   x9, xzr
     bfxil x9, x0, #24, #8
