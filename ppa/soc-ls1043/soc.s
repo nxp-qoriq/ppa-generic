@@ -1137,8 +1137,7 @@ _soc_sys_off:
 
  // this function resets the system via SoC-specific methods
  // in:  none
- // out: x0 = PSCI_SUCCESS
- //      x0 = PSCI_INTERNAL_FAILURE
+ // out: none
  // uses x0, x1, x2, x3, x4
 _soc_sys_reset:
 
@@ -1166,32 +1165,8 @@ _soc_sys_reset:
     dsb  st
     isb
 
-     // x2 = DCFG_BASE_ADDR
-
-     // now poll on the status bit til it goes high
-    ldr  w3, =RESET_RETRY_CNT
-    ldr  w4, =RSTRQSR1_SWRR
-1:
-    ldr  w0, [x2, #DCFG_RSTRQSR1_OFFSET]
-    rev  w1, w0
-     // see if we have exceeded the retry count
-    cbz  w3, 2f
-     // decrement retry count and test return value
-    sub  w3, w3, #1
-    tst  w1, w4
-    b.eq 1b
-
-     // if the reset occurs, the following code is not expected
-     // to execute.....
-
-     // if we are here then the status bit is set
-    ldr  x0, =PSCI_SUCCESS
-    b    3f
-2:
-     // signal failure and return
-    ldr  x0, =PSCI_INTERNAL_FAILURE
-3:
-    ret
+     // this function does not return
+    b  .
 
 //-----------------------------------------------------------------------------
 

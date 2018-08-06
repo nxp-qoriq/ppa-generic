@@ -1011,7 +1011,7 @@ _soc_core_phase2_clnup:
 
  // this function requests a reset of the entire SOC
  // in:  none
- // out: x0 = [PSCI_SUCCESS | PSCI_INTERNAL_FAILURE | PSCI_NOT_SUPPORTED]
+ // out: none
  // uses: x0, x1, x2, x3, x4, x5, x6
 _soc_sys_reset:
 
@@ -1039,28 +1039,8 @@ _soc_sys_reset:
     dsb  st
     isb
 
-     // now poll on the status bit til it goes high
-    ldr  x5, =RST_RSTRQSR1_OFFSET
-    ldr  x4, =RSTRQSR1_SWRR
-    ldr  x6, =RESET_RETRY_CNT
-1:
-    mov  x0, x5
-    bl   _read_reg_reset
-     // test status bit
-    tst  x0, x4
-    mov  x0, #PSCI_SUCCESS
-    b.ne 2f
-
-     // decrement retry count and test
-    sub  x6, x6, #1
-    cmp  x6, xzr
-    b.ne 1b
-
-     // signal failure and return
-    ldr  x0, =PSCI_INTERNAL_FAILURE
-2:
-    mov  x30, x3
-    ret
+     // this function does not return
+    b  .
 
 //-----------------------------------------------------------------------------
 
