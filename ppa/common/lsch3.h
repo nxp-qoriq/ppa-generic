@@ -58,6 +58,10 @@
 #define PMU_BASE_ADDR         0x01E30000
 #define ESDHC_BASE_ADDR       0x02140000
 #define SFP_BASE_ADDR         0x01E80000
+#define GPIO1_BASE_ADDR       0x02300000
+#define GPIO2_BASE_ADDR       0x02310000
+#define GPIO3_BASE_ADDR       0x02320000
+#define GPIO4_BASE_ADDR       0x02330000
 
  // OCRAM
 #define  OCRAM_BASE_ADDR     0x18000000
@@ -170,6 +174,12 @@
 #define FSL_CHASSIS_RCWSR0_MEM_PLL_RAT_MASK	0x3f
 #define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_SHIFT	18
 #define FSL_CHASSIS_RCWSR0_MEM2_PLL_RAT_MASK	0x3f
+
+ // GPIO Register offset and masks
+#define GPDIR_REG_OFFSET       0x0
+#define GPDAT_REG_OFFSET       0x8
+#define GPIO_SEL_MASK          0x7F
+#define GPIO_BIT_MASK          0x1F
 
 #ifndef __ASSEMBLER__
 

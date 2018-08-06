@@ -51,6 +51,10 @@
 #define SCFG_BASE_ADDR            0x01570000
 #define DCFG_BASE_ADDR            0x01EE0000
 #define RCPM_BASE_ADDR            0x01EE2000
+#define GPIO1_BASE_ADDR           0x02300000
+#define GPIO2_BASE_ADDR           0x02310000
+#define GPIO3_BASE_ADDR           0x02320000
+#define GPIO4_BASE_ADDR           0x02330000
 #define DCSR_RCPM2_BASE           0x20170000
 #define SYS_COUNTER_BASE          0x02b00000
 #define TIMER_BASE_ADDR           0x02B00000
@@ -162,6 +166,12 @@
 #define  CAAM_JR1_OFFSET           0x20000
 #define  CAAM_JR2_OFFSET           0x30000
 #define  CAAM_JR3_OFFSET           0x40000
+
+ // GPIO Register offset and masks
+#define GPDIR_REG_OFFSET       0x0
+#define GPDAT_REG_OFFSET       0x8
+#define GPIO_SEL_MASK          0x7F
+#define GPIO_BIT_MASK          0x1F
 
 
 #define FSL_CHASSIS_RCWSR0			          0x01ee0100

@@ -55,5 +55,8 @@
 #define ERROR_OSPR1_WRITE           0x10
 #define ERROR_SC_ALREADY_BLOWN      0x11
 #define ERROR_SC_WRITE              0x12
+#define ERROR_POVDD_GPIO_FAIL       0x13
+#define ERROR_GPIO_SET_FAIL         0x14
+#define ERROR_GPIO_RESET_FAIL       0x15
 
 #endif // SFP_ERROR_CODES_H

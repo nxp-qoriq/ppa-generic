@@ -53,12 +53,52 @@ static int error_handler(int error_code)
 }
 
  // This function set GPIO pin for raising POVDD.
-static int prog_gpio_povdd(struct fuse_hdr_t *fuse_hdr)
+static int set_gpio_bitnum(uint8_t * gpio_base_addr, uint32_t bit_num)
 {
-     // TODO: Currently our boards doesn't provide any GPIO
-     //       to raise POVDD. So its manual procedure to put
-     //       a jumper on board to enable POVDD for fuse
-     //       provisioning.
+    uint32_t val = 0;
+    uint8_t *gpdir = NULL;
+    uint8_t *gpdat = NULL;
+
+    gpdir = gpio_base_addr + GPDIR_REG_OFFSET;
+    gpdat = gpio_base_addr + GPDAT_REG_OFFSET;
+
+    //Set the corresponding bit in direstion register
+    //to configure the GPIO as output.
+    val = sfp_in32(gpdir);
+    val = val | bit_num;
+    sfp_out32(gpdir, val);
+
+    //Set the corresponding bit in GPIO data register
+    val = sfp_in32(gpdat);
+    val = val | bit_num;
+    sfp_out32(gpdat, val);
+
+    val = sfp_in32(gpdir);
+
+    if (!(val & bit_num))
+	    return ERROR_GPIO_SET_FAIL;
+
+    return 0;
+}
+
+// This function reset GPIO pin set for raising POVDD.
+static int reset_gpio_bitnum(uint8_t * gpio_base_addr, uint32_t bit_num)
+{
+    uint32_t val = 0;
+    uint8_t *gpdir = NULL;
+
+    gpdir = gpio_base_addr + GPDIR_REG_OFFSET;
+
+    //Reset the corresponding bit in direstion register
+    //to configure the GPIO as input.
+    val = sfp_in32(gpdir);
+    val = val & ~(bit_num);
+    sfp_out32(gpdir, val);
+
+    val = sfp_in32(gpdir);
+
+    if (val & bit_num)
+            return ERROR_GPIO_RESET_FAIL;
 
     return 0;
 }
@@ -359,6 +399,10 @@ int provision_fuses(unsigned long long fuse_scr_addr)
     struct fuse_hdr_t *fuse_hdr = NULL;
     struct sfp_ccsr_regs_t *sfp_ccsr_regs = (void *)SFP_FUSE_REGS_ADDR;
     uint32_t sfp_cmd_status = 0;
+    uint32_t povdd_gpio_val = 0;
+    uint32_t gpio_num = 0;
+    uint32_t bit_num = 0;
+    uint8_t *gpio;
     int ret = 0;
 
     fuse_hdr = (struct fuse_hdr_t *)fuse_scr_addr;
@@ -369,9 +413,40 @@ int provision_fuses(unsigned long long fuse_scr_addr)
 
      // Check if GPIO pin to be set for POVDD
     if ((fuse_hdr->flags >> FLAG_POVDD_SHIFT) & 0x1) {
-        ret = prog_gpio_povdd(fuse_hdr);
-        if (ret != 0)
+        //Subtract 1 from fuse_hdr povdd_gpio value as:
+        // for 0x1 value, bit 0 is to be set
+        // for 0x20 value i.e 32, bit 31 i.e. 0x1f is to be set.
+        // 0x1f - 0x00 : GPIO_1
+        // 0x3f - 0x20 : GPIO_2
+        // 0x5f - 0x40 : GPIO_3
+        // 0x7f - 0x60 : GPIO_4
+        povdd_gpio_val = (fuse_hdr->povdd_gpio - 1 ) & GPIO_SEL_MASK;
+
+        // Right shift by 5 to divide by 32
+        gpio_num = povdd_gpio_val >> 5;
+        bit_num = 1 << (31 - (povdd_gpio_val & GPIO_BIT_MASK));
+
+        switch (gpio_num) {
+        case 0:
+            gpio = (uint8_t *)GPIO1_BASE_ADDR;
+            break;
+        case 1:
+            gpio = (uint8_t *)GPIO2_BASE_ADDR;
+            break;
+        case 2:
+            gpio = (uint8_t *)GPIO3_BASE_ADDR;
+            break;
+        case 3:
+            gpio = (uint8_t *)GPIO4_BASE_ADDR;
+            break;
+        default:
+	    ret = ERROR_POVDD_GPIO_FAIL;
             return error_handler(ret);
+        }
+
+        ret = set_gpio_bitnum(gpio, bit_num);
+	if (ret != 0)
+	    return error_handler(ret);
     }
 
      // Check for Write Protect (WP) fuse. If blown then do
@@ -440,6 +515,11 @@ int provision_fuses(unsigned long long fuse_scr_addr)
     if (sfp_cmd_status != 0) {
         return error_handler(ERROR_PROGFB_CMD);
     }
-
+    // Reset the gpio pin set to enable povdd
+    if ((fuse_hdr->flags >> FLAG_POVDD_SHIFT) & 0x1) {
+        ret = reset_gpio_bitnum(gpio, bit_num);
+        if (ret != 0)
+            return error_handler(ret);;
+    }
     return 0;
 }
