@@ -48,7 +48,11 @@
 
 //-----------------------------------------------------------------------------
 
+.global _get_this_core_mask
 .global _get_core_mask_lsb
+.global _get_this_core_num
+.global _get_core_num
+
 .global _get_cluster_state
 .global _core_on_cnt_clstr
 .global _is_mpidr_valid
@@ -70,6 +74,10 @@
  // BRR, COREDISABLEDSR where the LSB represents core0
  //
 #if (SYMMETRICAL_CLUSTERS)
+
+_get_this_core_mask:
+    mrs  x0, mpidr_el1
+
  // This algorithm assumes that all clusters are symmetrical, that
  // each cluster contains the same number of cores. If that is true for
  // this SoC, then this function is appropriate.
@@ -101,6 +109,54 @@ _get_core_mask_lsb:
     add   w1, w1, w2
     mov   w2, #0x1
     lsl   w0, w2, w1
+1:
+    ret
+#else
+     // if the clusters are not symmetrical, then add an appropriate
+     // function in the specific device soc.s file.
+#endif
+
+//-----------------------------------------------------------------------------
+
+ // This function returns the core number associated with the mpidr_el1 value.
+ // the core number is returned in w0.
+ // this bit mask references the core in SoC registers such as
+ // BRR, COREDISABLEDSR where the LSB represents core0
+ //
+#if (SYMMETRICAL_CLUSTERS)
+
+_get_this_core_num:
+    mrs  x0, mpidr_el1
+
+ // This algorithm assumes that all clusters are symmetrical, that
+ // each cluster contains the same number of cores. If that is true for
+ // this SoC, then this function is appropriate.
+ //
+ // in:   x0  - mpidr_el1 value for the core
+ // out:  w0  = core mask (non-zero)
+ //       w0  = -1 for error (bad input mpidr value)
+ // uses x0, x1, x2
+_get_core_num:
+     //
+     // generate a linear number for the core
+     // SoC core = ((cluster * cpu_per_cluster) + core)
+     // mask = (1 << SoC core)
+    mov   w1, wzr
+    mov   w2, wzr
+    bfxil w1, w0, #8, #8  // extract cluster
+    bfxil w2, w0, #0, #8  // extract cpu #
+
+    mvn   w0, wzr
+
+     // error checking
+    cmp   w1, #CLUSTER_COUNT
+    b.ge  1f
+    cmp   w2, #CPU_PER_CLUSTER
+    b.ge  1f
+
+    mov   w0, #CPU_PER_CLUSTER
+    mul   w1, w1, w0
+    add   w0, w1, w2
 1:
     ret
 #else

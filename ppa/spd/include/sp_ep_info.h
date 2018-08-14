@@ -133,7 +133,7 @@ typedef struct sp_vectors {
 
 int sp_setup_n_init(int index, entry_point_info_t *sp_ep_info);
 entry_point_info_t* get_sp_ep_info_list(void);
-int get_curr_core_pos();
+int _get_this_core_num();
 int secure_el1os_enter_sp(uint64_t *c_rt_ctx);
 int secure_el1os_exit_sp(uint64_t c_rt_ctx, uint64_t x1);
 

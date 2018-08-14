@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 //
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -67,7 +67,7 @@ int32_t sp_setup_n_init(int sp_index, entry_point_info_t *sp_ep_info)
     int oen_val_frm_smcfid = 62;
     sp_vectors_t *sp_vector;
 
-    linear_id = get_curr_core_pos();
+    linear_id = _get_this_core_num();
     sp_ctx_t *sp_crnt_core_ctx = &(sp_ctx_per_core[linear_id]);
 
      // Associate this context with the cpu specified
@@ -131,7 +131,7 @@ void smc_trstd_os_handler(uint32_t smc_fid,
     core_context_t *ctx;
 
      // Get core position
-    linear_id = get_curr_core_pos();
+    linear_id = _get_this_core_num();
 
      // Save el1 system registers
     cm_el1_sysregs_context_save(security_state);

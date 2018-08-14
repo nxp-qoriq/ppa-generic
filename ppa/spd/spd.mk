@@ -56,7 +56,7 @@ else
   SPD_HDRS   =
 endif
 
-$(SPD_C): $(SPD_HDRS) src
+$(SPD_C): $(SPD_HDRS) $(COMMON_ASM) src
 	@cp -r "$(SPD_SRC)/src/$@" "$(SRC_DIR)/$@"
 
 $(SPD_ASM): $(SPD_HDRS) src

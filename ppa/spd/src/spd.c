@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 //
-// Copyright 2017 NXP Semiconductors
+// Copyright 2017-2018 NXP Semiconductors
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -72,7 +72,7 @@ int spd_init(unsigned long long addr)
     sp_ep_info_list[0].pc = addr;
 
      // Set pointer to core data for context mgmt
-    linear_id = get_curr_core_pos();
+    linear_id = _get_this_core_num();
     core_data_ptr = (uint64_t)&core_data_array[linear_id];
     write_tpidr_el3(core_data_ptr);
 
@@ -82,7 +82,7 @@ int spd_init(unsigned long long addr)
     }
 
      // Initialize non-secure contex poiter
-    linear_id = get_curr_core_pos();
+    linear_id = _get_this_core_num();
     cm_set_context(&ns_core_context[linear_id], NON_SECURE);
 
      // Non-Secure El1/El2 Payload Entry Point info is NULL.
