@@ -54,7 +54,7 @@
 //-----------------------------------------------------------------------------
 
  // function counts
-.equ  SIP64_FUNCTION_COUNT,  0x5
+.equ  SIP64_FUNCTION_COUNT,  0x6
 .equ  ARCH64_FUNCTION_COUNT, 0x2
 
 //-----------------------------------------------------------------------------
@@ -172,6 +172,11 @@ smc64_sip_svc:
     mov  w10, #SIP_PREFETCH
     cmp  w10, w11
     b.eq smc64_prefetch_disable
+
+     // SIP service call to shift EL2 to Aarch32
+    mov  w10, #SIP_EL2_2_AARCH32
+    cmp  w10, w11
+    b.eq smc64_arch_el2_2_aarch32 
 
     b    _smc_unimplemented 
 

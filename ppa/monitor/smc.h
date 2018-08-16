@@ -152,6 +152,16 @@
 #define  SIP_PREFETCH_DISABLE_64 0xC200FF13
 #define  SIP_PREFETCH            (SIP_PREFETCH_DISABLE_64 & SMC_FNUM_MASK)
 
+ // this function will return to EL2 @ Aarch32
+ // in:  x0 = function id
+ //      x1 = start address for EL2 @ Aarch32
+ //      x2 = first parameter to EL2
+ //      x3 = second parameter to EL2
+ //      x4 = 0, EL2 in LE (little-endian)
+ //      x4 = 1, EL2 in BE (big-endian)
+#define  SIP_EL2_2_AARCH32_ID  0xC200FF17
+#define  SIP_EL2_2_AARCH32     (SIP_EL2_2_AARCH32_ID & SMC_FNUM_MASK)
+
  // this is the 32-bit interface to the HUK function
  // in:  x0 = function id
  //      x1 = 0, Buffer Physical Address of the request HUK.
