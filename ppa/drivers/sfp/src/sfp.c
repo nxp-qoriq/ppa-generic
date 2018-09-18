@@ -245,8 +245,16 @@ static int prog_otpmk(struct fuse_hdr_t *fuse_hdr,
 {
     int i;
     uint32_t otpmk_flags;
-    uint32_t otpmk_random[8];
+    uint32_t *otpmk_random = NULL;
 
+    if (!otpmk_random) {
+        otpmk_random = alloc(32, 64);
+        if (!otpmk_random) {
+            debug("Allocation for Buffer for random bytes failed\n");
+            return -1;
+        }
+    }
+    memset(otpmk_random, 0, sizeof(otpmk_random) * 8);
     otpmk_flags = (fuse_hdr->flags >> (FLAG_OTPMK_SHIFT)) & FLAG_OTPMK_MASK;
 
     switch (otpmk_flags) {
@@ -269,8 +277,7 @@ static int prog_otpmk(struct fuse_hdr_t *fuse_hdr,
                 return ERROR_OTPMK_ALREADY_BLOWN;
 
          // Generate Random number using CAAM for OTPMK
-        memset(otpmk_random, 0, sizeof(otpmk_random));
-        get_rand_bytes_hw((uint8_t *)otpmk_random, sizeof(otpmk_random));
+        get_rand_bytes_hw((uint8_t *)otpmk_random, sizeof(otpmk_random) * 8);
 
          // Run hamming over random no. to make OTPMK
         otpmk_make_code_word_256((uint8_t *)otpmk_random, 0);
@@ -298,8 +305,7 @@ static int prog_otpmk(struct fuse_hdr_t *fuse_hdr,
          // blown.
 
          // Generate Random number using CAAM for OTPMK
-        memset(otpmk_random, 0, sizeof(otpmk_random));
-        get_rand_bytes_hw((uint8_t *)otpmk_random, sizeof(otpmk_random));
+        get_rand_bytes_hw((uint8_t *)otpmk_random, sizeof(otpmk_random) * 8);
 
          // Run hamming over random no. to make OTPMK
         otpmk_make_code_word_256((uint8_t *)otpmk_random, 1);
